@@ -1,57 +1,35 @@
-<?php 
-session_start();
-// 1. SEGURIDAD: Solo admin puede editar
-if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') { 
-    header("Location: index.php"); 
-    exit(); 
-}
-
+<?php
 include("connection.php");
-include("header.php");
 
-// 2. OBTENER DATOS: Buscamos al usuario por su ID
+// 1. ¿A quién vamos a editar? (Viene del enlace de admin_user.php)
 $id = $_GET['id'];
-$sql = "SELECT * FROM usuarios WHERE id = '$id'";
-$query = mysqli_query($conn, $sql);
-$row = mysqli_fetch_array($query);
+
+// 2. Buscamos sus datos actuales
+$sql = "SELECT * FROM usuarios WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc(); // Aquí ya tenemos los datos en $row
 ?>
 
-<div class="container py-5">
-    <div class="card shadow mx-auto" style="max-width: 500px; border-radius: 15px;">
-        <div class="card-header text-white text-center" style="background-color: #1A2B4C;">
-            <h3 class="my-2">Editar Perfil</h3>
-        </div>
-        <div class="card-body p-4">
-            <form action="edit_user.php" method="POST">
-                <input type="hidden" name="id" value="<?= $row['id']?>">
-                
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nombre</label>
-                    <input type="text" class="form-control" name="name" value="<?= $row['name']?>" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Apellidos</label>
-                    <input type="text" class="form-control" name="lastname" value="<?= $row['lastname']?>" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Email</label>
-                    <input type="email" class="form-control" name="email" value="<?= $row['email']?>" required>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Rol en Unideportes</label>
-                    <select name="role" class="form-select">
-                        <option value="colaborador" <?= ($row['role'] == 'colaborador') ? 'selected' : '' ?>>Colaborador</option>
-                        <option value="admin" <?= ($row['role'] == 'admin') ? 'selected' : '' ?>>Administrador</option>
-                    </select>
-                </div>
+<h3>Editar Usuario: <?php echo $row['username']; ?></h3>
 
-                <button type="submit" class="btn btn-lg w-100 text-white fw-bold" style="background-color: #E61E2A; border-radius: 10px;">
-                    GUARDAR CAMBIOS
-                </button>
-                <a href="admin_user.php" class="btn btn-link w-100 text-muted mt-2">Volver atrás</a>
-            </form>
-        </div>
-    </div>
-</div>
+<form action="edit_user.php" method="POST">
+    
+    <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
 
-<?php include("footer.php"); ?>
+    <label>Nombre:</label>
+    <input type="text" name="name" value="<?php echo $row['name']; ?>">
+    
+    <label>Apellido:</label>
+    <input type="text" name="lastname" value="<?php echo $row['lastname']; ?>">
+    
+    <label>Usuario:</label>
+    <input type="text" name="username" value="<?php echo $row['username']; ?>">
+
+    <label>Email:</label>
+    <input type="email" name="email" value="<?php echo $row['email']; ?>">
+
+    <button type="submit">ACTUALIZAR DATOS</button>
+</form>

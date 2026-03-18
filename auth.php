@@ -2,35 +2,37 @@
 include("connection.php");
 session_start();
 
-// 1. LÓGICA PARA CERRAR SESIÓN (Logout)
-// Si el archivo recibe una instrucción de "logout", limpia la sesión y vuelve al index
+//MOTOR DE SALIDA (Logout)
 if (isset($_GET['logout'])) {
     session_destroy();
     header("Location: index.php");
     exit();
 }
 
-// 2. LÓGICA PARA INICIAR SESIÓN (Login)
-if (isset($_POST['username']) && isset($_POST['password'])) {
-    $userForm = trim($_POST['username']);
-    $passForm = trim($_POST['password']);
+//MOTOR DE ENTRADA (Login)
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $userForm = $_POST['username'];
+    $passForm = $_POST['password'];
 
-    // Consulta buscando coincidencia exacta de usuario y clave
-    $sql = "SELECT * FROM usuarios WHERE username = '$userForm' AND password = '$passForm'";
-    $query = mysqli_query($conn, $sql);
+    //Usamos Sentencias Preparadas (El "Escudo")
+    $sql = "SELECT * FROM usuarios WHERE username = ? AND password = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $userForm, $passForm);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($result = mysqli_fetch_array($query)) {
-        // Guardamos los datos clave en la sesión
-        $_SESSION['username'] = $result['username'];
-        $_SESSION['role']     = $result['role'];
-        $_SESSION['nombre']   = $result['name'];
+    if ($row = $result->fetch_assoc()) {
+        //Creamos la "Credencial" (Sesión)
+        $_SESSION['username'] = $row['username'];
+        $_SESSION['role']     = $row['role'];
+        $_SESSION['nombre']   = $row['name'];
 
-        // Redirección según nivel de acceso
-        $folder = ($_SESSION['role'] == 'admin') ? 'admin_user.php' : 'panel_vendedor.php';
-        header("Location: $folder");
+        //¿A dónde va? (Admin o Vendedor)
+        $destino = ($_SESSION['role'] == 'admin') ? 'admin_user.php' : 'panel_vendedor.php';
+        header("Location: $destino");
         exit();
     } else {
-        // Si fallan los datos, regresa al index con el aviso de error
+        //Credenciales falsas
         header("Location: index.php?error=1");
         exit();
     }

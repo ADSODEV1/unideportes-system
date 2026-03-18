@@ -1,22 +1,24 @@
 <?php
 include("connection.php");
 
-// 1. Verificamos que el ID exista en la URL (ej: delete_user.php?id=5)
-if (isset($_GET["id"])) {
-    $id = $_GET["id"];
+//Atrapamos el ID que viene en la URL: delete_user.php?id=5
+$id = $_GET['id'];
 
-    // 2. Ejecutamos la eliminación en la tabla correcta 'usuarios'
-    $sql = "DELETE FROM usuarios WHERE id = '$id'";
-    $query = mysqli_query($conn, $sql);
+//Preparamos la orden de eliminación
+$sql = "DELETE FROM usuarios WHERE id = ?";
+$stmt = $conn->prepare($sql);
 
-    // 3. Redirección con mensaje de confirmación
-    if($query){
-        header("Location: admin_user.php?msj=eliminado");
-    } else {
-        echo "Error al eliminar: " . mysqli_error($conn);
-    }
+//Le pasamos el ID (es un número entero, por eso usamos "i")
+$stmt->bind_param("i", $id);
+
+//Ejecutamos
+if ($stmt->execute()) {
+    // Si funcionó, regresamos a la tabla
+    header("Location: admin_user.php?msj=eliminado");
 } else {
-    // Si alguien entra al archivo sin un ID, lo devolvemos al panel
-    header("Location: admin_user.php");
+    echo "No se pudo eliminar: " . $stmt->error;
 }
+
+$stmt->close();
+$conn->close();
 ?>

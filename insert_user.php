@@ -1,32 +1,46 @@
 <?php
+
 include("connection.php");
 
-// 1. VERIFICACIÓN: Comprobamos que existan los datos enviados
-if (!empty($_POST['name']) && !empty($_POST['username']) && !empty($_POST['password'])) {
-    
-    // 2. RECEPCIÓN: Guardamos los datos en variables
-    $name     = $_POST['name'];
-    $lastname = $_POST['lastname'];
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $email    = $_POST['email'];
-    $role     = $_POST['role']; // ¡Importante recibir el rol!
+if (!empty($_POST['name']) && !empty($_POST
+['username']) && !empty($_POST['password'])) {
 
-    // 3. SQL: Insertamos en la tabla 'usuarios' con los campos exactos
-    $sql = "INSERT INTO usuarios (name, lastname, username, password, email, role) 
-            VALUES ('$name', '$lastname', '$username', '$password', '$email', '$role')";
-    
-    $query = mysqli_query($conn, $sql);
+    //RECEPCIÓN
+    $name       = $_POST['name'];
+    $lastname   = $_POST['lastname'];
+    $username   = $_POST['username'];
+    $password   = $_POST['password'];
+    $email      = $_POST['email'];
+    $rol        = $_POST['rol'];
+ 
+    //CONTRATO SEGURO
+    //Usamos'?' para que SQL se que va un dato y no una orden
 
-    // 4. REDIRECCIÓN: Si funciona, volvemos al panel con éxito
-    if($query){
+    $sql = "INSERT INTO usuarios (name, lastname, username, password, email, rol) 
+    VALUES (?, ?, ?, ?, ?, ?)";
+
+    //PREPARACIÓN CON OBJETO ($conn)
+    $stmt = $conn->prepare($sql);
+
+    //VINCULACIÓN ESCUDO
+    //"ssssss" significa que los 6 campos son Strings (texto)
+
+    $stmt->bind_param("ssssss", $name, $lastname, $username, $password, $email, $rol);
+
+    //EJECUCIÓN
+    if($stmt->execute()){
         header("Location: admin_user.php?msj=ok");
+        exit();
     } else {
-        echo "Error en la BD: " . mysqli_error($conn);
+        echo "Error en la BD: " . $stmt->error;
     }
 
-} else {
-    // Si faltan campos obligatorios
+    //CIERRE
+    $stmt->close();
+    $conn->close();
+
+    } else {
     header("Location: admin_user.php?msj=vacio");
+    exit();
 }
-?>
+?>}

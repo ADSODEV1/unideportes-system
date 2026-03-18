@@ -1,97 +1,45 @@
+/* 1. RESETEO BÁSICO: Para que nada se pegue a los bordes */
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
 }
 
-html {
-    font-family: 'Segoe UI', sans-serif;
+body {
+    font-family: sans-serif;
+    padding: 20px;
     text-align: center;
 }
 
-a{
-    text-decoration: none;
-}
-
-.users-form form{
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    width: 30%;
+/* 2. EL FORMULARIO: Solo para que los inputs no salgan pegados */
+form {
     margin: 20px auto;
-    text-align: center;
+    width: 300px; /* Un ancho fijo para que se vea ordenado */
 }
 
-.users-form form input{
-    font-family: 'Segoe UI', sans-serif;
-}
-
-.users-form form input[type=text],
-.users-form form input[type=password],
-.users-form form input[type=email]{
-    padding: 8px;
-    border:2px solid #aaa;
-    border-radius:4px;
-    outline:none;
-    transition:.3s;
-}
-
-.users-form form input[type=text]:focus,
-.users-form form input[type=password]:focus,
-.users-form form input[type=password]:focus{
-    border-color:dodgerBlue;
-    box-shadow:0 0 6px 0 dodgerBlue;
-}
-
-.users-form form input[type=submit]{
-    border: none;
-    padding: 12px 50px;
-    text-decoration: none;
-    transition-duration: 0.4s;
-    cursor: pointer;
-    border-radius: 5px;
-    background-color: white; 
-    color: black; 
-    border: 2px solid #60a100;
-}
-
-.users-form form input[type=submit]:hover {
-    background-color: #60a100;
-    color: white;
-}
-
-.users-table table{
-    border: 1px solid #ccc;
-    border-collapse: collapse;
-    margin: 0;
-    padding: 0;
+input, select {
+    display: block; /* Uno debajo del otro */
     width: 100%;
-    table-layout: fixed;
+    margin-bottom: 10px;
+    padding: 8px;
 }
 
-table tr {
-    background-color: #f8f8f8;
-    border: 1px solid #ddd;
-    padding: 4px;
+/* 3. LA TABLA: Para que parezca una lista de verdad */
+table {
+    width: 100%;
+    border-collapse: collapse; /* Une las líneas de la tabla */
+    margin-top: 20px;
 }
 
-table th{
-    padding: 16px;
-    text-align: center;
-    font-size: .85em;
+th, td {
+    border: 1px solid #ccc;
+    padding: 10px;
 }
 
-.users-table--edit{
-    background: #009688;
-    padding: 6px;
-    color: #fff;
-    text-align: center;
-    font-weight: bold;
+th {
+    background-color: #eee;
 }
-.users-table--delete{
-    background: #b11e1e;
-    padding: 6px;
-    color: #fff;
-    text-align: center;
-    font-weight: bold;
-}
+
+/* 4. BOTONES (Acciones) */
+.btn-editar { color: green; font-weight: bold; }
+.btn-borrar { color: red; font-weight: bold; }

@@ -1,21 +1,22 @@
 <?php
-function connection() {
-    $host = "localhost";
-    $user = "root";
-    $pass = "";
-    $db   = "unideportes";
 
-    $conn = mysqli_connect($host, $user, $pass, $db);
+// POO
 
-    if (!$conn) {
-        die("Error crítico: " . mysqli_connect_error());
-    }
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "unideportes";
 
-    mysqli_set_charset($conn, "utf8");
-    
-    return $conn;
+// INSTANCIA
+
+$conn = new mysqli($host, $user, $pass, $db);
+
+// VALIDACIÓN
+
+if ($conn->connect_error) {
+    die("Error de conexión: " . $conn->connect_error);
 }
 
-// Esto crea la conexión para los archivos que NO usan la función
-$conn = connection(); 
+// IDIOMA
+$conn->set_charset("utf8");
 ?>

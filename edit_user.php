@@ -1,33 +1,31 @@
 <?php
 include("connection.php");
 
-// 1. RECEPCIÓN: Capturamos los datos enviados por POST desde update.php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $id       = $_POST['id'];
-    $name     = $_POST['name'];
-    $lastname = $_POST['lastname'];
-    $email    = $_POST['email'];
-    $role     = $_POST['role'];
+// 1. Recibimos el ID oculto y los datos nuevos
+$id       = $_POST['id'];
+$name     = $_POST['name'];
+$lastname = $_POST['lastname'];
+$username = $_POST['username'];
+$email    = $_POST['email'];
 
-    // 2. SQL: Actualizamos la tabla 'usuarios' filtrando por el ID
-    // Nota: Usamos comillas simples para los valores de texto
-    $sql = "UPDATE usuarios SET 
-            name = '$name', 
-            lastname = '$lastname', 
-            email = '$email', 
-            role = '$role' 
-            WHERE id = '$id'";
-    
-    $query = mysqli_query($conn, $sql);
+// 2. Preparamos la sentencia de actualización
+// Lógica: "Actualiza la tabla usuarios, pon estos valores DONDE el id sea este"
+$sql = "UPDATE usuarios SET name=?, lastname=?, username=?, email=? WHERE id=?";
 
-    // 3. REDIRECCIÓN: Si fue exitoso, volvemos al panel
-    if($query) {
-        header("Location: admin_user.php?msj=editado");
-    } else {
-        echo "Error al actualizar: " . mysqli_error($conn);
-    }
+$stmt = $conn->prepare($sql);
+
+// 3. Vinculamos: 4 textos (s) y 1 número entero (i) para el ID
+$stmt->bind_param("ssssi", $name, $lastname, $username, $email, $id);
+
+// 4. Ejecutamos el cambio
+if ($stmt->execute()) {
+    // Si todo salió bien, volvemos a la lista de administración
+    header("Location: admin_user.php?msj=actualizado");
+    exit();
 } else {
-    // Si intentan entrar al archivo sin enviar el formulario
-    header("Location: admin_user.php");
+    echo "Error al actualizar: " . $stmt->error;
 }
+
+$stmt->close();
+$conn->close();
 ?>
