@@ -20,7 +20,7 @@ function App() {
           <h2>Bienvenido al Panel de Control</h2>
           <p>Estado del sistema: <strong>Conectado a Rama modulo-inventario</strong></p>
           <hr />
-          <p>Próximo paso: Cargar lista de telas y referencias de productos deportivos.</p>
+          <p>Próximo paso: Cargar Inventario de la tienda.</p>
         </div>
       </main>
 
