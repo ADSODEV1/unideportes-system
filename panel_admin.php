@@ -16,7 +16,7 @@ $res_users = mysqli_query($conn, "SELECT COUNT(*) as total FROM usuarios WHERE r
 $total_colab = mysqli_fetch_array($res_users)['total'];
 
 // Sumar todos los ingresos de la tabla ventas
-$res_ventas = mysqli_query($conn, "SELECT SUM(total) as ingresos FROM ventas"); 
+$res_ventas = mysqli_query($conn, "SELECT SUM(total_venta) as ingresos FROM ventas"); 
 $ingresos_data = mysqli_fetch_array($res_ventas);
 $total_ingresos = $ingresos_data['ingresos'] ?? 0;
 
