@@ -43,3 +43,22 @@ th {
 /* 4. BOTONES (Acciones) */
 .btn-editar { color: green; font-weight: bold; }
 .btn-borrar { color: red; font-weight: bold; }
+
+.btn-icono {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 16px;
+    margin: 2px;
+}
+
+.ver {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.editar {
+    background-color: #1A2B4C;
+    color: white;
+}

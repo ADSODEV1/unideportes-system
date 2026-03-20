@@ -74,11 +74,12 @@ include("header.php");
                 </td>
                 <td>$<?= number_format($row['precio'], 0, ',', '.') ?></td>
                 <td>
-                    <a href="detalle_prod.php?id=<?= $row['id'] ?>">👁️</a>
-                    <?php if($_SESSION['role'] == 'admin'): ?>
-                        <a href="editar_prod.php?id=<?= $row['id'] ?>">✏️</a>
-                    <?php endif; ?>
-                </td>
+    <a href="detalle_prod.php?id=<?= $row['id'] ?>" class="btn-icono ver">🔎</a>
+
+    <?php if($_SESSION['role'] == 'admin'): ?>
+        <a href="editar_prod.php?id=<?= $row['id'] ?>" class="btn-icono editar">✎</a>
+    <?php endif; ?>
+</td>
             </tr>
             <?php endwhile; ?>
         </tbody>
