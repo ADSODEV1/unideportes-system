@@ -1,33 +1,32 @@
 <?php
-
 include("connection.php");
 
-if (!empty($_POST['name']) && !empty($_POST
-['username']) && !empty($_POST['password'])) {
+if (!empty($_POST['name']) && !empty($_POST['username']) && !empty($_POST['password'])) {
 
-    //RECEPCIÓN
-    $name       = $_POST['name'];
-    $lastname   = $_POST['lastname'];
-    $username   = $_POST['username'];
-    $password   = $_POST['password'];
-    $email      = $_POST['email'];
-    $rol        = $_POST['rol'];
- 
-    //CONTRATO SEGURO
-    //Usamos'?' para que SQL se que va un dato y no una orden
+    // LIMPIEZA
+    $name     = trim($_POST['name']);
+    $lastname = trim($_POST['lastname']);
+    $username = trim($_POST['username']);
+    $email    = trim($_POST['email']);
+    $role     = $_POST['role'];
 
-    $sql = "INSERT INTO usuarios (name, lastname, username, password, email, rol) 
-    VALUES (?, ?, ?, ?, ?, ?)";
+    // VALIDAR EMAIL
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo "Email inválido";
+        exit();
+    }
 
-    //PREPARACIÓN CON OBJETO ($conn)
+    // ENCRIPTAR CONTRASEÑA 🔐
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+    // SQL SEGURO
+    $sql = "INSERT INTO usuarios (name, lastname, username, password, email, role) 
+            VALUES (?, ?, ?, ?, ?, ?)";
+
     $stmt = $conn->prepare($sql);
 
-    //VINCULACIÓN ESCUDO
-    //"ssssss" significa que los 6 campos son Strings (texto)
+    $stmt->bind_param("ssssss", $name, $lastname, $username, $password, $email, $role);
 
-    $stmt->bind_param("ssssss", $name, $lastname, $username, $password, $email, $rol);
-
-    //EJECUCIÓN
     if($stmt->execute()){
         header("Location: admin_user.php?msj=ok");
         exit();
@@ -35,12 +34,11 @@ if (!empty($_POST['name']) && !empty($_POST
         echo "Error en la BD: " . $stmt->error;
     }
 
-    //CIERRE
     $stmt->close();
     $conn->close();
 
-    } else {
+} else {
     header("Location: admin_user.php?msj=vacio");
     exit();
 }
-?>}
+?>
