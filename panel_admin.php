@@ -1,78 +1,110 @@
 <?php
+// 1. INICIAR SESIÓN (SIEMPRE PRIMERO)
 session_start();
+
+// 2. CONEXIÓN
 include("connection.php");
 
-// 1. EL GRAN GUARDIÁN: Seguridad de Doble Llave
-// No solo debe estar logueado, sino que su ROL debe ser 'admin'
+// 3. SEGURIDAD
 if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
     header("Location: index.php?error=acceso_denegado");
     exit();
 }
 
-// 2. LÓGICA DE NEGOCIO: Los números del jefe (KPIs)
+// 4. CONSULTAS (ANTES DEL HTML)
 
-// Contar colaboradores (usuarios que no son admin)
+// Colaboradores
 $res_users = mysqli_query($conn, "SELECT COUNT(*) as total FROM usuarios WHERE role = 'colaborador'");
-$total_colab = mysqli_fetch_array($res_users)['total'];
+$total_colab = mysqli_fetch_array($res_users)['total'] ?? 0;
 
-// Sumar todos los ingresos de la tabla ventas
+// Ingresos
 $res_ventas = mysqli_query($conn, "SELECT SUM(total_venta) as ingresos FROM ventas"); 
 $ingresos_data = mysqli_fetch_array($res_ventas);
 $total_ingresos = $ingresos_data['ingresos'] ?? 0;
 
+// 5. HEADER
 include("header.php");
 ?>
 
-<div class="panel-admin-container">
-    <h1>Panel Maestro - Unideportes</h1>
-    <p>Bienvenido Administrador: <strong><?php echo $_SESSION['username']; ?></strong></p>
+<div class="container admin-layout">
 
-    <div class="resumen-kpi">
-        <div class="kpi-card">
-            <small>INGRESOS TOTALES</small>
-            <h2>$<?php echo number_format($total_ingresos, 0, ',', '.'); ?></h2>
+    <!-- SIDEBAR IZQUIERDO -->
+   <aside class="sidebar-panel">
+
+    <div class="sidebar-section">
+        <h3>👑 Administrador</h3>
+        <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
+    </div>
+
+    <div class="sidebar-section">
+        <h3>📊 Resumen</h3>
+        <div class="stat-box">
+            Ingresos:<br>
+            <strong>$<?= number_format($total_ingresos, 0, ',', '.'); ?></strong>
         </div>
-        
-        <div class="kpi-card">
-            <small>COLABORADORES</small>
-            <h2><?php echo $total_colab; ?> Activos</h2>
+        <div class="stat-box">
+            Colaboradores:<br>
+            <strong><?= $total_colab; ?></strong>
         </div>
     </div>
 
-    <hr>
+   
 
-    <div class="menu-maestro">
-        <div class="opcion">
-            <a href="admin_user.php">
-                <span>👥</span>
-                <h3>Gestionar Personal</h3>
-            </a>
+</aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content-panel">
+
+        <h1>Panel Administrador - Unideportes</h1>
+
+        <div class="resumen-kpi">
+            <div class="kpi-card">
+                <small>INGRESOS TOTALES</small>
+                <h2>$<?= number_format($total_ingresos, 0, ',', '.'); ?></h2>
+            </div>
+            
+            <div class="kpi-card">
+                <small>COLABORADORES</small>
+                <h2><?= $total_colab; ?> Activos</h2>
+            </div>
         </div>
 
-        <div class="opcion">
-            <a href="inventario.php">
-                <span>📦</span>
-                <h3>Control de Inventario</h3>
-            </a>
+        <hr>
+
+        <div class="menu-maestro">
+            <div class="opcion">
+                <a href="admin_user.php">
+                    <span>🧑</span>
+                    <h3>Gestionar Personal</h3>
+                </a>
+            </div>
+
+            <div class="opcion">
+                <a href="inventario.php">
+                    <span>🧰</span>
+                    <h3>Control de Inventario</h3>
+                </a>
+            </div>
+
+            <div class="opcion">
+                <a href="clientes.php">
+                    <span>📓</span>
+                    <h3>Base de Clientes</h3>
+                </a>
+            </div>
+
+            <div class="opcion">
+                <a href="reportes.php">
+                    <span>📶</span>
+                    <h3>Reportes de Ventas</h3>
+                </a>
+            </div>
         </div>
 
-        <div class="opcion">
-            <a href="clientes.php">
-                <span>🏆</span>
-                <h3>Base de Clientes</h3>
-            </a>
-        </div>
+    </main>
 
-        <div class="opcion">
-            <a href="reportes.php">
-                <span>📊</span>
-                <h3>Reportes de Ventas</h3>
-            </a>
-        </div>
-    </div>
-
-    <br>
-    <a href="logout.php">Cerrar Sesión Segura</a>
 </div>
 
-<?php include("footer.php"); ?>
+<footer class="main-footer">
+    <p>&copy; <?= date("Y"); ?> Unideportes - Sistema de Gestión Interno</p>
+</footer>

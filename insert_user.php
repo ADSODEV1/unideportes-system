@@ -3,28 +3,26 @@ include("connection.php");
 
 if (!empty($_POST['name']) && !empty($_POST['username']) && !empty($_POST['password'])) {
 
-    // LIMPIEZA
     $name     = trim($_POST['name']);
     $lastname = trim($_POST['lastname']);
     $username = trim($_POST['username']);
     $email    = trim($_POST['email']);
-    $role     = $_POST['role'];
 
-    // VALIDAR EMAIL
+    // ✅ SOLUCIÓN AQUÍ
+    $role = $_POST['role'] ?? 'vendedor';
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo "Email inválido";
         exit();
     }
 
-    // ENCRIPTAR CONTRASEÑA 🔐
+    // 🔐 HASH
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // SQL SEGURO
     $sql = "INSERT INTO usuarios (name, lastname, username, password, email, role) 
             VALUES (?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
-
     $stmt->bind_param("ssssss", $name, $lastname, $username, $password, $email, $role);
 
     if($stmt->execute()){

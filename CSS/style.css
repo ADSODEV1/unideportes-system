@@ -1,4 +1,6 @@
-/* 1. RESETEO BÁSICO: Para que nada se pegue a los bordes */
+/* ==========================================================================
+   1. RESETEO Y ESTILOS GLOBALES
+   ========================================================================== */
 * {
     margin: 0;
     padding: 0;
@@ -6,59 +8,424 @@
 }
 
 body {
-    font-family: sans-serif;
-    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 20px;
+    width: 100%;
+}
+
+/* ==========================================================================
+   2. HEADER (Logo, Menú y Usuario)
+   ========================================================================== */
+.main-header {
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 10px 0;
+}
+
+.nav-container {
+    display: flex;
+    align-items: center;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    font-weight: bold;
+    color: #1A2B4C;
+}
+
+.logo-img {
+    height: 45px;
+    width: auto;
+    margin-right: 10px;
+}
+
+.main-nav {
+    flex-grow: 1;
+    margin-left: 30px;
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    gap: 20px;
+}
+
+.nav-list li a {
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-list li a:hover {
+    color: #1A2B4C;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-salir {
+    background-color: #ff4d4d;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   3. LAYOUT DE DOS COLUMNAS (Sidebar y Contenido)
+   ========================================================================== */
+.admin-layout {
+    display: flex !important;
+    gap: 25px;
+    align-items: flex-start;
+    margin: 20px auto;
+    flex: 1; /* Esto empuja el footer al final */
+}
+
+/* SIDEBAR AZUL IZQUIERDO */
+.sidebar-panel {
+    width: 280px !important;
+    background-color: #1A2B4C !important; /* COLOR SOLICITADO */
+    color: white !important;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    min-height: 70vh;
+}
+
+.sidebar-section {
+    margin-bottom: 25px;
+}
+
+.sidebar-section h3 {
+    font-size: 0.8rem;
+    color: #ffffff !important;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 5px;
+}
+
+.sidebar-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: white;
+    color: #333;
+    margin-top: 5px;
+}
+
+/* Estadísticas en Sidebar */
+.stat-box {
+    padding: 10px 0;
+    color: white !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.9rem;
+}
+
+.stat-box.warning { color: #ffc107 !important; } 
+.stat-box.danger { color: #ff6b6b !important; }
+
+.btn-sidebar-action {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #fff;
+    color: #1A2B4C;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* ==========================================================================
+   4. CONTENIDO PRINCIPAL Y TABLA
+   ========================================================================== */
+.main-content-panel {
+    flex-grow: 1;
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.tabla-maestra {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabla-maestra th {
+    background-color: #1A2B4C;
+    color: white;
+    padding: 15px;
+    font-size: 0.9rem;
+}
+
+.tabla-maestra td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
     text-align: center;
 }
 
-/* 2. EL FORMULARIO: Solo para que los inputs no salgan pegados */
-form {
-    margin: 20px auto;
-    width: 300px; /* Un ancho fijo para que se vea ordenado */
-}
-
-input, select {
-    display: block; /* Uno debajo del otro */
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 8px;
-}
-
-/* 3. LA TABLA: Para que parezca una lista de verdad */
-table {
-    width: 100%;
-    border-collapse: collapse; /* Une las líneas de la tabla */
-    margin-top: 20px;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 10px;
-}
-
-th {
-    background-color: #eee;
-}
-
-/* 4. BOTONES (Acciones) */
-.btn-editar { color: green; font-weight: bold; }
-.btn-borrar { color: red; font-weight: bold; }
-
-.btn-icono {
+/* Badges de estado */
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
     display: inline-block;
-    padding: 6px 10px;
-    border-radius: 6px;
+}
+.rojo { background: #dc3545; }
+.naranja { background: #fd7e14; }
+.verde { background: #28a745; }
+
+/* ==========================================================================
+   5. FOOTER AZUL
+   ========================================================================== */
+footer.main-footer {
+    background-color: #1A2B4C !important; /* COLOR SOLICITADO */
+    color: white !important;
+    text-align: center;
+    padding: 25px 0;
+    margin-top: auto; /* Se pega al fondo */
+    width: 100%;
+}
+
+footer.main-footer p {
+    color: white !important;
+    margin: 0;
+}
+
+/* ==========================================================================
+   6. PANEL ADMINISTRADOR (KPI + MENU)
+   ========================================================================== */
+
+/* Tarjetas KPI */
+.resumen-kpi {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.kpi-card {
+    flex: 1;
+    background: #1A2B4C;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.kpi-card small {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.kpi-card h2 {
+    margin-top: 10px;
+}
+
+/* Menú principal del admin */
+.menu-maestro {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.opcion {
+    background: #fff;
+    border-radius: 10px;
+    text-align: center;
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.opcion:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.opcion span {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.opcion a {
     text-decoration: none;
-    font-size: 16px;
-    margin: 2px;
+    color: #1A2B4C;
 }
 
-.ver {
-    background-color: #e0e0e0;
-    color: #333;
+.opcion h3 {
+    font-size: 1rem;
 }
 
-.editar {
+/* ==========================================================================
+   7. LOGIN / INDEX
+   ========================================================================== */
+
+.login-container {
+    text-align: center;
+    margin-top: 60px;
+}
+
+.login-container h1 {
+    color: #1A2B4C;
+    font-size: 2.5rem;
+}
+
+.subtitulo {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Caja login */
+.login-box {
+    background: #fff;
+    width: 350px;
+    margin: 0 auto;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.login-box h3 {
+    color: #1A2B4C;
+    margin-bottom: 15px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* Botón */
+.btn-login {
+    width: 100%;
     background-color: #1A2B4C;
     color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    background-color: #16233d;
+}
+
+/* Error */
+.error-msg {
+    color: red;
+    margin-top: 10px;
+}
+
+/* Bienvenida */
+.welcome-box {
+    background: #fff;
+    width: 350px;
+    margin: 0 auto;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.btn-panel {
+    display: inline-block;
+    background-color: #1A2B4C;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.cerrar {
+    color: gray;
+    font-size: 0.9rem;
+}
+/* CONTENEDOR GENERAL */
+.login-container {
+    text-align: center;
+    margin-top: 40px;
+}
+
+/* CENTRAR SOLO EL LOGIN */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+/* CAJA */
+.login-box {
+    background: #fff;
+    width: 350px;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    text-align: left;
+}
+
+/* FORMULARIO */
+.login-box form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* INPUTS */
+.login-box input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 15px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* BOTÓN ENTRAR */ 
+.btn-login {
+    background-color: #E61E2A;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+
+
+.btn-register:hover {
+    background-color: #c91a25;
+}
+
+
+.btn-login:hover {
+    background-color: #16233d;
 }

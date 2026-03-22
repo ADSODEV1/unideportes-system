@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 
+//Evidencia de producto: GA7-220501096-AA4-EV03 Componente frontend del proyecto formativo y 
+//proyectos de clase (listas de chequeo)  
+// Nombre: Jonathan Suarez Rueda
+// Ramificacion Gestion Productos
+
 function GestionProductos() {
   // 1. Aquí guardamos la lista de uniformes. 
   // "productos" es la lista y "setProductos" es la función para actualizarla.

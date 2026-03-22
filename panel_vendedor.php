@@ -1,54 +1,76 @@
 <?php
+// 1. SESIÓN
 session_start();
+
+// 2. CONEXIÓN
 include("connection.php");
 
-// 1. SEGURIDAD: Si no hay sesión, al index.
-if (!isset($_SESSION['username'])) {
-    header("Location: index.php");
+// 3. SEGURIDAD (solo vendedores)
+if (!isset($_SESSION['username']) || $_SESSION['role'] != 'vendedor') {
+    header("Location: index.php?error=acceso_denegado");
     exit();
 }
 
-// 2. LÓGICA: Consultas de conteo para los indicadores
-$fecha_hoy = date('Y-m-d');
-
-// Ventas del día
-$res_ventas = mysqli_query($conn, "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha_venta) = '$fecha_hoy'");
-$ventas_hoy = ($res_ventas) ? mysqli_fetch_array($res_ventas)['total'] : 0;
-
-// Alertas de Stock bajo (3 o menos unidades)
-$res_alerta = mysqli_query($conn, "SELECT COUNT(*) as bajo FROM productos WHERE stock > 0 AND stock <= 3");
-$alertas_stock = ($res_alerta) ? mysqli_fetch_array($res_alerta)['bajo'] : 0;
-
+// 4. HEADER
 include("header.php");
 ?>
 
-<div class="panel-container">
-    <h1>Panel de Control - Unideportes</h1>
-    <p>Bienvenido: <strong><?php echo $_SESSION['username']; ?></strong></p>
+<div class="container admin-layout">
 
-    <div class="indicadores">
-        <div class="cuadro">
-            <span>Ventas hoy:</span>
-            <strong><?php echo $ventas_hoy; ?></strong>
+    <!-- SIDEBAR -->
+    <aside class="sidebar-panel">
+
+        <div class="sidebar-section">
+            <h3>👤 Vendedor</h3>
+            <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
         </div>
-        <div class="cuadro">
-            <span>Stock bajo:</span>
-            <strong><?php echo $alertas_stock; ?></strong>
+
+        <div class="sidebar-section">
+            <h3>⚙️ Acciones</h3>
+            <a href="inventario.php" class="btn-sidebar-action">📦 Inventario</a>
+            <a href="clientes.php" class="btn-sidebar-action">🏆 Clientes</a>
+            <a href="pedidos.php" class="btn-sidebar-action">🛒 Producción</a>
         </div>
-    </div>
 
-    <hr>
+    </aside>
 
-    <nav class="menu-vendedor">
-        <ul>
-            <li><a href="nueva_venta.php">Nueva Venta</a></li>
-            <li><a href="clientes.php">Ver Clientes</a></li>
-            <li><a href="inventario.php">Consultar Stock</a></li>
-            <li><a href="logout.php">Cerrar Sesión</a></li>
-        </ul>
-    </nav>
+    <!-- CONTENIDO -->
+    <main class="main-content-panel">
+
+        <h1>Panel de Vendedor</h1>
+        <p>Gestiona pedidos, clientes e inventario.</p>
+
+        <hr>
+
+        <div class="menu-maestro">
+
+            <div class="opcion">
+                <a href="inventario.php">
+                    <span>📦</span>
+                    <h3>Inventario</h3>
+                </a>
+            </div>
+
+            <div class="opcion">
+                <a href="clientes.php">
+                    <span>🏆</span>
+                    <h3>Clientes</h3>
+                </a>
+            </div>
+
+            <div class="opcion">
+                <a href="pedidos.php">
+                    <span>🛒</span>
+                    <h3>Pedidos</h3>
+                </a>
+            </div>
+
+        </div>
+
+    </main>
+
 </div>
 
-<?php include("footer.php"); 
-
-?>
+<footer class="main-footer">
+    <p>&copy; <?= date("Y"); ?> Unideportes - Sistema de Gestión Interno</p>
+</footer>

@@ -1,31 +1,31 @@
 <?php
-// Ya que el header se incluye en todos lados, aprovechamos para verificar quién es el usuario
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $usuario_nombre = $_SESSION['username'] ?? 'Invitado';
-$rol_usuario = $_SESSION['role'] ?? 'vendedor';
+$rol_usuario = $_SESSION['role'] ?? 'vendedor'; 
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unideportes - Gestión</title>
-    
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+
+<!-- CSS -->
+<link rel="stylesheet" href="css/style.css?v=<?php echo time(); ?>">
+
+<!-- FAVICON -->
+<link rel="icon" href="images/favicon.ico" type="image/x-icon">
 
 <header class="main-header">
     <div class="nav-container">
         <a class="logo" href="<?= ($rol_usuario == 'admin') ? 'panel_admin.php' : 'panel_vendedor.php' ?>">
+            <img src="Logo y imagenes/Logo unideportes.png" alt="Logo Unideportes" class="logo-img">
             UNI<span style="color: red;">DEPORTES</span>
         </a>
 
         <nav class="main-nav">
-            <ul>
+            <ul class="nav-list">
                 <li><a href="inventario.php">Inventario</a></li>
                 <li><a href="pedidos.php">Producción</a></li>
                 <li><a href="clientes.php">Clientes</a></li>
-
+                
                 <?php if ($rol_usuario == 'admin'): ?>
                     <li><a href="reportes_ventas.php">Reportes</a></li>
                     <li><a href="admin_user.php">Personal</a></li>
