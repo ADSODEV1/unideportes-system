@@ -42,7 +42,7 @@ include("header.php");
         <!-- BIENVENIDA -->
         <div class="login-wrapper">
             <div class="welcome-box">
-                <h2>👋 ¡Hola de nuevo!</h2>
+                <h2> ¡Hola de nuevo!</h2>
                 <p>Sesión activa: <strong><?= $_SESSION['username'] ?></strong></p>
 
                 <a href="<?= ($_SESSION['role'] == 'admin') ? 'panel_admin.php' : 'panel_vendedor.php'; ?>" class="btn-panel">

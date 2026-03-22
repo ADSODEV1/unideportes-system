@@ -21,17 +21,11 @@ include("header.php");
     <aside class="sidebar-panel">
 
         <div class="sidebar-section">
-            <h3>👤 Vendedor</h3>
+            <h3> Vendedor</h3>
             <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
         </div>
 
-        <div class="sidebar-section">
-            <h3>⚙️ Acciones</h3>
-            <a href="inventario.php" class="btn-sidebar-action">📦 Inventario</a>
-            <a href="clientes.php" class="btn-sidebar-action">🏆 Clientes</a>
-            <a href="pedidos.php" class="btn-sidebar-action">🛒 Producción</a>
-        </div>
-
+        
     </aside>
 
     <!-- CONTENIDO -->
@@ -46,21 +40,21 @@ include("header.php");
 
             <div class="opcion">
                 <a href="inventario.php">
-                    <span>📦</span>
+                    <span>🧰</span>
                     <h3>Inventario</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="clientes.php">
-                    <span>🏆</span>
+                    <span>📓</span>
                     <h3>Clientes</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="pedidos.php">
-                    <span>🛒</span>
+                    <span>🚚</span>
                     <h3>Pedidos</h3>
                 </a>
             </div>
