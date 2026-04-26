@@ -1,16 +1,16 @@
-/* ==========================================================================
-   1. RESETEO Y ESTILOS GLOBALES
-   ========================================================================== */
-* {
+/*  
+   1. Reseteo y estilos globales
+     */
+ {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    font-family: 'Quattrocento', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Quattrocento', Tahoma,Verdana, Geneva, Tahoma, sans-serifserif  ;
     background-color: #f4f4f4;
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }
@@ -22,9 +22,9 @@ body {
     width: 100%;
 }
 
-/* ==========================================================================
-   2. HEADER (Logo, Menú y Usuario)
-   ========================================================================== */
+/*  
+   2. Heder con logo, navegación y usuario
+     */
 .main-header {
     background-color: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -90,18 +90,18 @@ body {
     font-size: 0.9rem;
 }
 
-/* ==========================================================================
-   3. LAYOUT DE DOS COLUMNAS (Sidebar y Contenido)
-   ========================================================================== */
+/*  
+   3. Layout principal del admin: sidebar + contenido
+     */
 .admin-layout {
     display: flex !important;
     gap: 25px;
     align-items: flex-start;
     margin: 20px auto;
-    flex: 1; /* Esto empuja el footer al final */
+    flex: 1; /* Empuja el footer hacia abajo */
 }
 
-/* SIDEBAR AZUL IZQUIERDO */
+/* Sidebar */
 .sidebar-panel {
     width: 280px !important;
     background-color: #1A2B4C !important; /* COLOR SOLICITADO */
@@ -136,7 +136,7 @@ body {
     margin-top: 5px;
 }
 
-/* Estadísticas en Sidebar */
+/* Estadísticas rápidas */
 .stat-box {
     padding: 10px 0;
     color: white !important;
@@ -160,9 +160,9 @@ body {
     margin-top: 10px;
 }
 
-/* ==========================================================================
+/*  
    4. CONTENIDO PRINCIPAL Y TABLA
-   ========================================================================== */
+     */
 .main-content-panel {
     flex-grow: 1;
     background: #fff;
@@ -203,9 +203,9 @@ body {
 .naranja { background: #fd7e14; }
 .verde { background: #28a745; }
 
-/* ==========================================================================
+/*  
    5. FOOTER AZUL
-   ========================================================================== */
+     */
 footer.main-footer {
     background-color: #1A2B4C !important; /* COLOR SOLICITADO */
     color: white !important;
@@ -220,9 +220,9 @@ footer.main-footer p {
     margin: 0;
 }
 
-/* ==========================================================================
+/*  
    6. PANEL ADMINISTRADOR (KPI + MENU)
-   ========================================================================== */
+     */
 
 /* Tarjetas KPI */
 .resumen-kpi {
@@ -284,9 +284,9 @@ footer.main-footer p {
     font-size: 1rem;
 }
 
-/* ==========================================================================
+/*  
    7. LOGIN / INDEX
-   ========================================================================== */
+     */
 
 .login-container {
     text-align: center;

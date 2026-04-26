@@ -30,16 +30,11 @@ $query = mysqli_query($conn, "SELECT * FROM productos");
             <div class="stat-box danger">Agotados: <strong><?= $agotados ?></strong></div>
         </div>
 
-        <div class="sidebar-section">
-            <h3>⚙️ Acciones</h3>
-            <?php if($_SESSION['role'] == 'admin'): ?>
-                <a href="productos_nuevo.php" class="btn-sidebar-action">+ Nueva Prenda</a>
-            <?php endif; ?>
-        </div>
+        
     </aside>
 
     <main class="main-content-panel">
-        <div class="header-acciones">
+        <div class="header-carapteristicas">
             <h1>Inventario Unideportes</h1>
         </div>
 
@@ -50,7 +45,7 @@ $query = mysqli_query($conn, "SELECT * FROM productos");
                     <th>Talla</th>
                     <th>Estado</th>
                     <th>Precio</th>
-                    <th>Acciones</th>
+                    <th>Características</th>
                 </tr>
             </thead>
             <tbody id="tablaProductos">

@@ -1,17 +1,17 @@
 <?php
-// 1. INICIAR SESIÓN (SIEMPRE PRIMERO)
+// 1. Iniciar sesión
 session_start();
 
-// 2. CONEXIÓN
+// 2. Conexión a la base de datos
 include("connection.php");
 
-// 3. SEGURIDAD
+// 3. Seguridad: Solo admin puede entrar
 if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
     header("Location: index.php?error=acceso_denegado");
     exit();
 }
 
-// 4. CONSULTAS (ANTES DEL HTML)
+// 4. Consultas del html dinámico
 
 // Colaboradores
 $res_users = mysqli_query($conn, "SELECT COUNT(*) as total FROM usuarios WHERE role = 'colaborador'");
@@ -22,17 +22,17 @@ $res_ventas = mysqli_query($conn, "SELECT SUM(total_venta) as ingresos FROM vent
 $ingresos_data = mysqli_fetch_array($res_ventas);
 $total_ingresos = $ingresos_data['ingresos'] ?? 0;
 
-// 5. HEADER
+// 5. Header
 include("header.php");
 ?>
 
 <div class="container admin-layout">
 
-    <!-- SIDEBAR IZQUIERDO -->
+    <!-- Sidebar izquierdo -->
    <aside class="sidebar-panel">
 
     <div class="sidebar-section">
-        <h3>👑 Administrador</h3>
+        <h3> Administrador</h3>
         <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
     </div>
 
@@ -52,10 +52,10 @@ include("header.php");
 
 </aside>
 
-    <!-- CONTENIDO PRINCIPAL -->
+    <!-- Contenido Principal -->
     <main class="main-content-panel">
 
-        <h1>Panel Administrador - Unideportes</h1>
+        <h1>🧑 Panel Administrador - Unideportes</h1>
 
         <div class="resumen-kpi">
             <div class="kpi-card">

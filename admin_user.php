@@ -24,11 +24,7 @@ include("header.php");
             <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
         </div>
 
-        <div class="sidebar-section">
-            <h3>⚙️ Acciones</h3>
-            
-        </div>
-
+      
     </aside>
 
     <!-- CONTENIDO -->
