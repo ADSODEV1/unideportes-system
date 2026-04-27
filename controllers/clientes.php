@@ -80,6 +80,7 @@ include("header.php");
                     <?php while($row = mysqli_fetch_array($query)): ?>
                     <tr>
                         <td>
+                            <button type="submit" class="users-table--edit">✅</button>
                             <strong><?= $row['nombre_completo'] ?></strong><br>
                             <small>Tel: <?= $row['telefono'] ?></small>
                         </td>

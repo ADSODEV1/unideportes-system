@@ -1,11 +1,11 @@
 <?php
-include("connection.php");
+include_once __DIR__ . '/../db/conexion.php';
 session_start();
 
 //MOTOR DE SALIDA (Logout)
 if (isset($_GET['logout'])) {
     session_destroy();
-    header("Location: index.php");
+  header("Location: ../public/index.php");
     exit();
 }
 
@@ -28,12 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['nombre']   = $row['name'];
 
         //¿A dónde va? (Admin o Vendedor)
-        $destino = ($_SESSION['role'] == 'admin') ? 'admin_user.php' : 'panel_vendedor.php';
+        $destino = ($_SESSION['role'] == 'admin') ? '../views/admin_user.php' : '../views/panel_vendedor.php';
         header("Location: $destino");
         exit();
     } else {
         //Credenciales falsas
-        header("Location: index.php?error=1");
+        header("Location: ../public/index.php?error=1");
         exit();
     }
 }
