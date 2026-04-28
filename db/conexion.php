@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "unideportes-system"; // en phpMyAdmin
+$db   = "unideportes"; // en phpMyAdmin
 
 $conn = mysqli_connect($host, $user, $pass, $db);
 
