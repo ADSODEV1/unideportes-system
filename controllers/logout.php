@@ -1,3 +1,6 @@
 <?php
-header("Location: auth.php?logout=1");
+session_start();
+session_destroy();
+header("Location: /unideportes-system/public/index.php");
+exit();
 ?>

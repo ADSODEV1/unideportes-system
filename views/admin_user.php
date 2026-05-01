@@ -1,6 +1,6 @@
 <?php
 session_start();
-include("connection.php");
+include("../config/connection.php");
 
 // SEGURIDAD
 if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {

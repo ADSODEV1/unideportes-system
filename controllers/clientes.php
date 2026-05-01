@@ -1,10 +1,11 @@
 <?php
 session_start();
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
+$conn = connection();
 
 // 1. SEGURIDAD
 if (!isset($_SESSION['username'])) {
-    header("Location: index.php");
+    header("Location: ../public/index.php");
     exit();
 }
 
@@ -29,7 +30,7 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['searc
 $where = $search ? "WHERE nombre_completo LIKE '%$search%' OR nit_cedula LIKE '%$search%'" : "";
 $query = mysqli_query($conn, "SELECT * FROM clientes $where ORDER BY id DESC");
 
-include("header.php");
+include(__DIR__ . "/../views/header.php");
 ?>
 
 <div class="clientes-layout">
@@ -94,4 +95,4 @@ include("header.php");
     </div>
 </div>
 
-<?php include("footer.php"); ?>
+<?php include(__DIR__ . "/../views/footer.php"); ?>

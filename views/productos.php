@@ -1,14 +1,15 @@
 <?php
 session_start();
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
+$conn = connection();
 
 // 1. SEGURIDAD: Solo el Admin puede registrar productos nuevos
 if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
-    header("Location: index.php?error=acceso_denegado");
+    header("Location: ../public/index.php?error=acceso_denegado");
     exit();
 }
 
-include("header.php");
+include(__DIR__ . "/header.php");
 ?>
 
 <div class="container py-4">
@@ -72,4 +73,4 @@ include("header.php");
     </div>
 </div>
 
-<?php include("footer.php"); ?>
+<?php include(__DIR__ . "/footer.php"); ?>

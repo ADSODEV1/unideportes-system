@@ -1,10 +1,10 @@
 <?php
 session_start();
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
 
 // 1. SEGURIDAD
 if (!isset($_SESSION['username'])) {
-    header("Location: index.php");
+    header("Location: ../public/index.php");
     exit();
 }
 
@@ -21,12 +21,12 @@ $sql = "SELECT pedidos.*, clientes.nombre_completo
 
 $query = mysqli_query($conn, $sql);
 
-include("header.php");
+include(__DIR__ . "/header.php");
 ?>
 
 <div class="pedidos-container">
     <div class="flex-header">
-        <h1>🧵 Ordenes de Producción</h1>
+        <h1>🧵 Órdenes de Producción</h1>
         <?php if($_SESSION['role'] == 'admin'): ?>
             <a href="nuevo_pedido.php" class="btn-principal">+ Nueva Orden</a>
         <?php endif; ?>
@@ -56,18 +56,18 @@ include("header.php");
                     <th>Cant.</th>
                     <th>Estado</th>
                     <th>Entrega</th>
-                    <th>Ver</th>
+                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while($row = mysqli_fetch_array($query)): ?>
                 <tr>
                     <td>
-                        <strong><?= $row['nombre_completo'] ?></strong><br>
-                        <small>#ORD-<?= $row['id'] ?></small>
+                        <strong><?= htmlspecialchars($row['nombre_completo']) ?></strong><br>
+                        <small>#ORD-<?= htmlspecialchars($row['id']) ?></small>
                     </td>
-                    <td><?= $row['detalle'] ?></td>
-                    <td><?= $row['cantidad'] ?></td>
+                    <td><?= htmlspecialchars($row['detalle']) ?></td>
+                    <td><?= htmlspecialchars($row['cantidad']) ?></td>
                     <td>
                         <?php 
                             $clase = "";
@@ -75,10 +75,21 @@ include("header.php");
                             if($row['estado'] == 'En Costura') $clase = "badge-proceso";
                             if($row['estado'] == 'Terminado') $clase = "badge-exito";
                         ?>
-                        <span class="badge <?= $clase ?>"><?= $row['estado'] ?></span>
+                        <span class="badge <?= $clase ?>"><?= htmlspecialchars($row['estado']) ?></span>
                     </td>
                     <td><strong><?= date("d M Y", strtotime($row['fecha_entrega'])) ?></strong></td>
-                    <td><a href="detalle_pedido.php?id=<?= $row['id'] ?>">📋</a></td>
+                    <td><button type="button" class="toggle-detalle" data-target="#pedido-<?= $row['id'] ?>">Ver</button></td>
+                </tr>
+                <tr id="pedido-<?= $row['id'] ?>" class="detalle-row">
+                    <td colspan="6">
+                        <div class="detalle-content">
+                            <p><strong>Cliente:</strong> <?= htmlspecialchars($row['nombre_completo']) ?></p>
+                            <p><strong>Detalle del pedido:</strong> <?= htmlspecialchars($row['detalle']) ?></p>
+                            <p><strong>Cantidad:</strong> <?= htmlspecialchars($row['cantidad']) ?></p>
+                            <p><strong>Estado:</strong> <?= htmlspecialchars($row['estado']) ?></p>
+                            <p><strong>Entrega:</strong> <?= date("d M Y", strtotime($row['fecha_entrega'])) ?></p>
+                        </div>
+                    </td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
@@ -86,4 +97,17 @@ include("header.php");
     </div>
 </div>
 
-<?php include("footer.php"); ?>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.toggle-detalle').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var target = document.querySelector(this.dataset.target);
+                if (!target) return;
+                target.classList.toggle('detalle-abierto');
+                this.textContent = target.classList.contains('detalle-abierto') ? 'Cerrar' : 'Ver';
+            });
+        });
+    });
+</script>
+
+<?php include(__DIR__ . "/footer.php"); ?>

@@ -1,0 +1,48 @@
+# Sistema Unideportes - .gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Configuración local
+config/Database.php.local
+config/config.local.php
+
+# Archivos de sistema
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Dependencias (si usas composer)
+/vendor/
+composer.lock
+
+# Caché
+/cache/
+/tmp/
+
+# Archivos temporales
+*.tmp
+*.bak
+*~
+
+# Node (si tienes frontend con npm)
+node_modules/
+dist/
+package-lock.json
+
+# Tests
+coverage/
+.phpunit.result.cache

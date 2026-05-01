@@ -3,11 +3,12 @@
 session_start();
 
 // 2. Conexión a la base de datos
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
+$conn = connection();
 
 // 3. Seguridad: Solo admin puede entrar
 if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
-    header("Location: index.php?error=acceso_denegado");
+    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
     exit();
 }
 
@@ -17,13 +18,8 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
 $res_users = mysqli_query($conn, "SELECT COUNT(*) as total FROM usuarios WHERE role = 'colaborador'");
 $total_colab = mysqli_fetch_array($res_users)['total'] ?? 0;
 
-// Ingresos
-$res_ventas = mysqli_query($conn, "SELECT SUM(total_venta) as ingresos FROM ventas"); 
-$ingresos_data = mysqli_fetch_array($res_ventas);
-$total_ingresos = $ingresos_data['ingresos'] ?? 0;
-
 // 5. Header
-include("header.php");
+include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
@@ -38,10 +34,6 @@ include("header.php");
 
     <div class="sidebar-section">
         <h3>📊 Resumen</h3>
-        <div class="stat-box">
-            Ingresos:<br>
-            <strong>$<?= number_format($total_ingresos, 0, ',', '.'); ?></strong>
-        </div>
         <div class="stat-box">
             Colaboradores:<br>
             <strong><?= $total_colab; ?></strong>
@@ -59,11 +51,6 @@ include("header.php");
 
         <div class="resumen-kpi">
             <div class="kpi-card">
-                <small>INGRESOS TOTALES</small>
-                <h2>$<?= number_format($total_ingresos, 0, ',', '.'); ?></h2>
-            </div>
-            
-            <div class="kpi-card">
                 <small>COLABORADORES</small>
                 <h2><?= $total_colab; ?> Activos</h2>
             </div>
@@ -72,6 +59,13 @@ include("header.php");
         <hr>
 
         <div class="menu-maestro">
+            <div class="opcion">
+                <a href="nueva_venta.php">
+                    <span>💳</span>
+                    <h3>Realizar Venta</h3>
+                </a>
+            </div>
+
             <div class="opcion">
                 <a href="admin_user.php">
                     <span>🧑</span>
@@ -94,7 +88,7 @@ include("header.php");
             </div>
 
             <div class="opcion">
-                <a href="reportes.php">
+                <a href="reportes_ventas.php">
                     <span>📶</span>
                     <h3>Reportes de Ventas</h3>
                 </a>

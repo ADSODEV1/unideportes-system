@@ -1,6 +1,6 @@
 <?php
 session_start();
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
 $conn = connection();
 
 // 1. SEGURIDAD

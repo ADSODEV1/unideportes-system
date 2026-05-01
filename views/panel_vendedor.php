@@ -3,16 +3,17 @@
 session_start();
 
 // 2. CONEXIÓN
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
+$conn = connection();
 
 // 3. SEGURIDAD (solo vendedores)
-if (!isset($_SESSION['username']) || $_SESSION['role'] != 'vendedor') {
-    header("Location: index.php?error=acceso_denegado");
+if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador'], true)) {
+    header("Location: ../public/index.php?error=acceso_denegado");
     exit();
 }
 
 // 4. HEADER
-include("header.php");
+include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
@@ -39,9 +40,9 @@ include("header.php");
         <div class="menu-maestro">
 
             <div class="opcion">
-                <a href="inventario.php">
-                    <span>🧰</span>
-                    <h3>Inventario</h3>
+                <a href="nueva_venta.php">
+                    <span></span>
+                    <h3>nueva venta</h3>
                 </a>
             </div>
 

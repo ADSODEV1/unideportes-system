@@ -4,11 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $usuario_nombre = $_SESSION['username'] ?? 'Invitado';
-$rol_usuario = $_SESSION['role'] ?? 'vendedor'; 
+$rol_usuario = $_SESSION['role'] ?? 'colaborador'; 
 ?>
 
 <!-- CSS -->
-<link rel="stylesheet" href="css/style.css?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=<?php echo time(); ?>">
 
 <!-- FAVICON -->
 <link rel="icon" href="images/favicon.ico" type="image/x-icon">
@@ -35,7 +35,7 @@ $rol_usuario = $_SESSION['role'] ?? 'vendedor';
 
         <div class="user-info">
             <span>Hola, <strong><?= ucfirst($usuario_nombre) ?></strong></span>
-            <a href="logout.php" class="btn-salir">Salir</a>
+            <a href="/unideportes-system/controllers/logout.php" class="btn-salir">Salir</a>
         </div>
     </div>
 </header>

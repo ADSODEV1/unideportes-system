@@ -1,51 +1,109 @@
 <?php
 session_start();
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
 $conn = connection();
 
-// 1. SEGURIDAD: Verificar sesión y que los datos vengan por POST
-if (!isset($_SESSION['username']) || !isset($_POST['producto_id'])) {
-    header("Location: index.php");
+// 1. SEGURIDAD
+if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
+    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
     exit();
 }
 
-// Recibimos los datos
-$cliente_id       = $_POST['cliente_id'];
-$producto_id      = $_POST['producto_id'];
-$cantidad_vendida = intval($_POST['cantidad']);
-$vendedor_id      = $_SESSION['id_usuario']; // Asumiendo que guardas el ID al hacer login
-
-// 2. CONSULTA DE PRECIO Y STOCK
-$res_prod = mysqli_query($conn, "SELECT precio, stock, nombre FROM productos WHERE id = '$producto_id'");
-$producto = mysqli_fetch_array($res_prod);
-
-$precio_unitario = $producto['precio'];
-$stock_actual    = $producto['stock'];
-$total_venta     = $precio_unitario * $cantidad_vendida;
-
-// 3. VALIDACIÓN CRÍTICA
-if ($cantidad_vendida > $stock_actual) {
-    header("Location: nueva_venta.php?error=stock_insuficiente");
+// 2. OBTENER DATOS
+if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty($_POST['venta_json'])) {
+    header("Location: ../views/nueva_venta.php?error=datos_incompletos");
     exit();
 }
 
-// 4. OPERACIÓN EN BASE DE DATOS (Transacción lógica)
-// A. Registrar la venta
-$sql_venta = "INSERT INTO ventas (cliente_id, vendedor_id, total_venta, fecha) 
-              VALUES ('$cliente_id', '$vendedor_id', '$total_venta', NOW())";
-$venta_ok = mysqli_query($conn, $sql_venta);
+$cliente_id = intval($_POST['cliente_id']);
+$total_venta = floatval($_POST['total_venta']);
+$venta_json = json_decode($_POST['venta_json'], true);
 
-// B. Descontar stock solo si la venta se registró
-if ($venta_ok) {
-    $nuevo_stock = $stock_actual - $cantidad_vendida;
-    $sql_update = "UPDATE productos SET stock = '$nuevo_stock' WHERE id = '$producto_id'";
-    mysqli_query($conn, $sql_update);
+// 3. VALIDAR QUE EXISTA EL CLIENTE
+$res_cliente = mysqli_query($conn, "SELECT id FROM clientes WHERE id = '$cliente_id'");
+if (mysqli_num_rows($res_cliente) == 0) {
+    header("Location: ../views/nueva_venta.php?error=cliente_inexistente");
+    exit();
+}
+
+// 4. OBTENER ID DEL VENDEDOR (usuario actual)
+$res_vendedor = mysqli_query($conn, "SELECT id FROM usuarios WHERE username = '" . mysqli_real_escape_string($conn, $_SESSION['username']) . "'");
+$vendedor = mysqli_fetch_array($res_vendedor);
+$vendedor_id = $vendedor['id'] ?? null;
+
+if (!$vendedor_id) {
+    header("Location: ../views/nueva_venta.php?error=vendedor_inexistente");
+    exit();
+}
+
+// 5. INICIAR TRANSACCIÓN
+mysqli_begin_transaction($conn);
+
+try {
+    // A. CREAR REGISTRO DE VENTA
+    $sql_venta = "INSERT INTO ventas (cliente_id, vendedor_id, total_venta, fecha_venta) 
+                  VALUES ($cliente_id, $vendedor_id, $total_venta, NOW())";
     
-    // ÉXITO: Redirección según el rol
-    $destino = ($_SESSION['role'] == 'admin') ? "panel_admin.php" : "panel_vendedor.php";
-    header("Location: $destino?success=venta_realizada");
-} else {
-    header("Location: nueva_venta.php?error=error_registro");
+    if (!mysqli_query($conn, $sql_venta)) {
+        throw new Exception("Error al registrar venta: " . mysqli_error($conn));
+    }
+    
+    $venta_id = mysqli_insert_id($conn);
+    
+    // B. PROCESAR CADA DETALLE DE VENTA
+    foreach ($venta_json as $detalle) {
+        $producto_id = intval($detalle['producto_id']);
+        $cantidad = intval($detalle['cantidad']);
+        $precio_unitario = floatval($detalle['precio_unitario']);
+        $subtotal = floatval($detalle['subtotal']);
+        
+        // Validar que el producto existe
+        $res_prod = mysqli_query($conn, "SELECT stock FROM productos WHERE id = $producto_id");
+        if (mysqli_num_rows($res_prod) == 0) {
+            throw new Exception("Producto $producto_id no existe");
+        }
+        
+        $prod = mysqli_fetch_array($res_prod);
+        $stock_actual = $prod['stock'];
+        
+        // Validar stock suficiente
+        if ($cantidad > $stock_actual) {
+            throw new Exception("Stock insuficiente para el producto $producto_id. Disponible: $stock_actual, Solicitado: $cantidad");
+        }
+        
+        // INSERTAR DETALLE DE VENTA
+        $sql_detalle = "INSERT INTO detalles_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal) 
+                        VALUES ($venta_id, $producto_id, $cantidad, $precio_unitario, $subtotal)";
+        
+        if (!mysqli_query($conn, $sql_detalle)) {
+            throw new Exception("Error al registrar detalle: " . mysqli_error($conn));
+        }
+        
+        // DESCONTAR DEL INVENTARIO
+        $nuevo_stock = $stock_actual - $cantidad;
+        $sql_update = "UPDATE productos SET stock = $nuevo_stock WHERE id = $producto_id";
+        
+        if (!mysqli_query($conn, $sql_update)) {
+            throw new Exception("Error al actualizar inventario: " . mysqli_error($conn));
+        }
+    }
+    
+    // 6. CONFIRMAR TRANSACCIÓN
+    mysqli_commit($conn);
+    
+    // 7. REDIRIGIR CON ÉXITO
+    header("Location: ../views/panel_vendedor.php?success=venta_registrada&id=$venta_id");
+    exit();
+    
+} catch (Exception $e) {
+    // REVERTIR TRANSACCIÓN EN CASO DE ERROR
+    mysqli_rollback($conn);
+    
+    $error = urlencode($e->getMessage());
+    header("Location: ../views/nueva_venta.php?error=$error");
+    exit();
 }
-exit();
+
+mysqli_close($conn);
+?>
 ?>
