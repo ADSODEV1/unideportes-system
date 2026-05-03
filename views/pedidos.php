@@ -26,7 +26,7 @@ include(__DIR__ . "/header.php");
 
 <div class="pedidos-container">
     <div class="flex-header">
-        <h1>🧵 Órdenes de Producción</h1>
+        <h1>Órdenes de Producción</h1>
         <?php if($_SESSION['role'] == 'admin'): ?>
             <a href="nuevo_pedido.php" class="btn-principal">+ Nueva Orden</a>
         <?php endif; ?>

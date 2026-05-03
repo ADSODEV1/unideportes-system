@@ -69,14 +69,14 @@ include(__DIR__ . "/header.php");
 <div class="reporte-page">
     <div class="reporte-header">
         <div>
-            <h1>📊 Reporte de Ventas</h1>
+            <h1> Reporte de Ventas</h1>
             <p>Balance económico y detalle de transacciones.</p>
         </div>
     </div>
 
     <!-- FILTROS -->
     <div class="filtros-section">
-        <h3>🔍 Filtros</h3>
+        <h3> Filtros</h3>
         <form method="GET" class="filtros-form">
             <div class="filtro-grupo">
                 <label>Desde:</label>
@@ -112,8 +112,8 @@ include(__DIR__ . "/header.php");
                 </select>
             </div>
 
-            <button type="submit" class="btn-filtrar">🔍 Filtrar</button>
-            <a href="reportes_ventas.php" class="btn-limpiar">🔄 Limpiar</a>
+            <button type="submit" class="btn-filtrar"> Filtrar</button>
+            <a href="reportes_ventas.php" class="btn-limpiar"> Limpiar</a>
         </form>
     </div>
 
@@ -155,7 +155,7 @@ include(__DIR__ . "/header.php");
                     <td><span class="user-tag"><?= htmlspecialchars(ucfirst($venta['vendedor'])) ?></span></td>
                     <td class="text-right total-bold">$<?= number_format($venta['total_venta'], 2, '.', ',') ?></td>
                     <td>
-                        <button type="button" class="toggle-detalle-venta" data-venta-id="<?= $venta['id'] ?>">👁️ Ver</button>
+                        <button type="button" class="toggle-detalle-venta" data-venta-id="<?= $venta['id'] ?>"> Ver</button>
                     </td>
                 </tr>
                 <!-- Fila expandible de detalles -->
@@ -210,8 +210,8 @@ include(__DIR__ . "/header.php");
 
     <!-- ACCIONES -->
     <div class="acciones-reporte">
-        <button onclick="window.print()" class="btn-imprimir">🖨️ Imprimir / PDF</button>
-        <button onclick="exportarCSV()" class="btn-exportar">📥 Descargar CSV</button>
+        <button onclick="window.print()" class="btn-imprimir"> Imprimir / PDF</button>
+        <button onclick="exportarCSV()" class="btn-exportar"> Descargar CSV</button>
     </div>
 </div>
 

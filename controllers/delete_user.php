@@ -1,23 +1,28 @@
 <?php
-include("connection.php");
+session_start();
+require_once __DIR__ . '/../config/connection.php';
 
-//Atrapamos el ID que viene en la URL: delete_user.php?id=5
-$id = $_GET['id'];
+if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: /unideportes-system/public/index.php?error=acceso_denegado');
+    exit();
+}
 
-//Preparamos la orden de eliminación
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+if ($id <= 0) {
+    header('Location: ../views/admin_user.php?error=id_invalido');
+    exit();
+}
+
 $sql = "DELETE FROM usuarios WHERE id = ?";
 $stmt = $conn->prepare($sql);
-
-//Le pasamos el ID (es un número entero, por eso usamos "i")
 $stmt->bind_param("i", $id);
 
-//Ejecutamos
 if ($stmt->execute()) {
-    // Si funcionó, regresamos a la tabla
-    header("Location: admin_user.php?msj=eliminado");
-} else {
-    echo "No se pudo eliminar: " . $stmt->error;
+    header("Location: ../views/admin_user.php?msj=eliminado");
+    exit();
 }
+
+echo "No se pudo eliminar: " . $stmt->error;
 
 $stmt->close();
 $conn->close();

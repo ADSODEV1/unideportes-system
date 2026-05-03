@@ -18,7 +18,7 @@ foreach ($passwords as $id => $password) {
     echo "Usuario ID $id actualizado: $password → hash generado<br>";
 }
 
-echo "<br>✅ Todas las contraseñas actualizadas!<br>";
+echo "<br> Todas las contraseñas actualizadas!<br>";
 echo "<br>Ahora puedes probar:<br>";
 echo "- Pablo / 1234<br>";
 echo "- joel_dev / 123<br>";

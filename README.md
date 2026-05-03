@@ -1,8 +1,8 @@
-# 🏆 Sistema CRUD Unideportes
+#  Sistema CRUD Unideportes
 
 Sistema completo de gestión de usuarios con operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para el control de personal en Unideportes.
 
-## 📋 Tabla de Contenidos
+##  Tabla de Contenidos
 
 - [Características](#-características)
 - [Tecnologías](#-tecnologías)
@@ -19,16 +19,16 @@ Sistema completo de gestión de usuarios con operaciones CRUD (Crear, Leer, Actu
 - [Contribución](#-contribución)
 - [Licencia](#-licencia)
 
-## ✨ Características
+##  Características
 
-- 🔐 **Autenticación segura** con contraseñas hasheadas
-- 👥 **Gestión completa de usuarios** (Admin, Colaborador, Vendedor)
-- 📊 **Panel administrativo** con métricas en tiempo real
-- 🎯 **Roles y permisos** basados en usuario
-- 🔍 **Búsqueda y filtrado** de usuarios
-- 📱 **Interfaz responsive** y moderna
-- 🧪 **Suite de testing** completa
-- 🚀 **Arquitectura MVC** organizada
+-  **Autenticación segura** con contraseñas hasheadas
+-  **Gestión completa de usuarios** (Admin, Colaborador, Vendedor)
+-  **Panel administrativo** con métricas en tiempo real
+-  **Roles y permisos** basados en usuario
+-  **Búsqueda y filtrado** de usuarios
+-  **Interfaz responsive** y moderna
+-  **Suite de testing** completa
+-  **Arquitectura MVC** organizada
 
 ## 🛠 Tecnologías
 
@@ -47,7 +47,7 @@ Sistema completo de gestión de usuarios con operaciones CRUD (Crear, Leer, Actu
 - **phpMyAdmin** - Gestión de BD
 - **Composer** - Gestión de dependencias (opcional)
 
-## 📋 Requisitos
+##  Requisitos
 
 ### Sistema Operativo
 - Windows 10/11
@@ -64,7 +64,7 @@ Sistema completo de gestión de usuarios con operaciones CRUD (Crear, Leer, Actu
 - Extensión MySQLi habilitada
 - Funciones `password_hash()` y `password_verify()`
 
-## 🚀 Instalación
+##  Instalación
 
 ### Paso 1: Clonar o Descargar
 ```bash
@@ -78,8 +78,8 @@ C:\xampp\htdocs\unideportes-system
 ### Paso 2: Iniciar XAMPP
 1. Abre el **Panel de Control de XAMPP**
 2. Inicia los módulos:
-   - ✅ Apache
-   - ✅ MySQL
+   -  Apache
+   -  MySQL
 
 ### Paso 3: Crear Base de Datos
 1. Abre tu navegador: `http://localhost/phpmyadmin/`
@@ -106,7 +106,7 @@ VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 - Usuario: `admin`
 - Contraseña: `admin123`
 
-## ⚙️ Configuración
+##  Configuración
 
 ### Variables de Entorno
 Edita `config/connection.php` según tu configuración:
@@ -164,7 +164,7 @@ unideportes-system/
 └── README.md                  # Esta documentación
 ```
 
-## 🗄️ Base de Datos
+##  Base de Datos
 
 ### Tabla: `usuarios`
 
@@ -190,9 +190,9 @@ unideportes-system/
 | `precio` | DECIMAL(10,2) | Precio del producto |
 | `created_at` | TIMESTAMP | Fecha de creación |
 
-## 🎯 Funcionalidades CRUD
+##  Funcionalidades CRUD
 
-### 👤 Gestión de Usuarios
+###  Gestión de Usuarios
 
 #### **CREATE** - Crear Usuario
 - **Archivo:** `models/insert_user.php`
@@ -225,7 +225,7 @@ unideportes-system/
   - Confirmación de eliminación
   - Redirección automática
 
-### 🔐 Sistema de Autenticación
+###  Sistema de Autenticación
 
 #### Login Seguro
 - **Archivo:** `controllers/auth.php`
@@ -240,7 +240,7 @@ unideportes-system/
 - **Colaborador:** Acceso limitado
 - **Vendedor:** Acceso básico
 
-## 🎮 Uso del Sistema
+##  Uso del Sistema
 
 ### Acceder al Sistema
 1. Abre: `http://localhost/unideportes-system/public/`
@@ -273,18 +273,18 @@ unideportes-system/
 1. En la tabla de usuarios, haz clic en 🗑️
 2. Confirma la eliminación
 
-## 🧪 Testing
+##  Testing
 
 ### Ejecutar Suite de Pruebas
 Ve a: `http://localhost/unideportes-system/test.php`
 
 ### Pruebas Incluidas
-- ✅ **Configuración del servidor**
-- ✅ **Archivos del sistema**
-- ✅ **Conexión a base de datos**
-- ✅ **Estructura de tablas**
-- ✅ **Operaciones CRUD reales**
-- ✅ **Sistema de autenticación**
+-  **Configuración del servidor**
+-  **Archivos del sistema**
+-  **Conexión a base de datos**
+-  **Estructura de tablas**
+-  **Operaciones CRUD reales**
+-  **Sistema de autenticación**
 
 ### Pruebas CRUD Automáticas
 El test crea, lee, actualiza y elimina un usuario de prueba automáticamente.
@@ -312,7 +312,7 @@ GET /unideportes-system/views/panel_admin.php       # Admin
 GET /unideportes-system/views/panel_vendedor.php    # Vendedor
 ```
 
-## 🔒 Seguridad
+##  Seguridad
 
 ### Medidas Implementadas
 - **Contraseñas hasheadas** con `password_hash()`
@@ -329,7 +329,7 @@ GET /unideportes-system/views/panel_vendedor.php    # Vendedor
 - Logs de seguridad
 - Actualizaciones regulares
 
-## 🤝 Contribución
+##  Contribución
 
 ### Cómo Contribuir
 1. **Fork** el proyecto
@@ -359,16 +359,16 @@ Este proyecto está bajo la **Licencia MIT**. Ver archivo `LICENSE` para más de
 
 ---
 
-## 📞 Soporte
+##  Soporte
 
 ¿Necesitas ayuda?
-- 📧 Email: soporte@unideportes.com
-- 📱 WhatsApp: +57 XXX XXX XXXX
-- 🐛 Issues: [GitHub Issues](https://github.com/tu-usuario/unideportes-system/issues)
+-  Email: soporte@unideportes.com
+-  WhatsApp: +57 XXX XXX XXXX
+-  Issues: [GitHub Issues](https://github.com/tu-usuario/unideportes-system/issues)
 
 ---
 
-## 🎯 Próximos Pasos
+##  Próximos Pasos
 
 - [ ] Implementar API REST completa
 - [ ] Agregar sistema de logs
@@ -381,4 +381,4 @@ Este proyecto está bajo la **Licencia MIT**. Ver archivo `LICENSE` para más de
 
 ---
 
-**Desarrollado con ❤️ para Unideportes**
+**Desarrollado para Unideportes**

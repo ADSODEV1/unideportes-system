@@ -33,7 +33,7 @@ include(__DIR__ . "/header.php");
     </div>
 
     <div class="sidebar-section">
-        <h3>📊 Resumen</h3>
+        <h3> Resumen</h3>
         <div class="stat-box">
             Colaboradores:<br>
             <strong><?= $total_colab; ?></strong>
@@ -47,7 +47,7 @@ include(__DIR__ . "/header.php");
     <!-- Contenido Principal -->
     <main class="main-content-panel">
 
-        <h1>🧑 Panel Administrador - Unideportes</h1>
+        <h1> Panel Administrador - Unideportes</h1>
 
         <div class="resumen-kpi">
             <div class="kpi-card">
@@ -61,35 +61,35 @@ include(__DIR__ . "/header.php");
         <div class="menu-maestro">
             <div class="opcion">
                 <a href="nueva_venta.php">
-                    <span>💳</span>
+                    <span></span>
                     <h3>Realizar Venta</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="admin_user.php">
-                    <span>🧑</span>
+                    <span></span>
                     <h3>Gestionar Personal</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="inventario.php">
-                    <span>🧰</span>
+                    <span></span>
                     <h3>Control de Inventario</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="clientes.php">
-                    <span>📓</span>
+                    <span></span>
                     <h3>Base de Clientes</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="reportes_ventas.php">
-                    <span>📶</span>
+                    <span></span>
                     <h3>Reportes de Ventas</h3>
                 </a>
             </div>

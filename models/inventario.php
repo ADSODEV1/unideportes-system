@@ -25,7 +25,7 @@ $query = mysqli_query($conn, "SELECT * FROM productos");
         </div>
 
         <div class="sidebar-section">
-            <h3>📊 Resumen Stock</h3>
+            <h3> Resumen Stock</h3>
             <div class="stat-box">Total: <strong><?= $total_prod ?></strong></div>
             <div class="stat-box warning">Bajo Stock: <strong><?= $stock_bajo ?></strong></div>
             <div class="stat-box danger">Agotados: <strong><?= $agotados ?></strong></div>
@@ -69,7 +69,7 @@ $query = mysqli_query($conn, "SELECT * FROM productos");
                     <td>
                         <a href="detalle_prod.php?id=<?= $row['id'] ?>" class="btn-action view" title="Ver detalle">🔎</a>
                         <?php if($_SESSION['role'] == 'admin'): ?>
-                            <a href="editar_prod.php?id=<?= $row['id'] ?>" class="btn-action edit" title="Editar">✎</a>
+                           
                         <?php endif; ?>
                     </td>
                 </tr>

@@ -77,7 +77,7 @@ include("header.php");
                                 <a href="update.php?id=<?= $row['id'] ?>">✏️</a>
                             </td>
                             <td>
-                                <a href="delete_user.php?id=<?= $row['id'] ?>">🗑️</a>
+                                <a href="../controllers/delete_user.php?id=<?= $row['id'] ?>" class="delete-user" onclick="return confirm('¿Estás seguro de eliminar este usuario?');">🗑️</a>
                             </td>
                         </tr>
                     <?php endwhile; ?>

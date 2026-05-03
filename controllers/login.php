@@ -1,6 +1,6 @@
 <?php
 session_start(); // INICIA EL SISTEMA
-include("connection.php");
+require_once __DIR__ . '/../config/connection.php';
 
 if (!empty($_POST['username']) && !empty($_POST['password'])) {
     
@@ -17,25 +17,24 @@ if (!empty($_POST['username']) && !empty($_POST['password'])) {
     $result = $stmt->get_result();
 
     if ($row = $result->fetch_assoc()) {
-        // 4. VERIFICAR LA CONTRASEÑA
-        // Por ahora comparamos texto plano, pero luego usaremos password_verify
-        if ($pass_input == $row['password']) {
+        // 4. VERIFICAR LA CONTRASEÑA (usando password_verify para hashes)
+        if (password_verify($pass_input, $row['password'])) {
             
             // 5. CREAR LA SESIÓN (Guardamos sus datos en la "memoria" del servidor)
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['nombre']  = $row['username'];
             $_SESSION['rol']     = $row['role'];
 
-            header("Location: dashboard.php"); // Pa' dentro
+            header("Location: ../views/panel_admin.php"); // Redirigir al panel
             exit();
         } else {
-            header("Location: index.php?error=clave_incorrecta");
+            header("Location: ../public/index.php?error=clave_incorrecta");
         }
     } else {
-        header("Location: index.php?error=usuario_no_existe");
+        header("Location: ../public/index.php?error=usuario_no_existe");
     }
 
 } else {
-    header("Location: index.php?msj=vacio");
+    header("Location: ../public/index.php?msj=vacio");
 }
 ?>

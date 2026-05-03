@@ -10,12 +10,12 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result();
-$row = $result->fetch_assoc();
+$row = $result->fetch_assoc(); // Aquí ya tenemos los datos en $row
 ?>
 
 <h3>Editar Usuario: <?php echo $row['username']; ?></h3>
 
-<form action="../controllers/edit_user.php" method="POST">
+<form action="edit_user.php" method="POST">
     
     <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
 
@@ -30,9 +30,6 @@ $row = $result->fetch_assoc();
 
     <label>Email:</label>
     <input type="email" name="email" value="<?php echo $row['email']; ?>">
-
-    <label>Nueva Contraseña (dejar vacío para mantener actual):</label>
-    <input type="password" name="password" placeholder="Nueva contraseña">
 
     <button type="submit">ACTUALIZAR DATOS</button>
 </form>

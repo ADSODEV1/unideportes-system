@@ -42,7 +42,7 @@ include(__DIR__ . "/header.php");
             <div class="opcion">
                 <a href="nueva_venta.php">
                     <span></span>
-                    <h3>nueva venta</h3>
+                    <h3>Nueva venta</h3>
                 </a>
             </div>
 
