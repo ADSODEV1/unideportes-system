@@ -69,10 +69,10 @@ Sistema completo de gestión de usuarios con operaciones CRUD (Crear, Leer, Actu
 ### Paso 1: Clonar o Descargar
 ```bash
 # Si usas Git
-git clone https://github.com/tu-usuario/unideportes-system.git
+git clone https://github.com/tu-usuario/crudunideportes.git
 
 # O descarga el ZIP y extráelo en:
-C:\xampp\htdocs\unideportes-system
+C:\xampp\htdocs\crudunideportes
 ```
 
 ### Paso 2: Iniciar XAMPP
@@ -92,7 +92,7 @@ Verifica que `config/connection.php` tenga:
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db = "unideportes";
+$db = "unideportes_pruebas";
 ```
 
 ### Paso 5: Usuario Administrador
@@ -128,13 +128,12 @@ function connection(): mysqli {
 ### Permisos de Archivos
 Asegúrate de que la carpeta del proyecto tenga permisos de escritura:
 ```bash
-chmod -R 755 /opt/lampp/htdocs/unideportes-system
+chmod -R 755 /opt/lampp/htdocs/crudunideportes
 ```
 
 ## 📁 Estructura del Proyecto
 
-```
-unideportes-system/
+```crudunideportes/
 ├── 📁 config/
 │   └── connection.php          # Configuración de BD
 ├── 📁 controllers/
@@ -243,7 +242,7 @@ unideportes-system/
 ##  Uso del Sistema
 
 ### Acceder al Sistema
-1. Abre: `http://localhost/unideportes-system/public/`
+1. Abre: `http://localhost/crudunideportes/public/`
 2. Ingresa credenciales:
    - Usuario: `admin`
    - Contraseña: `admin123`
@@ -276,7 +275,7 @@ unideportes-system/
 ##  Testing
 
 ### Ejecutar Suite de Pruebas
-Ve a: `http://localhost/unideportes-system/test.php`
+Ve a: `http://localhost/crudunideportes/test.php`
 
 ### Pruebas Incluidas
 -  **Configuración del servidor**
@@ -293,23 +292,23 @@ El test crea, lee, actualiza y elimina un usuario de prueba automáticamente.
 
 ### Autenticación
 ```
-POST /unideportes-system/controllers/auth.php
+POST /crudunideportes/controllers/auth.php
 - username: string
 - password: string
 ```
 
 ### Gestión de Usuarios
 ```
-POST /unideportes-system/models/insert_user.php     # Crear
-GET  /unideportes-system/views/admin_user.php       # Leer
-POST /unideportes-system/controllers/edit_user.php  # Actualizar
-GET  /unideportes-system/controllers/delete_user.php?id={id}  # Eliminar
+POST /crudunideportes/models/insert_user.php     # Crear
+GET  /crudunideportes/views/admin_user.php       # Leer
+POST /crudunideportes/controllers/edit_user.php  # Actualizar
+GET  /crudunideportes/controllers/delete_user.php?id={id}  # Eliminar
 ```
 
 ### Paneles
 ```
-GET /unideportes-system/views/panel_admin.php       # Admin
-GET /unideportes-system/views/panel_vendedor.php    # Vendedor
+GET /crudunideportes/views/panel_admin.php       # Admin
+GET /crudunideportes/views/panel_vendedor.php    # Vendedor
 ```
 
 ##  Seguridad
@@ -353,6 +352,7 @@ GET /unideportes-system/views/panel_vendedor.php    # Vendedor
    - Comportamiento esperado vs actual
    - Información del entorno
 
+<<<<<<< HEAD
 ## 📄 Licencia
 
 Este proyecto está bajo la **Licencia MIT**. Ver archivo `LICENSE` para más detalles.
@@ -379,6 +379,8 @@ Este proyecto está bajo la **Licencia MIT**. Ver archivo `LICENSE` para más de
 - [ ] Documentación API
 - [ ] Dockerización del proyecto
 
+=======
+>>>>>>> 3806880fbde5e432111cd562506380934b93d46f
 ---
 
 **Desarrollado para Unideportes**
