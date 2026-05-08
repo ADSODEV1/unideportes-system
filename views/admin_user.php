@@ -72,6 +72,7 @@ include("header.php");
                             <td><?= $row['lastname'] ?></td>
                             <td><?= $row['username'] ?></td>
                             <td><?= $row['email'] ?></td>
+                            
 
                             <td>
                                 <a href="update.php?id=<?= $row['id'] ?>">✏️</a>
