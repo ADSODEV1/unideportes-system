@@ -1,42 +1,27 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Servidor: 127.0.0.1
--- Tiempo de generación: 16-03-2026 a las 20:21:02
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.0.30
+-- --------------------------------------------------------
+-- Base de Datos Unideportes
+-- --------------------------------------------------------
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
--- --------------------------------------------------------
--- Script de Instalación Unificado: Base de Datos Unideportes (CORREGIDO)
--- --------------------------------------------------------
-
 -- 1. Crear y seleccionar la base de datos
 CREATE DATABASE IF NOT EXISTS `unideportes` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `unideportes`;
 
--- 2. Tabla de USUARIOS (Corregida: eliminado índice duplicado)
+-- 2. Tabla de USUARIOS
 CREATE TABLE IF NOT EXISTS `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) DEFAULT NULL,
   `lastname` varchar(50) DEFAULT NULL,
-  `username` varchar(50) UNIQUE NOT NULL,
+  `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
   `role` enum('admin','colaborador','vendedor') DEFAULT 'colaborador',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-  -- Nota: No se repite UNIQUE KEY 'username' porque ya está definido en la columna
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. Tabla de CLIENTES
@@ -56,13 +41,14 @@ CREATE TABLE IF NOT EXISTS `clientes` (
 CREATE TABLE IF NOT EXISTS `productos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(100) NOT NULL,
-  `referencia` varchar(50) UNIQUE NOT NULL,
+  `referencia` varchar(50) NOT NULL,
   `categoria` varchar(50) DEFAULT NULL,
   `talla` varchar(10) DEFAULT NULL,
   `stock` int(11) DEFAULT 0,
   `precio` decimal(10,2) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `referencia` (`referencia`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. Tabla de VENTAS
@@ -75,10 +61,8 @@ CREATE TABLE IF NOT EXISTS `ventas` (
   PRIMARY KEY (`id`),
   KEY `idx_ventas_cliente` (`cliente_id`),
   KEY `idx_ventas_vendedor` (`vendedor_id`),
-  CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT `fk_ventas_vendedor` FOREIGN KEY (`vendedor_id`) REFERENCES `usuarios` (`id`)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+  CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT `fk_ventas_vendedor` FOREIGN KEY (`vendedor_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. Tabla de DETALLES DE VENTA
@@ -92,10 +76,8 @@ CREATE TABLE IF NOT EXISTS `detalles_venta` (
   PRIMARY KEY (`id`),
   KEY `idx_detalles_venta` (`venta_id`),
   KEY `idx_detalles_producto` (`producto_id`),
-  CONSTRAINT `fk_detalles_venta` FOREIGN KEY (`venta_id`) REFERENCES `ventas` (`id`)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT `fk_detalles_producto` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+  CONSTRAINT `fk_detalles_venta_id` FOREIGN KEY (`venta_id`) REFERENCES `ventas` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `fk_detalles_producto_id` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. Tabla de PEDIDOS
@@ -111,11 +93,10 @@ CREATE TABLE IF NOT EXISTS `pedidos` (
   PRIMARY KEY (`id`),
   KEY `idx_pedidos_cliente` (`cliente_id`),
   KEY `idx_pedidos_estado` (`estado`),
-  CONSTRAINT `fk_pedidos_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+  CONSTRAINT `fk_pedidos_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. Tabla de DETALLE_PEDIDO
+-- 8. Tabla de DETALLE_PEDIDO (CORREGIDA)
 CREATE TABLE IF NOT EXISTS `detalle_pedido` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_d_pedido` int(11) NOT NULL,
@@ -123,12 +104,10 @@ CREATE TABLE IF NOT EXISTS `detalle_pedido` (
   `cantidad` int(11) DEFAULT 1,
   `subtotal` decimal(10,2) DEFAULT 0.00,
   PRIMARY KEY (`id`),
-  KEY `fk_detalle_pedido` (`id_d_pedido`),
-  KEY `fk_detalle_producto` (`id_d_producto`),
-  CONSTRAINT `fk_detalle_pedido` FOREIGN KEY (`id_d_pedido`) REFERENCES `pedidos` (`id`)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT `fk_detalle_producto` FOREIGN KEY (`id_d_producto`) REFERENCES `productos` (`id`)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+  KEY `idx_det_ped_pedido` (`id_d_pedido`),
+  KEY `idx_det_ped_producto` (`id_d_producto`),
+  CONSTRAINT `fk_det_pedido_rel` FOREIGN KEY (`id_d_pedido`) REFERENCES `pedidos` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `fk_det_producto_rel` FOREIGN KEY (`id_d_producto`) REFERENCES `productos` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9. Tabla de PAGOS
@@ -139,28 +118,24 @@ CREATE TABLE IF NOT EXISTS `pagos` (
   `fecha` date DEFAULT NULL,
   PRIMARY KEY (`id_pago`),
   KEY `fk_pago_pedido` (`id_pg_pedido`),
-  CONSTRAINT `fk_pago_pedido` FOREIGN KEY (`id_pg_pedido`) REFERENCES `pedidos` (`id`)
-    ON UPDATE CASCADE ON DELETE SET NULL
+  CONSTRAINT `fk_pago_pedido_rel` FOREIGN KEY (`id_pg_pedido`) REFERENCES `pedidos` (`id`) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- DATOS DE PRUEBA (Seeder)
+-- DATOS DE PRUEBA
 -- --------------------------------------------------------
 
--- Usuarios
 INSERT INTO `usuarios` (`id`, `name`, `lastname`, `username`, `password`, `email`, `role`) VALUES
 (1, 'Admin', 'Principal', 'admin', '$2y$10$7FV3L0RhxphrMhhszj2KcupvKxTRFOxJ0tY1zgaOTVogILwZSVVde', 'admin@unideportes.com', 'admin'),
 (2, 'Joel', 'Castro', 'joel_dev', '$2y$10$d3MsHK0/r9PtMLXMCM1Sdu5c86YVHI7GQMwc9AjXi.XzTQiS5xLtu', 'joel@unideportes.com', 'colaborador'),
 (3, 'Pablo', 'Rios', 'Pablo', '$2y$10$9mDI0hEEhXmKXu4DVCO/ee/1DRVNb0E5ERiBXBbqYKyZtxxMEyMBu', 'pablo@unideportes.com', 'colaborador'),
-(5, 'Jonathan ', 'Suarez', 'JonathanS', '$2y$10$VEwyaS6wWBzPA17Ywc3x9eEVwDim4oRLyufJv82bUXRyhRj3RFU76', 'jaysuarezap@gmail.com', 'vendedor');
+(5, 'Jonathan', 'Suarez', 'JonathanS', '$2y$10$VEwyaS6wWBzPA17Ywc3x9eEVwDim4oRLyufJv82bUXRyhRj3RFU76', 'jaysuarezap@gmail.com', 'vendedor');
 
--- Clientes
 INSERT INTO `clientes` (`id`, `nombre_completo`, `nit_cedula`, `telefono`, `email`, `tipo_cliente`) VALUES
 (1, 'Cliente General', '000000', '000-000', NULL, 'Individual'),
 (2, 'Las señoritas de la misericordia', '987654', '741258', NULL, 'Empresa'),
 (3, 'Ramon Valdez', '78952147', '7155956', NULL, 'Individual');
 
--- Productos
 INSERT INTO `productos` (`id`, `nombre`, `referencia`, `categoria`, `talla`, `stock`, `precio`) VALUES
 (1, 'Camiseta Polo Azul', 'REF-001', 'Camisetas', 'S', 7, 20000.00),
 (2, 'Pantaloneta Roja', 'REF-002', 'Pantalonetas', 'S', 12, 0.00),
@@ -173,27 +148,25 @@ INSERT INTO `productos` (`id`, `nombre`, `referencia`, `categoria`, `talla`, `st
 (9, 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', '41', 3, 480000.00),
 (10, 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'M', 30, 35000.00);
 
--- Pedidos
 INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `estado`, `fecha_entrega`) VALUES
 (1, 1, 'Uniformes Local - Tela DryFit', 'Uniformes Local', 22, 'En Corte', '2026-03-25'),
 (2, 1, 'Sudaderas Prom 2026', 'Sudaderas Prom', 45, 'En Costura', '2026-03-18');
 
--- Ventas
 INSERT INTO `ventas` (`id`, `cliente_id`, `vendedor_id`, `total_venta`, `fecha_venta`) VALUES
-(2, 1, 1, 57000.00, '2026-05-02 19:36:53');
+(2, 1, 1, 60000.00, '2026-05-02 19:36:53');
 
--- Detalles de Venta
 INSERT INTO `detalles_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`) VALUES
 (1, 2, 1, 3, 20000.00, 60000.00);
 
 -- Ajuste de Auto-Incrementos
-ALTER TABLE `usuarios` AUTO_INCREMENT = 12;
+ALTER TABLE `usuarios` AUTO_INCREMENT = 6;
 ALTER TABLE `clientes` AUTO_INCREMENT = 4;
 ALTER TABLE `productos` AUTO_INCREMENT = 11;
 ALTER TABLE `ventas` AUTO_INCREMENT = 3;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+// Ajuste en la tabla de ventas
+ALTER TABLE `ventas` ADD COLUMN `metodo_pago` ENUM('Efectivo', 'Tarjeta', 'Transferencia', 'Otro') 
+NOT NULL DEFAULT 'Efectivo' AFTER `total_venta`;
 
-COMMIT;
+// cambios en pagos de fecha a datetime
+ALTER TABLE `pagos` MODIFY COLUMN `fecha` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
