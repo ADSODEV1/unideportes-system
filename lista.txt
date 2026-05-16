@@ -1,0 +1,14 @@
+.gitignore
+assets
+config
+controllers
+db
+home.php
+lista.txt
+models
+public
+README.md
+tatus
+test.php
+tests
+views
