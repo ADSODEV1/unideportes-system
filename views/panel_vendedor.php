@@ -41,21 +41,21 @@ include(__DIR__ . "/header.php");
 
             <div class="opcion">
                 <a href="nueva_venta.php">
-                    <span></span>
+                    <span>🛒</span>
                     <h3>Nueva venta</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="clientes.php">
-                    <span>📓</span>
+                    <span>👥</span>
                     <h3>Clientes</h3>
                 </a>
             </div>
 
             <div class="opcion">
                 <a href="pedidos.php">
-                    <span>🚚</span>
+                    <span>📦</span>
                     <h3>Pedidos</h3>
                 </a>
             </div>

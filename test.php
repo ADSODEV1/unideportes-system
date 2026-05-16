@@ -9,6 +9,7 @@ $db_host = 'localhost';
 $db_name = 'unideportes';
 $db_user = 'root';
 $db_pass = '';
+$db_port = 3308; // Cambia si tu MySQL usa otro puerto
 
 echo "<!DOCTYPE html>
 <html>
