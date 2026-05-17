@@ -36,6 +36,7 @@ include(__DIR__ . "/header.php");
             
             <!-- DATOS DE VENTA -->
             <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <!-- Columna Cliente -->
                 <div style="flex: 1;">
                     <label><strong>Cliente:</strong></label>
                     <input type="text" list="listaClientes" id="clienteInput" placeholder="Buscar cliente..." required style="width:100%; padding: 8px; margin-top: 5px;">
@@ -47,6 +48,7 @@ include(__DIR__ . "/header.php");
                     <input type="hidden" name="cliente_id" id="cliente_id_hidden" required>
                 </div>
                 
+                <!-- Columna Método de Pago -->
                 <div style="flex: 1;">
                     <label><strong>Método de Pago:</strong></label>
                     <select name="metodo_pago" id="metodo_pago" required style="width:100%; padding: 8px; margin-top: 5px;">
@@ -54,6 +56,22 @@ include(__DIR__ . "/header.php");
                         <option value="Tarjeta">💳 Tarjeta</option>
                         <option value="Transferencia">📱 Transferencia</option>
                     </select>
+
+                    <!-- SECCIÓN TRANSFERENCIA -->
+                    <div id="seccionTransferencia" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                        <label><small><strong>Plataforma Virtual:</strong></small></label>
+                        <select id="tipo_transferencia_select" style="width:100%; padding: 6px; margin-top: 5px;">
+                            <option value="Nequi">Nequi</option>
+                            <option value="Daviplata">Daviplata</option>
+                            <option value="Otro">Otro ¿Cuál?</option>
+                        </select>
+
+                        <!-- Campo dinámico para escribir el nombre de otra plataforma -->
+                        <input type="text" id="otra_plataforma_input" placeholder="Ej: Breve, Bancolombia..." style="display: none; width: 100%; padding: 6px; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        
+                        <!-- Este input oculto  VIAJARÁ REALMENTE a PHP con el valor final -->
+                        <input type="hidden" name="tipo_transferencia" id="tipo_transferencia_final">
+                    </div>
                 </div>
             </div>
 

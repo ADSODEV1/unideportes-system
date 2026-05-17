@@ -34,12 +34,10 @@ document.getElementById('btnAgregar').addEventListener('click', function() {
         }
     }
     
-    // Texto envuelto en comillas correctamente
     if (!objetoProducto) {
         return alert("Por favor, seleccione un producto válido de la lista.");
     }
 
-    // Selector exacto con acentos graves ` y atributo data-id
     if (document.querySelector(`input[data-id="${objetoProducto.id}"]`)) {
         return alert('El producto ya se encuentra en el pedido.');
     }
@@ -66,7 +64,7 @@ document.getElementById('btnAgregar').addEventListener('click', function() {
     calcularTotales();
 });
 
-// 3. FUNCIONES COMPLEMENTARIAS: Para que el módulo calcule dinero de verdad
+// 3. FUNCION: CALCULAR TOTALES DE LA VENTA
 function calcularTotales() {
     let granTotal = 0;
     
@@ -85,20 +83,69 @@ function calcularTotales() {
     if (typeof recalcularCambio === 'function') recalcularCambio();
 }
 
-// Control del despliegue del bloque de cambios (Efectivo)
+
+// CONTROL DE SECCIONES (EFECTIVO Y TRANSFERENCIA)
+
 document.querySelector('select[name="metodo_pago"]').addEventListener('change', function() {
-    const seccion = document.getElementById('seccionCambio');
+    const seccionCambio = document.getElementById('seccionCambio');
+    const seccionTransfe = document.getElementById('seccionTransferencia');
+    
+    // Resetear los campos de vuelto por seguridad al cambiar de método
+    document.getElementById('inputPagaCon').value = '';
+    document.getElementById('txtCambio').textContent = '$0.00';
+
     if (this.value === 'Efectivo') {
-        seccion.style.display = 'block';
+        seccionCambio.style.display = 'block';   // Muestra la calculadora de vueltas
+        seccionTransfe.style.display = 'none';   // Esconde Nequi/Daviplata
+    } else if (this.value === 'Transferencia') {
+        seccionCambio.style.display = 'none';    // Esconde las vueltas
+        seccionTransfe.style.display = 'block';  // MUESTRA Nequi/Daviplata
+        actualizarValorTransferencia();          // Sincroniza el valor de inmediato
     } else {
-        seccion.style.display = 'none';
-        document.getElementById('inputPagaCon').value = '';
-        document.getElementById('txtCambio').textContent = '$0.00';
+        // Si es Tarjeta u Otro método
+        seccionCambio.style.display = 'none';
+        seccionTransfe.style.display = 'none';
     }
 });
 
+// Escuchar el select de Nequi / Daviplata / Otro ¿Cuál?
+document.getElementById('tipo_transferencia_select').addEventListener('change', function() {
+    const inputOtro = document.getElementById('otra_plataforma_input');
+    
+    if (this.value === 'Otro') {
+        inputOtro.style.display = 'block';
+        inputOtro.required = true;
+        inputOtro.value = '';
+        inputOtro.focus(); // Pone el cursor adentro automáticamente
+    } else {
+        inputOtro.style.display = 'none';
+        inputOtro.required = false;
+    }
+    actualizarValorTransferencia();
+});
+
+//Escuchar si el vendedor escribe en la casilla "Otro ¿Cuál?"
+document.getElementById('otra_plataforma_input').addEventListener('input', actualizarValorTransferencia);
+
+// Funcion inteligente para unificar el dato que viaja a PHP
+function actualizarValorTransferencia() {
+    const metodo = document.querySelector('select[name="metodo_pago"]').value;
+    const selectValue = document.getElementById('tipo_transferencia_select').value;
+    const inputValue = document.getElementById('otra_plataforma_input').value.trim();
+    const inputFinal = document.getElementById('tipo_transferencia_final');
+
+    if (metodo !== 'Transferencia') {
+        inputFinal.value = ''; // Si no es transferencia, se va vacío (NULL en BD)
+    } else {
+        // Si eligio 'Otro' manda lo que escribio, si no, manda 'Nequi' o 'Daviplata'
+        inputFinal.value = (selectValue === 'Otro') ? inputValue : selectValue;
+    }
+}
+
+// ESCUCHADOR DEL INPUT DE EFECTIVO 
 document.getElementById('inputPagaCon').addEventListener('input', recalcularCambio);
 
+// CALCULADORA DE CAMBIO
 function recalcularCambio() {
     const inputPaga = document.getElementById('inputPagaCon');
     if (!inputPaga) return;
@@ -123,7 +170,7 @@ function recalcularCambio() {
     }
 }
 
-// Preparación de los datos antes de enviar a PHP
+// Preparacion de los datos antes de enviar a PHP
 document.getElementById('ventaForm').addEventListener('submit', function(e) {
     const inputs = document.querySelectorAll('.cant-input');
     if (inputs.length === 0) {
