@@ -16,16 +16,7 @@ include("header.php");
 
 <div class="container admin-layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar-panel">
-
-        <div class="sidebar-section">
-            <h3> Administrador</h3>
-            <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
-        </div>
-
-      
-    </aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <!-- CONTENIDO -->
     <main class="main-content-panel">

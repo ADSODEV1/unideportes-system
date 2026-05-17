@@ -24,25 +24,7 @@ include(__DIR__ . "/header.php");
 
 <div class="container admin-layout">
 
-    <!-- Sidebar izquierdo -->
-   <aside class="sidebar-panel">
-
-    <div class="sidebar-section">
-        <h3> Administrador</h3>
-        <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
-    </div>
-
-    <div class="sidebar-section">
-        <h3> Resumen</h3>
-        <div class="stat-box">
-            Colaboradores:<br>
-            <strong><?= $total_colab; ?></strong>
-        </div>
-    </div>
-
-   
-
-</aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <!-- Contenido Principal -->
     <main class="main-content-panel">
