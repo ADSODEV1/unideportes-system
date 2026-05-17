@@ -13,26 +13,24 @@ if (!isset($_SESSION['username'])) {
 $total_prod = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as t FROM productos"))['t'] ?? 0;
 $stock_bajo = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as b FROM productos WHERE stock > 0 AND stock <= 5"))['b'] ?? 0;
 $agotados   = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as a FROM productos WHERE stock = 0"))['a'] ?? 0;
-$query = mysqli_query($conn, "SELECT * FROM productos");
+
+$search = trim($_GET['q'] ?? '');
+if ($search !== '') {
+    $like = "%" . $search . "%";
+    $stmt = $conn->prepare("SELECT * FROM productos WHERE nombre LIKE ? OR referencia LIKE ? ORDER BY nombre ASC");
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $query = $stmt->get_result();
+} else {
+    $query = mysqli_query($conn, "SELECT * FROM productos ORDER BY nombre ASC");
+}
+
+$sidebarExtra = '<div class="sidebar-section"><h3>🔍 Buscar producto</h3><form method="GET" action="inventario.php"><input type="search" name="q" value="' . htmlspecialchars($search) . '" placeholder="Nombre o referencia" class="sidebar-input" autocomplete="off"><button type="submit" class="btn-secondary" style="margin-top:10px; width:100%;">Buscar</button></form></div><div class="sidebar-section"><h3>Resumen Stock</h3><div class="stat-box">Total: <strong>'. $total_prod .'</strong></div><div class="stat-box warning">Bajo Stock: <strong>'. $stock_bajo .'</strong></div><div class="stat-box danger">Agotados: <strong>'. $agotados .'</strong></div></div>';
 ?>
 
 <div class="container admin-layout">
     
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>🔍 Buscador</h3>
-            <input type="text" id="inputBusqueda" placeholder="Buscar producto..." class="sidebar-input">
-        </div>
-
-        <div class="sidebar-section">
-            <h3> Resumen Stock</h3>
-            <div class="stat-box">Total: <strong><?= $total_prod ?></strong></div>
-            <div class="stat-box warning">Bajo Stock: <strong><?= $stock_bajo ?></strong></div>
-            <div class="stat-box danger">Agotados: <strong><?= $agotados ?></strong></div>
-        </div>
-
-        
-    </aside>
+    <?php include(__DIR__ . "/../views/sidebar_control.php"); ?>
 
     <main class="main-content-panel">
         <div class="header-carapteristicas">
@@ -84,15 +82,3 @@ $query = mysqli_query($conn, "SELECT * FROM productos");
         <p>&copy; <?php echo date("Y"); ?> Unideportes - Sistema de Gestión Interno</p>
     </div>
 </footer>
-
-<script>
-// El buscador funcional que apunta al nuevo ID
-document.getElementById('inputBusqueda').addEventListener('keyup', function() {
-    let filtro = this.value.toLowerCase();
-    let filas = document.querySelectorAll('#tablaProductos tr');
-    filas.forEach(fila => {
-        let texto = fila.innerText.toLowerCase();
-        fila.style.display = texto.includes(filtro) ? "" : "none";
-    });
-});
-</script>
