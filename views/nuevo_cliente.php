@@ -1,36 +1,26 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ClienteModel.php';
 
-if (!isset($_SESSION['username'])) {
-    header('Location: /unideportes-system/public/index.php');
-    exit();
-}
+require_login();
+$conn = app();
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = mysqli_real_escape_string($conn, $_POST['nombre_completo'] ?? '');
-    $nit = mysqli_real_escape_string($conn, $_POST['nit_cedula'] ?? '');
-    $telefono = mysqli_real_escape_string($conn, $_POST['telefono'] ?? '');
-    $email = mysqli_real_escape_string($conn, $_POST['email'] ?? '');
-    $tipo = mysqli_real_escape_string($conn, $_POST['tipo_cliente'] ?? 'Individual');
+    $data = [
+        'nombre_completo' => request('nombre_completo'),
+        'nit_cedula' => request('nit_cedula'),
+        'telefono' => request('telefono'),
+        'email' => request('email'),
+        'tipo_cliente' => request('tipo_cliente') ?: 'Individual',
+    ];
 
-    if ($nombre === '' || $nit === '') {
+    if (trim($data['nombre_completo']) === '' || trim($data['nit_cedula']) === '') {
         $error = 'Nombre y NIT/Cédula son obligatorios.';
+    } elseif (!crearCliente($conn, $data)) {
+        $error = 'No fue posible crear el cliente.';
     } else {
-        $stmt = $conn->prepare('INSERT INTO clientes (nombre_completo, nit_cedula, telefono, email, tipo_cliente) VALUES (?, ?, ?, ?, ?)');
-        if ($stmt) {
-            $stmt->bind_param('sssss', $nombre, $nit, $telefono, $email, $tipo);
-            if ($stmt->execute()) {
-                header('Location: clientes.php?msj=cliente_creado');
-                exit();
-            }
-            $error = 'No fue posible crear el cliente.';
-            $stmt->close();
-        } else {
-            $error = 'Error en la preparación de la consulta.';
-        }
+        redirect('clientes.php?msj=cliente_creado');
     }
 }
 

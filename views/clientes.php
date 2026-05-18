@@ -1,35 +1,22 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ClienteModel.php';
 
-// 1. SEGURIDAD
-if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
-    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
-    exit();
-}
+require_login(['vendedor', 'colaborador', 'admin']);
+$conn = app();
 
-// 2. OBTENER CLIENTES
-$res_clientes = mysqli_query($conn, "SELECT id, nombre_completo, nit_cedula, telefono, email, tipo_cliente FROM clientes ORDER BY nombre_completo ASC");
+$search = trim(request('search'));
+$res_clientes = obtenerClientes($conn, $search);
 
 $msg = '';
 $error = '';
-if (!empty($_GET['msj'])) {
-    if ($_GET['msj'] === 'cliente_creado') {
-        $msg = 'Nuevo cliente creado exitosamente.';
-    } elseif ($_GET['msj'] === 'cliente_eliminado') {
-        $msg = 'Cliente eliminado correctamente.';
-    }
+if ($msj = request('msj')) {
+    $msg = $msj === 'cliente_creado' ? 'Nuevo cliente creado exitosamente.' : ($msj === 'cliente_eliminado' ? 'Cliente eliminado correctamente.' : ($msj === 'estado_actualizado' ? 'Estado del cliente actualizado.' : ''));
 }
-if (!empty($_GET['error'])) {
-    if ($_GET['error'] === 'cliente_tiene_pedidos') {
-        $error = 'No se puede eliminar el cliente porque tiene pedidos asociados.';
-    } elseif ($_GET['error'] === 'id_invalido') {
-        $error = 'ID de cliente inválido.';
-    }
+if ($err = request('error')) {
+    $error = $err === 'cliente_tiene_pedidos' ? 'No se puede eliminar el cliente porque tiene pedidos asociados.' : ($err === 'id_invalido' ? 'ID de cliente inválido.' : ($err === 'estado_invalido' ? 'Estado inválido.' : ''));
 }
 
-// 3. INCLUIR HEADER
 include(__DIR__ . "/header.php");
 ?>
 
@@ -43,6 +30,11 @@ include(__DIR__ . "/header.php");
             <h1>Gestión de Clientes</h1>
             <p>Visualice y administre la base de datos de clientes.</p>
         </div>
+
+        <form class="search-bar" method="GET" action="clientes.php">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Buscar cliente por nombre o NIT...">
+            <button type="submit" class="btn-principal">Buscar</button>
+        </form>
 
         <hr class="divider">
 
@@ -64,13 +56,14 @@ include(__DIR__ . "/header.php");
                         <th>Teléfono</th>
                         <th>Email</th>
                         <th>Tipo</th>
+                        <th>Estado</th>
                         <th>Fecha Registro</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (mysqli_num_rows($res_clientes) > 0): ?>
-                        <?php while($cli = mysqli_fetch_assoc($res_clientes)): ?>
+                    <?php if (count($res_clientes) > 0): ?>
+                        <?php foreach ($res_clientes as $cli): ?>
                             <tr>
                                 <td><?= $cli['id'] ?></td>
                                 <td><strong><?= htmlspecialchars($cli['nombre_completo']) ?></strong></td>
@@ -82,16 +75,25 @@ include(__DIR__ . "/header.php");
                                         <?= ucfirst($cli['tipo_cliente']) ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <span class="badge badge-<?= ($cli['estado'] == 'activo' ? 'success' : 'danger') ?>">
+                                        <?= ucfirst($cli['estado']) ?>
+                                    </span>
+                                </td>
                                 <td><?= !empty($cli['created_at']) ? date("d/m/Y", strtotime($cli['created_at'])) : '-' ?></td>
                                 <td>
                                     <a href="editar_cliente.php?id=<?= $cli['id'] ?>" class="btn-action btn-edit" title="Editar">✏️</a>
-                                    <a href="eliminar_cliente.php?id=<?= $cli['id'] ?>" class="btn-action btn-delete" title="Eliminar" onclick="return confirm('¿Seguro que desea eliminar este cliente?')">🗑️</a>
+                                    <?php if ($cli['estado'] === 'activo'): ?>
+                                        <a href="../controllers/cambiar_estado_cliente.php?id=<?= $cli['id'] ?>&estado=inactivo" class="btn-action btn-inactive" title="Desactivar">⏸️</a>
+                                    <?php else: ?>
+                                        <a href="../controllers/cambiar_estado_cliente.php?id=<?= $cli['id'] ?>&estado=activo" class="btn-action btn-active" title="Activar">▶️</a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" style="text-align:center; color: #888; padding: 30px;">
+                            <td colspan="9" style="text-align:center; color: #888; padding: 30px;">
                                 No hay clientes registrados en el sistema.
                             </td>
                         </tr>
@@ -106,9 +108,5 @@ include(__DIR__ . "/header.php");
 
     </main>
 </div>
-
-<footer class="main-footer">
-    <p>&copy; <?= date("Y"); ?> Unideportes - Sistema de Gestión</p>
-</footer>
 
 <?php include(__DIR__ . "/footer.php"); ?>
