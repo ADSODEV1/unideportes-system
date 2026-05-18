@@ -19,9 +19,11 @@ $res = mysqli_query($conn, $sql);
 include __DIR__ . '/header.php';
 ?>
 
+
 <div class="container admin-layout">
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
     <main class="main-content-panel">
+
         <h1>Órdenes de Producción</h1>
 
         <p>Listado simple de órdenes. Usa el botón "Ver" para detalles.</p>
