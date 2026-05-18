@@ -1,38 +1,36 @@
 <?php
-// 1. INCLUSIONES
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ProductoModel.php';
+
+require_login();
+$conn = app();
 include(__DIR__ . "/../views/header.php");
 
-if (!isset($_SESSION['username'])) {
-    header("Location: ../public/index.php");
-    exit();
-}
+$search = trim($_GET['q'] ?? '');
+$productos = obtenerProductos($conn, $search);
 
-// 2. CONSULTAS
 $total_prod = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as t FROM productos"))['t'] ?? 0;
 $stock_bajo = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as b FROM productos WHERE stock > 0 AND stock <= 5"))['b'] ?? 0;
 $agotados   = mysqli_fetch_array(mysqli_query($conn, "SELECT COUNT(*) as a FROM productos WHERE stock = 0"))['a'] ?? 0;
 
-$search = trim($_GET['q'] ?? '');
-if ($search !== '') {
-    $like = "%" . $search . "%";
-    $stmt = $conn->prepare("SELECT * FROM productos WHERE nombre LIKE ? OR referencia LIKE ? ORDER BY nombre ASC");
-    $stmt->bind_param('ss', $like, $like);
-    $stmt->execute();
-    $query = $stmt->get_result();
-} else {
-    $query = mysqli_query($conn, "SELECT * FROM productos ORDER BY nombre ASC");
+$success = '';
+if (!empty($_GET['success']) && $_GET['success'] === 'producto_registrado') {
+    $success = 'Producto registrado exitosamente.';
+} elseif (!empty($_GET['success']) && $_GET['success'] === 'producto_actualizado') {
+    $success = 'Producto actualizado correctamente.';
 }
 
 $sidebarExtra = '<div class="sidebar-section"><h3>🔍 Buscar producto</h3><form method="GET" action="inventario.php"><input type="search" name="q" value="' . htmlspecialchars($search) . '" placeholder="Nombre o referencia" class="sidebar-input" autocomplete="off"><button type="submit" class="btn-secondary" style="margin-top:10px; width:100%;">Buscar</button></form></div><div class="sidebar-section"><h3>Resumen Stock</h3><div class="stat-box">Total: <strong>'. $total_prod .'</strong></div><div class="stat-box warning">Bajo Stock: <strong>'. $stock_bajo .'</strong></div><div class="stat-box danger">Agotados: <strong>'. $agotados .'</strong></div></div>';
 ?>
 
 <div class="container admin-layout">
-    
     <?php include(__DIR__ . "/../views/sidebar_control.php"); ?>
 
     <main class="main-content-panel">
+        <?php if ($success): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+        <?php endif; ?>
+
         <div class="header-carapteristicas">
             <h1>Inventario Unideportes</h1>
         </div>
@@ -48,30 +46,33 @@ $sidebarExtra = '<div class="sidebar-section"><h3>🔍 Buscar producto</h3><form
                 </tr>
             </thead>
             <tbody id="tablaProductos">
-                <?php while($row = mysqli_fetch_array($query)): ?>
-                <tr>
-                    <td style="text-align: left;">
-                        <strong><?= $row['nombre'] ?></strong><br>
-                        <small style="color: #666;">Ref: <?= $row['referencia'] ?></small>
-                    </td>
-                    <td><span class="talla-badge"><?= $row['talla'] ?></span></td>
-                    <td>
-                        <?php 
-                            $s = $row['stock'];
-                            if($s == 0) echo "<span class='badge rojo'>AGOTADO</span>";
-                            elseif($s <= 5) echo "<span class='badge naranja'>BAJO ($s)</span>";
-                            else echo "<span class='badge verde'>STOCK ($s)</span>";
-                        ?>
-                    </td>
-                    <td>$<?= number_format($row['precio'], 0, ',', '.') ?></td>
-                    <td>
-                        <a href="detalle_prod.php?id=<?= $row['id'] ?>" class="btn-action view" title="Ver detalle">🔎</a>
-                        <?php if($_SESSION['role'] == 'admin'): ?>
-                           
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
+                <?php if (count($productos) > 0): ?>
+                    <?php foreach ($productos as $row): ?>
+                        <tr>
+                            <td style="text-align: left;">
+                                <strong><?= htmlspecialchars($row['nombre']) ?></strong><br>
+                                <small style="color: #666;">Ref: <?= htmlspecialchars($row['referencia']) ?></small>
+                            </td>
+                            <td><span class="talla-badge"><?= htmlspecialchars($row['talla']) ?></span></td>
+                            <td>
+                                <?php 
+                                    $s = $row['stock'];
+                                    if ($s == 0) echo "<span class='badge rojo'>AGOTADO</span>";
+                                    elseif ($s <= 5) echo "<span class='badge naranja'>BAJO ($s)</span>";
+                                    else echo "<span class='badge verde'>STOCK ($s)</span>";
+                                ?>
+                            </td>
+                            <td>$<?= number_format($row['precio'], 0, ',', '.') ?></td>
+                            <td>
+                                <a href="detalle_prod.php?id=<?= $row['id'] ?>" class="btn-action view" title="Ver detalle">🔎</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" style="text-align:center; color: #888; padding: 30px;">No hay productos para mostrar.</td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </main>

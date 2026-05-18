@@ -337,6 +337,27 @@ body {
     flex-wrap: wrap;
 }
 
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.search-bar input {
+    flex: 1;
+    min-width: 220px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.search-bar button {
+    padding: 12px 20px;
+    border-radius: 10px;
+}
+
 .alert-error {
     padding: 14px 18px;
     border-radius: 12px;
@@ -442,4 +463,56 @@ footer.main-footer {
     .logo img {
         max-height: 30px;
     }
+}
+
+/* Botones de acción en tabla */
+.btn-action {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 4px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-action.btn-edit {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-action.btn-edit:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.btn-action.btn-active {
+    background: var(--success);
+    color: white;
+}
+
+.btn-action.btn-active:hover {
+    background: #059669;
+    transform: scale(1.1);
+}
+
+.btn-action.btn-inactive {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-action.btn-inactive:hover {
+    background: #d97706;
+    transform: scale(1.1);
+}
+
+.btn-action.btn-delete {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-action.btn-delete:hover {
+    background: #dc2626;
+    transform: scale(1.1);
 }

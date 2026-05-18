@@ -1,11 +1,12 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ClienteModel.php';
 
-if (!isset($_SESSION['username'])) {
-    header('Location: /unideportes-system/public/index.php');
-    exit();
+require_login();
+$conn = app();
+
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    redirect('clientes.php?error=id_invalido');
 }
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -14,8 +15,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $id = intval($_GET['id']);
-$result = mysqli_query($conn, "SELECT id, nombre_completo, nit_cedula, telefono, email, tipo_cliente FROM clientes WHERE id = $id LIMIT 1");
-$cliente = mysqli_fetch_assoc($result);
+$cliente = obtenerClientePorId($conn, $id);
 if (!$cliente) {
     header('Location: clientes.php?error=cliente_no_encontrado');
     exit();
@@ -23,28 +23,20 @@ if (!$cliente) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = mysqli_real_escape_string($conn, $_POST['nombre_completo'] ?? '');
-    $nit = mysqli_real_escape_string($conn, $_POST['nit_cedula'] ?? '');
-    $telefono = mysqli_real_escape_string($conn, $_POST['telefono'] ?? '');
-    $email = mysqli_real_escape_string($conn, $_POST['email'] ?? '');
-    $tipo = mysqli_real_escape_string($conn, $_POST['tipo_cliente'] ?? 'Individual');
+    $data = [
+        'nombre_completo' => $_POST['nombre_completo'] ?? '',
+        'nit_cedula' => $_POST['nit_cedula'] ?? '',
+        'telefono' => $_POST['telefono'] ?? '',
+        'email' => $_POST['email'] ?? '',
+        'tipo_cliente' => $_POST['tipo_cliente'] ?? 'Individual',
+    ];
 
-    if ($nombre === '' || $nit === '') {
+    if (trim($data['nombre_completo']) === '' || trim($data['nit_cedula']) === '') {
         $error = 'Nombre y NIT/Cédula son obligatorios.';
+    } elseif (!actualizarCliente($conn, $id, $data)) {
+        $error = 'No fue posible actualizar el cliente.';
     } else {
-        $sql = "UPDATE clientes SET nombre_completo = ?, nit_cedula = ?, telefono = ?, email = ?, tipo_cliente = ? WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param('sssssi', $nombre, $nit, $telefono, $email, $tipo, $id);
-            if ($stmt->execute()) {
-                header('Location: clientes.php?msj=cliente_actualizado');
-                exit();
-            }
-            $error = 'No fue posible actualizar el cliente.';
-            $stmt->close();
-        } else {
-            $error = 'Error en la preparación de la consulta.';
-        }
+        redirect('clientes.php?msj=cliente_actualizado');
     }
 }
 

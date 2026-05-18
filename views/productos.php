@@ -1,76 +1,64 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_login(['admin']);
 
-// 1. SEGURIDAD: Solo el Admin puede registrar productos nuevos
-if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
-    header("Location: ../public/index.php?error=acceso_denegado");
-    exit();
+$error = '';
+
+if (!empty($_GET['error'])) {
+    if ($_GET['error'] === 'datos_invalidos') {
+        $error = 'Por favor completa todos los campos requeridos correctamente.';
+    } elseif ($_GET['error'] === 'referencia_duplicada') {
+        $error = 'Ya existe un producto con esa referencia.';
+    } elseif ($_GET['error'] === 'fallo_en_registro') {
+        $error = 'No se pudo registrar el producto. Intenta de nuevo.';
+    }
 }
 
 include(__DIR__ . "/header.php");
 ?>
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
-                <div class="card-body p-4 text-center">
-                    <div class="mb-4">
-                        <div class="display-6 mb-2">📦</div>
-                        <h3 class="fw-bold" style="color: #1A2B4C;">Nueva Mercancía</h3>
-                        <p class="text-muted small">Ingrese los detalles de las prendas para Unideportes.</p>
-                    </div>
-                    
-                    <form action="insert_product.php" method="POST" class="text-start">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Nombre de la Prenda</label>
-                            <input type="text" name="nombre" class="form-control bg-light border-0" placeholder="Ej: Camiseta Polo Azul" required>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <label class="form-label small fw-bold">Referencia / Código</label>
-                                <input type="text" name="referencia" class="form-control bg-light border-0" placeholder="REF-001" required>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small fw-bold">Talla</label>
-                                <select name="talla" class="form-select bg-light border-0">
-                                    <option value="S">Talla S</option>
-                                    <option value="M" selected>Talla M</option>
-                                    <option value="L">Talla L</option>
-                                    <option value="XL">Talla XL</option>
-                                    <option value="Unica">Talla Única</option>
-                                </select>
-                            </div>
-                        </div>
+<div class="container admin-layout">
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
-                        <div class="row mb-4">
-                            <div class="col-6">
-                                <label class="form-label small fw-bold">Stock Inicial</label>
-                                <input type="number" name="stock" class="form-control bg-light border-0" value="0" min="0" required>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small fw-bold">Precio de Venta</label>
-                                <div class="input-group">
-                                    <span class="input-group-text border-0 bg-light">$</span>
-                                    <input type="number" name="precio" class="form-control bg-light border-0" placeholder="45000" min="0" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-lg w-100 text-white fw-bold shadow-sm" style="background-color: #E61E2A; border-radius: 12px;">
-                            REGISTRAR PRODUCTO
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="text-center mt-3">
-                <a href="inventario.php" class="text-muted small text-decoration-none">← Volver al Inventario General</a>
-            </div>
+    <main class="main-content-panel">
+        <div class="page-header">
+            <h1>Nueva Mercancía</h1>
+            <p>Ingrese los detalles de la prenda que desea registrar.</p>
         </div>
-    </div>
+
+        <?php if ($error): ?>
+            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <div class="users-form">
+            <form action="../controllers/insert_product.php" method="POST">
+                <label>Nombre de la prenda</label>
+                <input type="text" name="nombre" required>
+
+                <label>Referencia / Código</label>
+                <input type="text" name="referencia" required>
+
+                <label>Talla</label>
+                <select name="talla">
+                    <option value="S">S</option>
+                    <option value="M" selected>M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="Unica">Única</option>
+                </select>
+
+                <label>Stock inicial</label>
+                <input type="number" name="stock" value="0" min="0" required>
+
+                <label>Precio</label>
+                <input type="number" name="precio" step="0.01" min="0" required>
+
+                <button type="submit" class="btn-principal">Registrar producto</button>
+            </form>
+
+            <a href="inventario.php" class="btn-secondary" style="margin-top: 20px; display: inline-block;">← Volver al inventario</a>
+        </div>
+    </main>
 </div>
 
 <?php include(__DIR__ . "/footer.php"); ?>
