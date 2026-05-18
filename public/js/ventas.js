@@ -1,4 +1,5 @@
-// 1. EVENTO: Capturar Id cliente desde el buscador inteligente
+// ZONA 1: DETECTORES DE BÚSQUEDA (Y Buscador Inteligente)
+// Evento: Capturar Id cliente desde el buscador inteligente
 document.getElementById('clienteInput').addEventListener('input', function() {
     const val = this.value;
     const opts = document.getElementById('listaClientes').options;
@@ -13,7 +14,8 @@ document.getElementById('clienteInput').addEventListener('input', function() {
     }
 });
 
-// 2. EVENTO: Agregar producto seleccionado
+// ZONA 2: GESTIÓN DEL CARRITO (Agregar, Renderizar y Eliminar Filas)
+// Evento: Agregar producto seleccionado
 document.getElementById('btnAgregar').addEventListener('click', function() {
     const input = document.getElementById('productoInput');
     const value = input.value;
@@ -42,7 +44,7 @@ document.getElementById('btnAgregar').addEventListener('click', function() {
         return alert('El producto ya se encuentra en el pedido.');
     }
 
-    // Insertar fila con el stock máximo controlado por el atributo "max"
+    // Realizar Validaciones con la Propiedad "max"
     const tr = document.createElement('tr');
     tr.style.borderBottom = "1px solid #dee2e6";
     tr.innerHTML = `
@@ -64,7 +66,8 @@ document.getElementById('btnAgregar').addEventListener('click', function() {
     calcularTotales();
 });
 
-// 3. FUNCION: CALCULAR TOTALES DE LA VENTA
+// ZONA 3: MATEMÁTICA INTERNA (Cálculo Automatizado de Totales)
+// Funcion: Calcular totales de la venta
 function calcularTotales() {
     let granTotal = 0;
     
@@ -84,8 +87,8 @@ function calcularTotales() {
 }
 
 
-// CONTROL DE SECCIONES (EFECTIVO Y TRANSFERENCIA)
-
+// ZONA 4: PASARELA DINÁMICA (Control de Secciones de Pago y Transferencias)
+// Evento: Escuchar el selector del método de pago principal
 document.querySelector('select[name="metodo_pago"]').addEventListener('change', function() {
     const seccionCambio = document.getElementById('seccionCambio');
     const seccionTransfe = document.getElementById('seccionTransferencia');
@@ -142,7 +145,8 @@ function actualizarValorTransferencia() {
     }
 }
 
-// ESCUCHADOR DEL INPUT DE EFECTIVO 
+// ZONA 5: CALCULADORA EN VIVO (Caja registradora de Efectivo/Cambio)
+// Evento: Preparacion y serialización de los datos antes de enviar a PHP
 document.getElementById('inputPagaCon').addEventListener('input', recalcularCambio);
 
 // CALCULADORA DE CAMBIO
@@ -170,6 +174,7 @@ function recalcularCambio() {
     }
 }
 
+// ZONA 6: EMPAQUETADO Y ENVÍO (Interceptador del Formulario y Conversión JSON)
 // Preparacion de los datos antes de enviar a PHP
 document.getElementById('ventaForm').addEventListener('submit', function(e) {
     const inputs = document.querySelectorAll('.cant-input');

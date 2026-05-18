@@ -1,15 +1,15 @@
 <?php
+// 1. ZONA DE SEGURIDAD: Configuracion, conexion y seguridad
 session_start();
 require_once __DIR__ . '/../config/connection.php';
 $conn = connection();
 
-// 1. SEGURIDAD
 if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
     header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
     exit();
 }
 
-// 2. OBTENER DATOS 
+// 2. ZONA DE CAPTURA DE DATOS: Recepcion de variables desde el formulario (POST)
 if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty($_POST['venta_json']) || empty($_POST['metodo_pago'])) {
     header("Location: ../views/nueva_venta.php?error=datos_incompletos");
     exit();
@@ -19,23 +19,20 @@ $cliente_id = intval($_POST['cliente_id']);
 $total_venta = floatval($_POST['total_venta']);
 $venta_json = json_decode($_POST['venta_json'], true);
 
-// NUEVO: Capturar datos de pago con desinfección de strings
 $metodo_pago = mysqli_real_escape_string($conn, $_POST['metodo_pago']);
 
-// Lógica inteligente para tipo_transferencia: Si no es transferencia, se guarda como NULL en la base de datos
+// 3. ZONA DE VALIDACION: Verificacion de la integridad de los datos
 $tipo_transferencia = "NULL";
 if ($metodo_pago === 'Transferencia' && !empty($_POST['tipo_transferencia'])) {
     $tipo_transferencia = "'" . mysqli_real_escape_string($conn, $_POST['tipo_transferencia']) . "'";
 }
 
-// 3. VALIDAR QUE EXISTA EL CLIENTE
 $res_cliente = mysqli_query($conn, "SELECT id FROM clientes WHERE id = '$cliente_id'");
 if (mysqli_num_rows($res_cliente) == 0) {
     header("Location: ../views/nueva_venta.php?error=cliente_inexistente");
     exit();
 }
 
-// 4. OBTENER ID DEL VENDEDOR (usuario actual)
 $res_vendedor = mysqli_query($conn, "SELECT id FROM usuarios WHERE username = '" . mysqli_real_escape_string($conn, $_SESSION['username']) . "'");
 $vendedor = mysqli_fetch_array($res_vendedor);
 $vendedor_id = $vendedor['id'] ?? null;
@@ -45,7 +42,7 @@ if (!$vendedor_id) {
     exit();
 }
 
-// 5. INICIAR TRANSACCIÓN
+// 4. ZONA DE CONSULTAS SQL: Operacion transaccional y persistencia en la Base de Datos. 
 mysqli_begin_transaction($conn);
 
 try {
@@ -99,7 +96,7 @@ try {
         }
     }
     
-    // 6. CONFIRMAR TRANSACCIÓN
+    // 5. ZONA DE CONFIRMACIÓN O REVERSIÓN: Cierre seguro de la transacción
     mysqli_commit($conn);
     
     // 7. REDIRIGIR CON ÉXITO
@@ -116,4 +113,3 @@ try {
 }
 
 mysqli_close($conn);
-?>
