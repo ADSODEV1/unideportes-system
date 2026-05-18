@@ -9,8 +9,8 @@ if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vended
     exit();
 }
 
-// 2. OBTENER DATOS
-if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty($_POST['venta_json'])) {
+// 2. OBTENER DATOS 
+if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty($_POST['venta_json']) || empty($_POST['metodo_pago'])) {
     header("Location: ../views/nueva_venta.php?error=datos_incompletos");
     exit();
 }
@@ -18,6 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty
 $cliente_id = intval($_POST['cliente_id']);
 $total_venta = floatval($_POST['total_venta']);
 $venta_json = json_decode($_POST['venta_json'], true);
+
+// NUEVO: Capturar datos de pago con desinfección de strings
+$metodo_pago = mysqli_real_escape_string($conn, $_POST['metodo_pago']);
+
+// Lógica inteligente para tipo_transferencia: Si no es transferencia, se guarda como NULL en la base de datos
+$tipo_transferencia = "NULL";
+if ($metodo_pago === 'Transferencia' && !empty($_POST['tipo_transferencia'])) {
+    $tipo_transferencia = "'" . mysqli_real_escape_string($conn, $_POST['tipo_transferencia']) . "'";
+}
 
 // 3. VALIDAR QUE EXISTA EL CLIENTE
 $res_cliente = mysqli_query($conn, "SELECT id FROM clientes WHERE id = '$cliente_id'");
@@ -40,9 +49,9 @@ if (!$vendedor_id) {
 mysqli_begin_transaction($conn);
 
 try {
-    // A. CREAR REGISTRO DE VENTA
-    $sql_venta = "INSERT INTO ventas (cliente_id, vendedor_id, total_venta, fecha_venta) 
-                  VALUES ($cliente_id, $vendedor_id, $total_venta, NOW())";
+    // CREAR REGISTRO DE VENTA 
+    $sql_venta = "INSERT INTO ventas (cliente_id, vendedor_id, total_venta, metodo_pago, tipo_transferencia, fecha_venta) 
+                  VALUES ($cliente_id, $vendedor_id, $total_venta, '$metodo_pago', $tipo_transferencia, NOW())";
     
     if (!mysqli_query($conn, $sql_venta)) {
         throw new Exception("Error al registrar venta: " . mysqli_error($conn));
@@ -55,7 +64,9 @@ try {
         $producto_id = intval($detalle['producto_id']);
         $cantidad = intval($detalle['cantidad']);
         $precio_unitario = floatval($detalle['precio_unitario']);
-        $subtotal = floatval($detalle['subtotal']);
+        
+        // Calculamos el subtotal directamente para asegurar consistencia matemática
+        $subtotal = $cantidad * $precio_unitario;
         
         // Validar que el producto existe
         $res_prod = mysqli_query($conn, "SELECT stock FROM productos WHERE id = $producto_id");
@@ -96,7 +107,7 @@ try {
     exit();
     
 } catch (Exception $e) {
-    // REVERTIR TRANSACCIÓN EN CASO DE ERROR
+    // REVERTIR TRANSACCIÓN EN CASO DE ERROR 
     mysqli_rollback($conn);
     
     $error = urlencode($e->getMessage());
@@ -105,5 +116,4 @@ try {
 }
 
 mysqli_close($conn);
-?>
 ?>
