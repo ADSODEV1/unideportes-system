@@ -316,3 +316,138 @@ footer.main-footer {
         max-height: 30px;
     }
 }
+/* ==========================================================================
+   8. COMPLEMENTOS MODERNOS E INTELIGENTES PARA EL SIDEBAR (UniDeportes MVP)
+   ========================================================================== */
+
+/* Ajuste del contenedor para la estructura de grupos */
+.sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 400px;
+}
+
+/* Componente de Identidad Visual del Usuario (Estilo SaaS / Avatar) */
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 25px;
+}
+
+.profile-avatar {
+    width: 42px;
+    height: 42px;
+    background-color: var(--primary); /* Usa tu rojo UniDeportes */
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 3px;
+}
+
+.profile-role {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+/* Agrupamiento y jerarquía de enlaces */
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.group-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.4);
+    padding-left: 15px;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+/* Estilo inteligente para las 2 opciones más relevantes (Prioritarias) */
+.sidebar-nav a.nav-priority {
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-nav a.nav-priority:hover {
+    border-left-color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Efecto Hover mejorado con traslación suave */
+.sidebar-nav a:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Enlace Activo acoplado a tu variable roja global */
+.sidebar-nav a.active {
+    background: var(--primary) !important;
+    border-left-color: transparent !important;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+}
+
+/* Pie del panel para el botón de cerrar sesión */
+.sidebar-footer {
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-logout:hover {
+    background-color: rgba(239, 68, 68, 0.15) !important; /* Destello sutil usando tu --danger */
+    color: #ef4444 !important;
+    transform: translateX(4px);
+}
+
+/* Asegura el comportamiento responsivo en móviles */
+@media (max-width: 960px) {
+    .sidebar-profile {
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+    }
+    .sidebar-footer {
+        margin-top: 15px;
+    }
+}

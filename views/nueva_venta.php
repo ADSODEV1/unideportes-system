@@ -16,17 +16,8 @@ include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
-    <!-- ZONA 2: COMPONENTE DE NAVEGACIÓN LATERAL (sidebar) -->
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>Área Vendedor</h3>
-            <p>Vendedor: <strong><?= htmlspecialchars($_SESSION['username']); ?></strong></p>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="panel_vendedor.php" class="nav-link">📊 Panel</a>
-            <a href="nueva_venta.php" class="nav-link active">🛒 Nueva Venta</a>
-        </nav>
-    </aside>
+    
+<?php include(__DIR__ . "/sidebar_control.php"); ?>
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="main-content-panel">
