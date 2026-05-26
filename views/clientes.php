@@ -1,323 +1,157 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+// 1. Inicialización del entorno global y control de acceso
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ClienteModel.php';
 
-// 1. SEGURIDAD
-if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
-    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
-    exit();
+require_login(['vendedor', 'colaborador', 'admin']);
+$conn = app();
+
+// 2. Captura y limpieza del criterio de búsqueda
+$search = trim(request('search'));
+
+// NUEVA ESTRATEGIA: Solo se consulta la base de datos si el usuario ingresó un texto
+$res_clientes = [];
+if (!empty($search)) {
+    $res_clientes = obtenerClientes($conn, $search);
 }
 
-// 2. OBTENER CLIENTES
-$res_clientes = mysqli_query($conn, "SELECT id, nombre_completo, nit_cedula, telefono, email, tipo_cliente, created_at FROM clientes ORDER BY nombre_completo ASC");
+// 3. Procesamiento de mensajes de retroalimentación (Éxito / Errores)
+$msg = '';
+$error = '';
+if ($msj = request('msj')) {
+    $msg = $msj === 'cliente_creado' ? 'Nuevo cliente creado exitosamente.' : 
+          ($msj === 'cliente_eliminado' ? 'Cliente eliminado correctamente.' : 
+          ($msj === 'estado_actualizado' ? 'Estado del cliente actualizado.' : ''));
+}
+if ($err = request('error')) {
+    $error = $err === 'cliente_tiene_pedidos' ? 'No se puede eliminar el cliente porque tiene pedidos asociados.' : 
+            ($err === 'id_invalido' ? 'ID de cliente inválido.' : 
+            ($err === 'estado_invalido' ? 'Estado inválido.' : ''));
+}
 
-// 3. INCLUIR HEADER
 include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
 
-    <!-- SIDEBAR (Igual que en panel_vendedor.php) -->
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>Panel de Control</h3>
-            <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
-            <p style="font-size: 0.8rem; color: #666;">Rol: <?= ucfirst($_SESSION['role']); ?></p>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="panel_vendedor.php" class="nav-link">📊 Panel Principal</a>
-            <a href="nueva_venta.php" class="nav-link">🛒 Nueva Venta</a>
-            <a href="clientes.php" class="nav-link active">👥 Clientes</a>
-            <a href="pedidos.php" class="nav-link">📦 Pedidos</a>
-            <a href="productos.php" class="nav-link">🏷️ Productos</a>
-            <a href="logout.php" class="nav-link logout">🚪 Cerrar Sesión</a>
-        </nav>
-    </aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="main-content-panel">
+        
         <div class="content-header">
-            <h1>Gestión de Clientes</h1>
-            <p>Visualice y administre la base de datos de clientes.</p>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 15px;">
+                <div>
+                    <h1>Gestión de Clientes</h1>
+                    <p style="color: #64748b; margin: 5px 0 0 0;">Busca de forma rápida la información de un cliente para consultar o editar sus datos.</p>
+                </div>
+                <a href="nuevo_cliente.php" class="btn-primary" style="text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600;">
+                    + Nuevo Cliente
+                </a>
+            </div>
         </div>
 
-        <hr class="divider">
+        <form class="search-bar" method="GET" action="clientes.php" style="margin-top: 25px; display: flex; gap: 10px;">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Escribe el nombre, NIT o Cédula del cliente..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;" required>
+            <button type="submit" class="btn-principal" style="padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600;">Buscar</button>
+        </form>
 
-        <!-- Tabla de Clientes -->
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre Completo</th>
-                        <th>NIT/Cédula</th>
-                        <th>Teléfono</th>
-                        <th>Email</th>
-                        <th>Tipo</th>
-                        <th>Fecha Registro</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (mysqli_num_rows($res_clientes) > 0): ?>
-                        <?php while($cli = mysqli_fetch_assoc($res_clientes)): ?>
+        <hr class="divider" style="margin: 25px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+        <?php if (!empty($msg)): ?>
+            <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px; background: #d1fae5; color: #065f46; border-radius: 6px; border-left: 4px solid #10b981;"><?= htmlspecialchars($msg) ?></div>
+        <?php endif; ?>
+        <?php if (!empty($error)): ?>
+            <div class="alert alert-error" style="margin-bottom: 20px; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; border-left: 4px solid #ef4444;"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <?php if (empty($search)): ?>
+            
+            <div style="text-align: center; padding: 60px 20px; color: #64748b; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #e2e8f0;">
+                <span style="font-size: 3.5rem; display: block; margin-bottom: 15px;">🔍</span>
+                <h2 style="color: #1e293b; margin-bottom: 8px; font-size: 1.4rem;">Panel de Búsqueda de Clientes</h2>
+                <p style="max-width: 500px; margin: 0 auto; line-height: 1.5; color: #64748b;">
+                    Introduce el criterio del cliente en la barra superior para procesar una búsqueda en el sistema.
+                </p>
+            </div>
+
+        <?php else: ?>
+            
+            <div class="table-responsive" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); overflow-x: auto; border: 1px solid #e2e8f0;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Código</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Nombre Completo</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">NIT / Cédula</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Teléfono</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Ciudad / Barrio</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Tipo</th>
+                            <th style="padding: 14px; text-align: left; color: #475569;">Estado</th>
+                            <th style="padding: 14px; text-align: center; color: #475569;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (count($res_clientes) > 0): ?>
+                            <?php foreach ($res_clientes as $cli): ?>
+                                <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                    <td style="padding: 14px; font-weight: 600; color: #475569;">
+                                        <?= htmlspecialchars($cli['codigo_descriptivo'] ?? 'S/C') ?>
+                                    </td>
+                                    <td style="padding: 14px; color: #1e293b;"><strong><?= htmlspecialchars($cli['nombre_completo']) ?></strong></td>
+                                    <td style="padding: 14px; color: #334155;"><?= htmlspecialchars($cli['nit_cedula']) ?></td>
+                                    <td style="padding: 14px; color: #64748b;"><?= htmlspecialchars($cli['telefono'] ?? 'Sin registrar') ?></td>
+                                    <td style="padding: 14px; font-size: 0.9rem; color: #475569;">
+                                        <?= htmlspecialchars($cli['ciudad'] ?? 'Sogamoso') ?><?= !empty($cli['barrio']) ? ' - ' . htmlspecialchars($cli['barrio']) : '' ?>
+                                    </td>
+                                    <td style="padding: 14px;">
+                                        <span class="badge badge-<?= ($cli['tipo_cliente'] === 'Individual' ? 'info' : 'success') ?>" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                                            <?= htmlspecialchars($cli['tipo_cliente']) ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 14px;">
+                                        <?php if (isset($cli['estado'])): ?>
+                                            <span class="badge badge-<?= ($cli['estado'] === 'activo' ? 'success' : 'danger') ?>" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                                                <?= ucfirst($cli['estado']) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge badge-muted" style="background: #e2e8f0; color: #64748b; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;">Activo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding: 14px; text-align: center;">
+                                        <a href="editar_cliente.php?id=<?= $cli['id'] ?>" class="btn-action btn-edit" title="Editar" style="text-decoration: none; font-size: 1.1rem; margin-right: 8px;">✏️</a>
+                                        
+                                        <?php if (isset($cli['estado'])): ?>
+                                            <?php if ($cli['estado'] === 'activo'): ?>
+                                                <a href="../controllers/clientes.php?action=toggle_status&id=<?= $cli['id'] ?>&estado=inactivo&search=<?= urlencode($search) ?>" class="btn-action btn-inactive" title="Desactivar" style="text-decoration: none; font-size: 1.1rem;">⏸️</a>
+                                            <?php else: ?>
+                                                <a href="../controllers/clientes.php?action=toggle_status&id=<?= $cli['id'] ?>&estado=activo&search=<?= urlencode($search) ?>" class="btn-action btn-active" title="Activar" style="text-decoration: none; font-size: 1.1rem;">▶️</a>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
                             <tr>
-                                <td><?= $cli['id'] ?></td>
-                                <td><strong><?= htmlspecialchars($cli['nombre_completo']) ?></strong></td>
-                                <td><?= htmlspecialchars($cli['nit_cedula']) ?></td>
-                                <td><?= htmlspecialchars($cli['telefono']) ?></td>
-                                <td><?= htmlspecialchars($cli['email']) ?></td>
-                                <td>
-                                    <span class="badge badge-<?= ($cli['tipo_cliente'] == 'normal' ? 'info' : 'success') ?>">
-                                        <?= ucfirst($cli['tipo_cliente']) ?>
-                                    </span>
-                                </td>
-                                <td><?= date("d/m/Y", strtotime($cli['created_at'])) ?></td>
-                                <td>
-                                    <a href="editar_cliente.php?id=<?= $cli['id'] ?>" class="btn-action btn-edit" title="Editar">✏️</a>
-                                    <a href="eliminar_cliente.php?id=<?= $cli['id'] ?>" class="btn-action btn-delete" title="Eliminar" onclick="return confirm('¿Seguro que desea eliminar este cliente?')">🗑️</a>
+                                <td colspan="8" style="text-align: center; color: #94a3b8; padding: 40px;">
+                                    <span style="font-size: 2rem; display: block; margin-bottom: 10px;">⚠️</span>
+                                    No se encontraron clientes que coincidan con la búsqueda: <strong>"<?= htmlspecialchars($search) ?>"</strong>.
+                                    <br>
+                                    <a href="nuevo_cliente.php" style="display: inline-block; margin-top: 15px; color: #3b82f6; font-weight: 600; text-decoration: underline;">¿Deseas registrar este cliente nuevo?</a>
                                 </td>
                             </tr>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="8" style="text-align:center; color: #888; padding: 30px;">
-                                No hay clientes registrados en el sistema.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="action-footer">
-            <a href="nuevo_cliente.php" class="btn-primary">+ Nuevo Cliente</a>
-        </div>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="action-footer" style="margin-top: 20px; text-align: right;">
+                <a href="clientes.php" class="btn-secondary" style="text-decoration: none; padding: 10px 16px; border-radius: 6px; margin-right: 10px; font-size: 0.9rem;">Limpiar Búsqueda</a>
+                <a href="nuevo_cliente.php" class="btn-primary" style="text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600;">+ Nuevo Cliente</a>
+            </div>
+
+        <?php endif; ?>
 
     </main>
 </div>
-
-<footer class="main-footer">
-    <p>&copy; <?= date("Y"); ?> Unideportes - Sistema de Gestión</p>
-</footer>
-
-<style>
-/* Estilos Base heredados del Panel */
-.container.admin-layout {
-    display: flex;
-    min-height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Sidebar */
-.sidebar-panel {
-    width: 250px;
-    background: #1A2B4C; /* Color marca */
-    color: #fff;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100vh;
-    left: 0;
-    top: 0;
-    z-index: 1000;
-}
-
-.sidebar-section h3 {
-    color: #E61E2A; /* Acento marca */
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-}
-
-.sidebar-nav {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.nav-link {
-    text-decoration: none;
-    color: #e0e0e0;
-    padding: 12px 15px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.nav-link:hover, .nav-link.active {
-    background: #E61E2A;
-    color: #fff;
-    transform: translateX(5px);
-}
-
-.nav-link.logout {
-    margin-top: auto;
-    background: transparent;
-}
-
-/* Contenido Principal */
-.main-content-panel {
-    margin-left: 250px;
-    flex: 1;
-    padding: 30px;
-    background: #f4f6f9;
-    width: calc(100% - 250px);
-}
-
-.content-header h1 {
-    color: #1A2B4C;
-    margin-bottom: 5px;
-}
-
-.content-header p {
-    color: #666;
-    margin-bottom: 20px;
-}
-
-.divider {
-    border: 0;
-    border-top: 1px solid #ddd;
-    margin: 20px 0;
-}
-
-/* Tabla Responsiva */
-.table-responsive {
-    overflow-x: auto;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 800px; /* Ancho mínimo para scroll en móvil */
-}
-
-.data-table th, .data-table td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-}
-
-.data-table th {
-    background: #1A2B4C;
-    color: #fff;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.data-table tr:hover {
-    background-color: #f9f9f9;
-}
-
-/* Badges y Botones */
-.badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #fff;
-}
-.badge-info { background: #3498db; }
-.badge-success { background: #27ae60; }
-
-.btn-action {
-    text-decoration: none;
-    margin-right: 5px;
-    font-size: 1.1rem;
-}
-.btn-edit { color: #3498db; }
-.btn-delete { color: #e74c3c; }
-
-.btn-primary {
-    display: inline-block;
-    background: #E61E2A;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    margin-top: 20px;
-}
-.btn-primary:hover {
-    background: #c91a25;
-}
-
-.action-footer {
-    margin-top: 20px;
-    text-align: right;
-}
-
-/* FOOTER */
-.main-footer {
-    text-align: center;
-    padding: 20px;
-    color: #888;
-    font-size: 0.9rem;
-    margin-left: 250px; /* Ajuste para no tapar el sidebar */
-}
-
-/* RESPONSIVE (Móviles y Tablets) */
-@media (max-width: 768px) {
-    .sidebar-panel {
-        transform: translateX(-100%); /* Ocultar sidebar */
-        transition: transform 0.3s ease;
-    }
-    
-    .main-content-panel, .main-footer {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    /* Botón para mostrar menú en móvil (opcional, requiere JS) */
-    .mobile-menu-toggle {
-        display: block !important;
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        z-index: 1100;
-        background: #1A2B4C;
-        color: #fff;
-        padding: 10px;
-        border-radius: 5px;
-        border: none;
-        font-size: 1.2rem;
-    }
-
-    /* Mover el header hacia abajo para dar espacio al botón */
-    .main-content-panel {
-        padding-top: 60px;
-    }
-}
-
-@media (min-width: 769px) {
-    .mobile-menu-toggle {
-        display: none;
-    }
-}
-</style>
-
-<!-- Script simple para menú móvil -->
-<script>
-    // Si quieres agregar un botón de hamburguesa, descomenta esto:
-    /*
-    document.addEventListener('DOMContentLoaded', function() {
-        const toggle = document.createElement('button');
-        toggle.className = 'mobile-menu-toggle';
-        toggle.innerHTML = '☰';
-        toggle.onclick = function() {
-            const sidebar = document.querySelector('.sidebar-panel');
-            sidebar.style.transform = sidebar.style.transform === 'translateX(0)' ? 'translateX(-100%)' : 'translateX(0)';
-        };
-        document.body.appendChild(toggle);
-    });
-    */
-</script>
 
 <?php include(__DIR__ . "/footer.php"); ?>

@@ -1,348 +1,211 @@
 <?php
+// ZONA 1: LOGIN (Filtros de Sesión y Consultas Preliminares)
 session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
 
-// 1. SEGURIDAD: Solo vendedores/colaboradores pueden vender
-if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
-    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
-    exit();
-}
+require_login(['vendedor', 'colaborador', 'admin']);
 
-// 2. OBTENER CLIENTES PARA EL SELECTOR
-$res_clientes = mysqli_query($conn, "SELECT id, nombre_completo FROM clientes ORDER BY nombre_completo ASC");
+// Se añade 'nit_cedula' a la consulta para que esté disponible en los data-attributes de JavaScript
+$stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes ORDER BY nombre_completo ASC");
+$res_clientes = $stmtClientes->fetchAll(PDO::FETCH_ASSOC);
 
-// 3. OBTENER PRODUCTOS CON STOCK
-$res_productos = mysqli_query($conn, "SELECT id, nombre, referencia, precio, stock FROM productos WHERE stock > 0 ORDER BY nombre ASC");
-$productos_json = [];
-while ($prod = mysqli_fetch_assoc($res_productos)) {
-    $productos_json[] = $prod;
-}
+$stmtProductos = $pdo->query("SELECT id, nombre, referencia, precio, stock FROM productos WHERE stock > 0 ORDER BY nombre ASC");
+$res_productos = $stmtProductos->fetchAll(PDO::FETCH_ASSOC);
 
 include(__DIR__ . "/header.php");
 ?>
 
-<div class="venta-container">
-    <h1>Nueva Venta</h1>
-    <p>Registra la venta de productos y el sistema descuenta automáticamente del inventario.</p>
+<div class="container admin-layout">
+    
+<?php include(__DIR__ . "/sidebar_control.php"); ?>
 
-    <form action="/unideportes-system/controllers/procesar_venta.php" method="POST" id="ventaForm">
-        
-        <div class="venta-section">
-            <h3>Datos del Cliente</h3>
-            <label>Cliente:</label>
-            <select name="cliente_id" id="clienteSelect" required>
-                <option value="">-- Seleccione un cliente --</option>
-                <?php while($cli = mysqli_fetch_array($res_clientes)): ?>
-                    <option value="<?= $cli['id'] ?>"><?= htmlspecialchars($cli['nombre_completo']) ?></option>
-                <?php endwhile; ?>
-            </select>
-        </div>
+    <main class="main-content-panel">
+        <h1>Nueva Venta Directa</h1>
+        <hr class="divider">
 
-        <div class="venta-section">
-            <h3>Productos a Vender</h3>
-            <table id="productosTable" class="tabla-venta">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Referencia</th>
-                        <th>Precio Unitario</th>
-                        <th>Cantidad</th>
-                        <th>Subtotal</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="productosBody">
-                    <!-- Las filas se agregan con JavaScript -->
-                </tbody>
-            </table>
+        <form action="../controllers/procesar_venta.php" method="POST" id="ventaForm">
+            
+            <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <div style="flex: 1;">
+                    <label><strong>Cliente:</strong></label>
+                    <input type="text" list="listaClientes" id="clienteInput" placeholder="Buscar cliente..." style="width:100%; padding: 8px; margin-top: 5px;">
+                    <datalist id="listaClientes">
+                        <?php foreach ($res_clientes as $cli): ?>
+                            <option 
+                            data-id="<?= $cli['id'] ?>" 
+                            data-direccion="<?= htmlspecialchars($cli['direccion'] ?? '') ?>"
+                            data-barrio="<?= htmlspecialchars($cli['barrio'] ?? '') ?>"
+                            data-ciudad="<?= htmlspecialchars($cli['ciudad'] ?: 'Sogamoso') ?>"
+                            data-referencia="<?= htmlspecialchars($cli['referencia_entrega'] ?? '') ?>"
+                            value="<?= htmlspecialchars($cli['nombre_completo']) ?>">
+                            </option>
+                        <?php endforeach; ?>
+                    </datalist>
+                    <input type="hidden" name="cliente_id" id="cliente_id_hidden">
+                    
+                    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" id="btnToggleNuevoCliente" style="padding: 8px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">Crear cliente nuevo</button>
+                        <span style="font-size: 0.9rem; color: #4b5563;">Usa esta opción para crear un nuevo cliente.</span>
+                    </div>
 
-            <div class="agregar-producto">
-                <select id="productoSelect">
-                    <option value="">-- Agregar producto --</option>
-                    <?php foreach($productos_json as $prod): ?>
-                        <option value="<?= $prod['id'] ?>" 
-                                data-nombre="<?= htmlspecialchars($prod['nombre']) ?>" 
-                                data-referencia="<?= htmlspecialchars($prod['referencia']) ?>" 
-                                data-precio="<?= $prod['precio'] ?>"
-                                data-stock="<?= $prod['stock'] ?>">
-                            <?= htmlspecialchars($prod['nombre']) ?> - Stock: <?= $prod['stock'] ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="button" id="agregarBtn" class="btn-agregar">+ Agregar Producto</button>
+                    <div id="nuevoClienteSection" style="display: none; margin-top: 15px; padding: 15px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px;">
+                        <h4 style="margin-top: 0; color: #1e293b;">Datos de Registro Rápido</h4>
+                        <div style="display: grid; gap: 10px;">
+                            <div>
+                                <label>Nombre completo *</label>
+                                <input type="text" name="nuevo_cliente_nombre_completo" id="nuevo_cliente_nombre_completo" style="width:100%; padding: 8px; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label>NIT / Cédula *</label>
+                                <input type="text" name="nuevo_cliente_nit_cedula" id="nuevo_cliente_nit_cedula" style="width:100%; padding: 8px; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label>Teléfono</label>
+                                <input type="text" name="nuevo_cliente_telefono" id="nuevo_cliente_telefono" style="width:100%; padding: 8px; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label>Email</label>
+                                <input type="email" name="nuevo_cliente_email" id="nuevo_cliente_email" style="width:100%; padding: 8px; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label>Tipo de cliente</label>
+                                <select name="nuevo_cliente_tipo_cliente" id="nuevo_cliente_tipo_cliente" style="width:100%; padding: 8px; margin-top: 5px;">
+                                    <option value="Individual">Individual</option>
+                                    <option value="Equipo">Equipo</option>
+                                    <option value="Colegio">Colegio</option>
+                                    <option value="Empresa">Empresa</option>
+                                </select>
+                            </div>
+
+                            <div id="bloqueDireccionNuevoCliente" style="display: none; border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 5px;">
+                                <div style="display: grid; gap: 10px;">
+                                    <div>
+                                        <label><strong>Dirección base de envío</strong></label>
+                                        <input type="text" name="nuevo_cliente_direccion" id="nuevo_cliente_direccion" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Calle, Carrera, #">
+                                    </div>
+                                    <div>
+                                        <label>Barrio</label>
+                                        <input type="text" name="nuevo_cliente_barrio" id="nuevo_cliente_barrio" style="width:100%; padding: 8px; margin-top: 5px;">
+                                    </div>
+                                    <div>
+                                        <label>Ciudad</label>
+                                        <input type="text" name="nuevo_cliente_ciudad" id="nuevo_cliente_ciudad" value="Sogamoso" style="width:100%; padding: 8px; margin-top: 5px;">
+                                    </div>
+                                    <div>
+                                        <label>Referencia de Entrega</label>
+                                        <textarea name="nuevo_cliente_referencia_entrega" id="nuevo_cliente_referencia_entrega" rows="2" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Ej: Frente al parque..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label><strong>Método de Pago:</strong></label>
+                    <select name="metodo_pago" id="metodo_pago" required style="width:100%; padding: 8px; margin-top: 5px;">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
+
+                    <div id="seccionTransferencia" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                        <label><small><strong>Plataforma Virtual:</strong></small></label>
+                        <select id="tipo_transferencia_select" style="width:100%; padding: 6px; margin-top: 5px;">
+                            <option value="Nequi">Nequi</option>
+                            <option value="Daviplata">Daviplata</option>
+                            <option value="Otro">Otro ¿Cuál?</option>
+                        </select>
+
+                        <input type="text" id="otra_plataforma_input" placeholder="Ej: Breve, Bancolombia..." style="display: none; width: 100%; padding: 6px; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        <input type="hidden" name="tipo_transferencia" id="tipo_transferencia_final">
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label><strong>Tipo de Entrega:</strong></label>
+                        <select name="tipo_entrega" id="tipo_entrega" required style="width:100%; padding: 8px; margin-top: 5px;">
+                            <option value="Tienda">Retiro en Tienda</option>
+                            <option value="Domicilio">Envío a Domicilio</option>
+                        </select>
+                    </div>
+
+                    <div id="seccionDomicilio" style="display: none; margin-top: 15px; padding: 15px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px;">
+                        <h4 style="margin-top: 0; color: #b45309;">Datos de Envío para esta Venta</h4>
+                        <div style="display: grid; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.85rem;">Dirección de Entrega *</label>
+                                <input type="text" name="direccion_entrega" id="direccion_entrega" style="width:100%; padding: 6px; margin-top: 3px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem;">Barrio</label>
+                                <input type="text" name="barrio_entrega" id="barrio_entrega" style="width:100%; padding: 6px; margin-top: 3px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem;">Ciudad *</label>
+                                <input type="text" name="ciudad_entrega" id="ciudad_entrega" value="Sogamoso" style="width:100%; padding: 6px; margin-top: 3px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem;">Observaciones / Referencias de Envío</label>
+                                <textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" style="width:100%; padding: 6px; margin-top: 3px;" placeholder="Indicaciones para el domiciliario..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-        </div>
 
-        <div class="venta-resumen">
-            <h3>Resumen de Venta</h3>
-            <p>Subtotal: <strong id="subtotalVenta">$0</strong></p>
-            <p>Descuento (%): 
-                <input type="number" id="descuentoPct" name="descuento_pct" value="0" min="0" max="100" step="0.01">
-                = <strong id="descuentoMonto">$0</strong>
-            </p>
-            <hr>
-            <p style="font-size: 1.3rem;">Total: <strong id="totalVenta">$0</strong></p>
-        </div>
+            <div class="venta-container" style="display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label><strong>Producto:</strong></label>
+                    <input type="text" list="listaProductos" id="productoInput" placeholder="Buscar producto..." style="width:100%; padding: 8px; margin-top: 5px;">
+                    <datalist id="listaProductos">
+                        <?php foreach ($res_productos as $prod): ?>
+                            <option value="<?= htmlspecialchars($prod['nombre']) ?> (Ref: <?= $prod['referencia'] ?>)" 
+                                    data-id="<?= $prod['id'] ?>" 
+                                    data-nombre="<?= htmlspecialchars($prod['nombre']) ?>" 
+                                    data-precio="<?= $prod['precio'] ?>" 
+                                    data-stock="<?= $prod['stock'] ?>"></option>
+                        <?php endforeach; ?>
+                    </datalist>
+                </div>
+                <button type="button" id="btnAgregar" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; font-weight: bold; cursor:pointer;">+ Añadir</button>
+            </div>
 
-        <input type="hidden" id="ventaJSON" name="venta_json" value="">
-        <input type="hidden" id="totalVentaInput" name="total_venta" value="">
+            <div class="venta-container" style="margin-bottom: 20px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #1A2B4C; color: white; text-align: left;">
+                            <th style="padding: 10px;">Producto</th>
+                            <th style="padding: 10px;">Precio</th>
+                            <th style="padding: 10px; width: 80px;">Cant</th>
+                            <th style="padding: 10px;">Subtotal</th>
+                            <th style="padding: 10px; text-align: center;">Quitar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="carritoBody"></tbody>
+                </table>
+            </div>
 
-        <button type="submit" class="btn-finalizar">✅ FINALIZAR VENTA</button>
-        <a href="panel_vendedor.php" class="btn-cancelar">← Cancelar</a>
-    </form>
+            <div class="venta-container" style="padding: 15px; text-align: right; background: #f8fafc;">
+                <h3>Total: <span id="txtTotal" style="color: #E61E2A;">$0.00</span></h3>
+                
+                <div id="seccionCambio" style="margin-bottom: 15px; text-align: left; width: 250px; margin-left: auto;">
+                    <label>Paga con:</label>
+                    <input type="number" id="inputPagaCon" name="paga_con" style="width: 100%; padding: 6px;" min="0" step="0.01">
+                    <h4 style="margin-top: 5px; text-align: right;">Cambio: <span id="txtCambio" style="color: #10b981;">$0.00</span></h4>
+                </div>
+                
+                <input type="hidden" id="ventaJSON" name="venta_json">
+                <input type="hidden" id="inputTotal" name="total_venta">
+
+                <a href="panel_vendedor.php" style="margin-right: 15px; color: #666; text-decoration: none;">Cancelar</a>
+                <button type="submit" style="padding: 10px 20px; background: #1A2B4C; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Procesar Venta</button>
+            </div>
+        </form>
+    </main>
 </div>
 
-<style>
-.venta-container {
-    max-width: 1000px;
-    margin: 20px auto;
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.venta-section {
-    margin-bottom: 25px;
-}
-
-.venta-section h3 {
-    color: #1A2B4C;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #E61E2A;
-    padding-bottom: 10px;
-}
-
-.venta-section select,
-.venta-section input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    font-size: 0.95rem;
-}
-
-.tabla-venta {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 15px;
-}
-
-.tabla-venta th {
-    background: #1A2B4C;
-    color: #fff;
-    padding: 12px;
-    text-align: left;
-}
-
-.tabla-venta td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
-
-.tabla-venta input {
-    width: 90%;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.agregar-producto {
-    display: flex;
-    gap: 10px;
-}
-
-.agregar-producto select {
-    flex: 1;
-}
-
-.btn-agregar {
-    padding: 10px 16px;
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-agregar:hover {
-    background: #059669;
-}
-
-.btn-eliminar {
-    padding: 6px 12px;
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-eliminar:hover {
-    background: #dc2626;
-}
-
-.venta-resumen {
-    background: #f8fafc;
-    padding: 18px;
-    border-radius: 10px;
-    margin: 20px 0;
-}
-
-.venta-resumen p {
-    margin: 10px 0;
-    font-size: 1.05rem;
-}
-
-.venta-resumen input {
-    width: 80px;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.btn-finalizar,
-.btn-cancelar {
-    display: inline-block;
-    padding: 12px 24px;
-    margin: 10px 10px 10px 0;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-}
-
-.btn-finalizar {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-finalizar:hover {
-    background: #c91a25;
-}
-
-.btn-cancelar {
-    background: #9ca3af;
-    color: white;
-}
-</style>
-
-<script>
-const productosDisponibles = <?php echo json_encode($productos_json); ?>;
-let filaContador = 0;
-
-document.getElementById('agregarBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    const select = document.getElementById('productoSelect');
-    const productoId = select.value;
-    
-    if (!productoId) {
-        alert('Por favor, selecciona un producto');
-        return;
-    }
-    
-    const opcion = select.options[select.selectedIndex];
-    const producto = {
-        id: productoId,
-        nombre: opcion.dataset.nombre,
-        referencia: opcion.dataset.referencia,
-        precio: parseFloat(opcion.dataset.precio),
-        stock: parseInt(opcion.dataset.stock)
-    };
-    
-    agregarFila(producto);
-    select.value = '';
-});
-
-function agregarFila(producto) {
-    const tbody = document.getElementById('productosBody');
-    const fila = document.createElement('tr');
-    fila.id = 'fila-' + filaContador;
-    filaContador++;
-    
-    fila.innerHTML = `
-        <td>${producto.nombre}</td>
-        <td>${producto.referencia}</td>
-        <td>$${parseFloat(producto.precio).toFixed(2)}</td>
-        <td>
-            <input type="number" class="cantidad" value="1" min="1" max="${producto.stock}" 
-                   data-precio="${producto.precio}" data-id="${producto.id}">
-        </td>
-        <td class="subtotal">$${parseFloat(producto.precio).toFixed(2)}</td>
-        <td>
-            <button type="button" class="btn-eliminar" onclick="eliminarFila('${fila.id}')">Eliminar</button>
-        </td>
-    `;
-    
-    tbody.appendChild(fila);
-    
-    fila.querySelector('.cantidad').addEventListener('change', actualizarTotales);
-    actualizarTotales();
-}
-
-function eliminarFila(filaId) {
-    document.getElementById(filaId).remove();
-    actualizarTotales();
-}
-
-function actualizarTotales() {
-    let subtotal = 0;
-    document.querySelectorAll('#productosBody tr').forEach(fila => {
-        const cantidad = parseInt(fila.querySelector('.cantidad').value) || 0;
-        const precio = parseFloat(fila.querySelector('.cantidad').dataset.precio);
-        const subtotalFila = cantidad * precio;
-        fila.querySelector('.subtotal').textContent = '$' + subtotalFila.toFixed(2);
-        subtotal += subtotalFila;
-    });
-    
-    const descuentoPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
-    const descuentoMonto = (subtotal * descuentoPct) / 100;
-    const total = subtotal - descuentoMonto;
-    
-    document.getElementById('subtotalVenta').textContent = '$' + subtotal.toFixed(2);
-    document.getElementById('descuentoMonto').textContent = '$' + descuentoMonto.toFixed(2);
-    document.getElementById('totalVenta').textContent = '$' + total.toFixed(2);
-    document.getElementById('totalVentaInput').value = total.toFixed(2);
-}
-
-document.getElementById('descuentoPct').addEventListener('change', actualizarTotales);
-
-document.getElementById('ventaForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (!document.getElementById('clienteSelect').value) {
-        alert('Selecciona un cliente');
-        return;
-    }
-    
-    const filas = document.querySelectorAll('#productosBody tr');
-    if (filas.length === 0) {
-        alert('Agrega al menos un producto');
-        return;
-    }
-    
-    const detalles = [];
-    filas.forEach(fila => {
-        const cantidad = parseInt(fila.querySelector('.cantidad').value);
-        const precio = parseFloat(fila.querySelector('.cantidad').dataset.precio);
-        const productoId = fila.querySelector('.cantidad').dataset.id;
-        
-        detalles.push({
-            producto_id: productoId,
-            cantidad: cantidad,
-            precio_unitario: precio,
-            subtotal: cantidad * precio
-        });
-    });
-    
-    document.getElementById('ventaJSON').value = JSON.stringify(detalles);
-    this.submit();
-});
-</script>
+<script src="../public/js/ventas.js"></script>
 
 <?php include(__DIR__ . "/footer.php"); ?>

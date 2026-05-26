@@ -1,66 +1,64 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
 
-// 1. SEGURIDAD: Solo admin puede editar usuarios
-if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
-    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
-    exit();
-}
+// 1. Protección de acceso: Solo los administradores pueden entrar aquí
+require_login(['admin']);
 
-// 2. OBTENER ID DEL USUARIO A EDITAR
-if (!isset($_GET['id'])) {
+// 2. Validar que nos pasen un ID válido por la URL
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header("Location: admin_user.php?error=id_no_encontrado");
     exit();
 }
 
 $id = intval($_GET['id']);
 
-// 3. CONSULTAR DATOS ACTUALES DEL USUARIO
-$sql = "SELECT * FROM usuarios WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
+// 3. Buscar los datos actuales del usuario en la Base de Datos
+$stmt = $pdo->prepare("SELECT * FROM usuarios WHERE id = ?");
+$stmt->execute([$id]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($result->num_rows == 0) {
+if (!$row) {
     header("Location: admin_user.php?error=usuario_no_existe");
     exit();
 }
 
-$row = $result->fetch_assoc();
+$error = null;
 
-// 4. PROCESAR FORMULARIO SI SE ENVÍA POR POST
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = mysqli_real_escape_string($conn, $_POST['name']);
-    $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
-    $username = mysqli_real_escape_string($conn, $_POST['username']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+// 4. Procesar los datos CUANDO el administrador presione el botón de guardar (POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name'] ?? '');
+    $lastname = trim($_POST['lastname'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $role = trim($_POST['role'] ?? 'vendedor'); // Guardamos el rol (admin, vendedor, colaborador)
     $password = $_POST['password'] ?? '';
 
-    // Validar que username sea único (excepto el del usuario actual)
-    $check_sql = "SELECT id FROM usuarios WHERE username = '$username' AND id != $id";
-    $check_result = mysqli_query($conn, $check_sql);
-    
-    if (mysqli_num_rows($check_result) > 0) {
-        $error = "El usuario ya existe";
+    // Validar que el nuevo nombre de usuario no lo tenga OTRA persona
+    $checkStmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ? AND id != ?");
+    $checkStmt->execute([$username, $id]);
+
+    if ($checkStmt->fetch()) {
+        $error = "El nombre de usuario ya está registrado por otra persona.";
     } else {
-        // Si hay contraseña nueva, hashearla
+        // Contraseña inteligente: Si la dejan en blanco, conservamos la antigua
         if (!empty($password)) {
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
-            $update_sql = "UPDATE usuarios SET name='$name', lastname='$lastname', username='$username', email='$email', password='$password_hash' WHERE id=$id";
+            $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ?, password = ? WHERE id = ?";
+            $params = [$name, $lastname, $username, $email, $role, $password_hash, $id];
         } else {
-            // Si no hay contraseña nueva, solo actualizar otros datos
-            $update_sql = "UPDATE usuarios SET name='$name', lastname='$lastname', username='$username', email='$email' WHERE id=$id";
+            $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ? WHERE id = ?";
+            $params = [$name, $lastname, $username, $email, $role, $id];
         }
-        
-        if (mysqli_query($conn, $update_sql)) {
+
+        $updateStmt = $pdo->prepare($updateSql);
+        if ($updateStmt->execute($params)) {
+            // Si todo sale bien, volvemos a la lista de usuarios con mensaje de éxito
             header("Location: admin_user.php?success=usuario_actualizado");
             exit();
-        } else {
-            $error = "Error al actualizar: " . mysqli_error($conn);
         }
+
+        $error = "Ocurrió un error inesperado al actualizar en la base de datos.";
     }
 }
 
@@ -69,91 +67,82 @@ include(__DIR__ . "/header.php");
 
 <div class="container admin-layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>Administrador</h3>
-            <p>Bienvenido:<br><strong><?= $_SESSION['username']; ?></strong></p>
-        </div>
-    </aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
-    <!-- CONTENIDO -->
     <main class="main-content-panel">
-        <h1>✏️ Editar Usuario</h1>
-        <p>Actualiza los datos del usuario: <strong><?= htmlspecialchars($row['username']) ?></strong></p>
+        
+        <div class="content-header" style="margin-bottom: 25px;">
+            <h1>✏️ Editar Usuario</h1>
+            <p style="color: #64748b; margin-top: 5px;">Modifica los datos y credenciales del usuario: <strong><?= htmlspecialchars($row['username']) ?></strong></p>
+        </div>
 
-        <?php if (isset($error)): ?>
-            <div class="alert alert-error">
+        <?php if ($error): ?>
+            <div class="alert alert-error" style="margin-bottom: 20px;">
                 ⚠️ <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
-        <div class="users-form">
-            <form action="update.php?id=<?= $id ?>" method="POST">
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); max-width: 650px; border: 1px solid #e2e8f0;">
+            
+            <form action="" method="POST" style="display: flex; flex-direction: column; gap: 18px;">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($row['id']) ?>">
                 
-                <label>Nombre:</label>
-                <input type="text" name="name" value="<?= htmlspecialchars($row['name']) ?>" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Nombre:</label>
+                        <input type="text" name="name" value="<?= htmlspecialchars($row['name']) ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Apellido:</label>
+                        <input type="text" name="lastname" value="<?= htmlspecialchars($row['lastname']) ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;" required>
+                    </div>
+                </div>
 
-                <label>Apellido:</label>
-                <input type="text" name="lastname" value="<?= htmlspecialchars($row['lastname']) ?>" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Nombre de Usuario:</label>
+                        <input type="text" name="username" value="<?= htmlspecialchars($row['username']) ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Rol del Usuario:</label>
+                        <select name="role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; background: white;" required>
+                            <option value="vendedor" <?= ($row['role'] ?? '') === 'vendedor' ? 'selected' : '' ?>>Vendedor (Punto de Venta)</option>
+                            <option value="colaborador" <?= ($row['role'] ?? '') === 'colaborador' ? 'selected' : '' ?>>Colaborador (Producción)</option>
+                            <option value="admin" <?= ($row['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Administrador</option>
+                        </select>
+                    </div>
+                </div>
 
-                <label>Usuario:</label>
-                <input type="text" name="username" value="<?= htmlspecialchars($row['username']) ?>" required>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Correo Electrónico:</label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;">
+                </div>
 
-                <label>Email:</label>
-                <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #475569;">Nueva Contraseña:</label>
+                    <span style="display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 6px;">(Dejar en blanco para conservar la actual)</span>
+                    <input type="password" name="password" placeholder="Escribe la nueva contraseña segura..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;">
+                </div>
 
-                <label>Nueva Contraseña (opcional - dejar en blanco para no cambiar):</label>
-                <input type="password" name="password" placeholder="Dejar vacío para mantener la actual">
+                <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 12px;">
+                    <a href="admin_user.php" class="btn-cancelar" style="margin: 0; text-decoration: none; line-height: 20px;">← Cancelar</a>
+                    <button type="submit" class="btn-guardar" style="margin: 0;">✅ Actualizar Usuario</button>
+                </div>
 
-                <button type="submit" class="btn-guardar">✅ ACTUALIZAR USUARIO</button>
-                <a href="admin_user.php" class="btn-cancelar">← Cancelar</a>
             </form>
         </div>
 
     </main>
-
 </div>
 
 <style>
-.btn-guardar,
-.btn-cancelar {
-    display: inline-block;
-    padding: 12px 20px;
-    margin: 10px 10px 10px 0;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-}
-
-.btn-guardar {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-guardar:hover {
-    background: #c91a25;
-}
-
-.btn-cancelar {
-    background: #9ca3af;
-    color: white;
-}
-
-.alert {
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.alert-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 4px solid #dc2626;
-}
+.btn-guardar, .btn-cancelar { display: inline-block; padding: 12px 22px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-align: center; font-size: 0.95rem; transition: background 0.2s; }
+.btn-guardar { background: var(--primary, #c91a25); color: white; }
+.btn-guardar:hover { background: #b0131c; }
+.btn-cancelar { background: #64748b; color: white; }
+.btn-cancelar:hover { background: #475569; }
+.alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; }
+.alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #dc2626; }
 </style>
 
 <?php include(__DIR__ . "/footer.php"); ?>

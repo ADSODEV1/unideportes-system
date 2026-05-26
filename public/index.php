@@ -1,8 +1,7 @@
 <?php
+//index.php
 session_start();
 require_once __DIR__ . '/../config/connection.php';
-// Footer común para todas las vistas
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -149,6 +148,11 @@ require_once __DIR__ . '/../config/connection.php';
                 <?php if (isset($_GET['error'])): ?>
     <div class="error-msg">⚠️ Datos incorrectos.</div>
 <?php endif; ?>
+                <?php if (isset($_GET['success']) && $_GET['success'] === 'reset_completado'): ?>
+                    <div class="error-msg" style="background: #d1fae5; color: #065f46; border-left-color: #10b981;">
+                        ✅ Contraseña restablecida correctamente. Ingresa con tu nueva contraseña.
+                    </div>
+                <?php endif; ?>
 
 <!-- NUEVO ENLACE DE RECUPERACIÓN -->
 <div style="margin-top: 15px; text-align: center;">
@@ -163,7 +167,7 @@ require_once __DIR__ . '/../config/connection.php';
                 <h3 style="margin-top: 0; color: #333;">¡Hola de nuevo!</h3>
                 <p style="margin: 10px 0;">Sesión activa: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></p>
                 <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">IR AL PANEL</a>
-                <p style="margin-top: 15px; text-align: center;"><a href="/unideportes-system/controllers/logout.php" style="color: #666; text-decoration: none; font-size: 0.9rem;">Cerrar sesión</a></p>
+                <p style="margin-top: 15px; text-align: center;"><a href="/unideportes-system/controllers/auth.php?logout=1" style="color: #666; text-decoration: none; font-size: 0.9rem;">Cerrar sesión</a></p>
             </div>
         </div>
     <?php endif; ?>

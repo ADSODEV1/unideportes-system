@@ -1,35 +1,20 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ProductoModel.php';
+require_login();
+$conn = app();
 
-// Seguridad básica: sesión activa requerida
-if (!isset($_SESSION['username'])) {
-    header('Location: /unideportes-system/public/index.php?error=acceso_denegado');
-    exit();
-}
-
-// Obtener ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: inventario.php?error=id_invalido');
     exit();
 }
 
 $id = intval($_GET['id']);
-
-// Consultar producto
-$sql = 'SELECT * FROM productos WHERE id = ?';
-$stmt = $conn->prepare($sql);
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
+$producto = obtenerProductoPorId($conn, $id);
+if (!$producto) {
     header('Location: inventario.php?error=producto_no_encontrado');
     exit();
 }
-
-$producto = $result->fetch_assoc();
 
 include(__DIR__ . '/header.php');
 ?>

@@ -1,36 +1,60 @@
 <?php
-require_once __DIR__ . '/../config/connection.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
 
-// 1. Recibimos el ID oculto y los datos nuevos
-$id       = $_POST['id'];
-$name     = $_POST['name'];
-$lastname = $_POST['lastname'];
-$username = $_POST['username'];
-$email    = $_POST['email'];
-$password = $_POST['password'];
+// 1. Proteger el controlador con el rol requerido
+require_login(['admin']);
 
-// 2. Preparamos la sentencia de actualización
-if (!empty($password)) {
-    // Si se proporcionó contraseña, la actualizamos con hash
-    $hashed = password_hash($password, PASSWORD_DEFAULT);
-    $sql = "UPDATE usuarios SET name=?, lastname=?, username=?, email=?, password=? WHERE id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssssi", $name, $lastname, $username, $email, $hashed, $id);
-} else {
-    // Si no se proporcionó contraseña, mantenemos la actual
-    $sql = "UPDATE usuarios SET name=?, lastname=?, username=?, email=? WHERE id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssi", $name, $lastname, $username, $email, $id);
-}
-
-// 3. Ejecutamos el cambio
-if ($stmt->execute()) {
-    header("Location: ../views/admin_user.php?msj=actualizado");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../views/admin_user.php");
     exit();
-} else {
-    echo "Error al actualizar: " . $stmt->error;
 }
 
-$stmt->close();
-$conn->close();
-?>
+// 2. Captura y sanitización de variables
+$id       = intval($_POST['id'] ?? 0);
+$name     = trim($_POST['name'] ?? '');
+$lastname = trim($_POST['lastname'] ?? '');
+$username = trim($_POST['username'] ?? '');
+$email    = trim($_POST['email'] ?? '');
+$password = $_POST['password'] ?? '';
+
+// 3. Validación de ID y campos obligatorios
+if ($id <= 0 || empty($name) || empty($lastname) || empty($username)) {
+    header("Location: ../views/update.php?id={$id}&error=datos_invalidos");
+    exit();
+}
+
+try {
+    // 4. Validar que el nuevo username no esté ocupado por OTRO usuario
+    $checkStmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ? AND id != ?");
+    $checkStmt->execute([$username, $id]);
+
+    if ($checkStmt->fetch()) {
+        // Redirecciona a la vista pasándole el error exacto para que no rompa el flujo
+        header("Location: ../views/update.php?id={$id}&error=usuario_existente");
+        exit();
+    }
+
+    // 5. Criterio de contraseña inteligente (Usa PASSWORD_BCRYPT para mantener consistencia)
+    if (!empty($password)) {
+        $hashed = password_hash($password, PASSWORD_BCRYPT);
+        $sql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, password = ? WHERE id = ?";
+        $params = [$name, $lastname, $username, $email, $hashed, $id];
+    } else {
+        $sql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ? WHERE id = ?";
+        $params = [$name, $lastname, $username, $email, $id];
+    }
+
+    $stmt = $pdo->prepare($sql);
+    if ($stmt->execute($params)) {
+        header("Location: ../views/admin_user.php?success=usuario_actualizado");
+        exit();
+    }
+
+    header("Location: ../views/update.php?id={$id}&error=fallo_registro");
+    exit();
+
+} catch (Exception $e) {
+    header("Location: ../views/update.php?id={$id}&error=fallo_bd");
+    exit();
+}

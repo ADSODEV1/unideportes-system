@@ -1,6 +1,6 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
 
 if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'admin') {
     header('Location: /unideportes-system/public/index.php?error=acceso_denegado');
@@ -14,16 +14,12 @@ if ($id <= 0) {
 }
 
 $sql = "DELETE FROM usuarios WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id);
+$stmt = $pdo->prepare($sql);
 
-if ($stmt->execute()) {
+if ($stmt->execute([$id])) {
     header("Location: ../views/admin_user.php?msj=eliminado");
     exit();
 }
 
-echo "No se pudo eliminar: " . $stmt->error;
-
-$stmt->close();
-$conn->close();
+echo "No se pudo eliminar.";
 ?>

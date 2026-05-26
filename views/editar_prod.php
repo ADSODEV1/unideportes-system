@@ -1,13 +1,8 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
-
-// Seguridad: Solo admin puede editar producto
-if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: /unideportes-system/public/index.php?error=acceso_denegado');
-    exit();
-}
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ProductoModel.php';
+require_login(['admin']);
+$conn = app();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: inventario.php?error=id_invalido');
@@ -15,73 +10,41 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $id = intval($_GET['id']);
-
-// Obtener datos del producto
-$sql = 'SELECT * FROM productos WHERE id = ?';
-$stmt = $conn->prepare($sql);
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
+$producto = obtenerProductoPorId($conn, $id);
+if (!$producto) {
     header('Location: inventario.php?error=producto_no_encontrado');
     exit();
 }
 
-$producto = $result->fetch_assoc();
 $error = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = mysqli_real_escape_string($conn, $_POST['nombre'] ?? '');
-    $referencia = mysqli_real_escape_string($conn, $_POST['referencia'] ?? '');
-    $talla = mysqli_real_escape_string($conn, $_POST['talla'] ?? '');
-    $stock = intval($_POST['stock'] ?? 0);
-    $precio = floatval($_POST['precio'] ?? 0);
+    $data = [
+        'nombre' => trim($_POST['nombre'] ?? ''),
+        'referencia' => trim($_POST['referencia'] ?? ''),
+        'talla' => trim($_POST['talla'] ?? ''),
+        'stock' => intval($_POST['stock'] ?? 0),
+        'precio' => floatval($_POST['precio'] ?? 0),
+    ];
 
-    if ($nombre === '' || $referencia === '' || $precio <= 0) {
+    if ($data['nombre'] === '' || $data['referencia'] === '' || $data['precio'] <= 0) {
         $error = 'Nombre, referencia y precio son obligatorios.';
+    } elseif (existeReferenciaProducto($conn, $data['referencia'], $id)) {
+        $error = 'Ya existe un producto con la misma referencia.';
+    } elseif (!actualizarProducto($conn, $id, $data)) {
+        $error = 'Error al actualizar el producto.';
     } else {
-        $sql_check = 'SELECT id FROM productos WHERE referencia = ? AND id != ?';
-        $stmt_check = $conn->prepare($sql_check);
-        $stmt_check->bind_param('si', $referencia, $id);
-        $stmt_check->execute();
-        $result_check = $stmt_check->get_result();
-
-        if ($result_check->num_rows > 0) {
-            $error = 'Ya existe un producto con la misma referencia.';
-        } else {
-            $sql_update = 'UPDATE productos SET nombre = ?, referencia = ?, talla = ?, stock = ?, precio = ? WHERE id = ?';
-            $stmt_update = $conn->prepare($sql_update);
-            $stmt_update->bind_param('sssidi', $nombre, $referencia, $talla, $stock, $precio, $id);
-
-            if ($stmt_update->execute()) {
-                header('Location: inventario.php?success=producto_actualizado');
-                exit();
-            }
-
-            $error = 'Error al actualizar el producto: ' . $conn->error;
-        }
+        header('Location: inventario.php?success=producto_actualizado');
+        exit();
     }
 
-    // Mantener datos enviados para no perderlos
-    $producto['nombre'] = $nombre;
-    $producto['referencia'] = $referencia;
-    $producto['talla'] = $talla;
-    $producto['stock'] = $stock;
-    $producto['precio'] = $precio;
+    $producto = array_merge($producto, $data);
 }
 
 include(__DIR__ . '/header.php');
 ?>
 
 <div class="container admin-layout">
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>Editar producto</h3>
-            <p>ID: <?= $producto['id'] ?></p>
-            <p>Ref: <?= htmlspecialchars($producto['referencia']) ?></p>
-        </div>
-    </aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
         <h1>✏️ Editar Producto</h1>
