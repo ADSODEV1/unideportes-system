@@ -1,115 +1,182 @@
 <?php
-// 1. ZONA DE SEGURIDAD: Configuracion, conexion y seguridad
+// controllers/procesar_venta.php
 session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../models/ClienteModel.php';
 
-if (!isset($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['vendedor', 'colaborador', 'admin'], true)) {
-    header("Location: /unideportes-system/public/index.php?error=acceso_denegado");
-    exit();
-}
+$pdo = app();
 
-// 2. ZONA DE CAPTURA DE DATOS: Recepcion de variables desde el formulario (POST)
-if ($_SERVER['REQUEST_METHOD'] != 'POST' || empty($_POST['cliente_id']) || empty($_POST['venta_json']) || empty($_POST['metodo_pago'])) {
-    header("Location: ../views/nueva_venta.php?error=datos_incompletos");
-    exit();
-}
+// Asegurar que el usuario tiene permisos mediante la función global optimizada
+require_login(['vendedor', 'colaborador', 'admin']);
 
-$cliente_id = intval($_POST['cliente_id']);
-$total_venta = floatval($_POST['total_venta']);
-$venta_json = json_decode($_POST['venta_json'], true);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Iniciamos una transacción para asegurar consistencia total (Todo o Nada)
+        $pdo->beginTransaction();
 
-$metodo_pago = mysqli_real_escape_string($conn, $_POST['metodo_pago']);
+        $cliente_id = !empty($_POST['cliente_id']) ? intval($_POST['cliente_id']) : null;
+        $tipo_entrega = $_POST['tipo_entrega'] ?? 'Tienda';
+        
+        // Si no se seleccionó cliente y tampoco se creó uno nuevo, asignamos Cliente General (ID 1)
+        if (empty($cliente_id) && empty($_POST['nuevo_cliente_nombre_completo'])) {
+            $cliente_id = 1; 
+        }
 
-// 3. ZONA DE VALIDACION: Verificacion de la integridad de los datos
-$tipo_transferencia = "NULL";
-if ($metodo_pago === 'Transferencia' && !empty($_POST['tipo_transferencia'])) {
-    $tipo_transferencia = "'" . mysqli_real_escape_string($conn, $_POST['tipo_transferencia']) . "'";
-}
+        // 1. GESTIÓN DE CLIENTE (NUEVO O EXISTENTE)
+        if (empty($cliente_id) && !empty($_POST['nuevo_cliente_nombre_completo'])) {
+            $nit_cedula = trim($_POST['nuevo_cliente_nit_cedula']);
+            
+            // Verificar si la cédula/NIT ya existe para reutilizar el ID y no duplicar registros
+            $stmtCheck = $pdo->prepare("SELECT id FROM clientes WHERE nit_cedula = ?");
+            $stmtCheck->execute([$nit_cedula]);
+            $clienteExistente = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
-$res_cliente = mysqli_query($conn, "SELECT id FROM clientes WHERE id = '$cliente_id'");
-if (mysqli_num_rows($res_cliente) == 0) {
-    header("Location: ../views/nueva_venta.php?error=cliente_inexistente");
-    exit();
-}
+            if ($clienteExistente) {
+                $cliente_id = $clienteExistente['id'];
+            } : {
+                $sqlCli = "INSERT INTO clientes (nombre_completo, nit_cedula, telefono, email, tipo_cliente) 
+                           VALUES (?, ?, ?, ?, ?)";
+                $stmtCli = $pdo->prepare($sqlCli);
+                $stmtCli->execute([
+                    trim($_POST['nuevo_cliente_nombre_completo']),
+                    $nit_cedula,
+                    !empty($_POST['nuevo_cliente_telefono']) ? trim($_POST['nuevo_cliente_telefono']) : null,
+                    !empty($_POST['nuevo_cliente_email']) ? trim($_POST['nuevo_cliente_email']) : null,
+                    $_POST['nuevo_cliente_tipo_cliente'] ?? 'Individual'
+                ]);
+                $cliente_id = $pdo->lastInsertId();
+            }
+        }
 
-$res_vendedor = mysqli_query($conn, "SELECT id FROM usuarios WHERE username = '" . mysqli_real_escape_string($conn, $_SESSION['username']) . "'");
-$vendedor = mysqli_fetch_array($res_vendedor);
-$vendedor_id = $vendedor['id'] ?? null;
+        // 2. CÁLCULO DE TOTALES, ENVÍO Y CAMBIO
+        $total_final = floatval($_POST['total_venta'] ?? 0);
+        $costo_envio = 0.00;
 
-if (!$vendedor_id) {
-    header("Location: ../views/nueva_venta.php?error=vendedor_inexistente");
-    exit();
-}
+        // Inicializamos las variables de envío en NULL (por si es retiro en Tienda)
+        $direccion_entrega     = null;
+        $barrio_entrega        = null;
+        $ciudad_entrega        = null;
+        $observaciones_entrega = null;
 
-// 4. ZONA DE CONSULTAS SQL: Operacion transaccional y persistencia en la Base de Datos. 
-mysqli_begin_transaction($conn);
+        if ($tipo_entrega === 'Domicilio') {
+            $costo_envio = 5000.00; // Recargo estándar de envío en Sogamoso
+            $total_final += $costo_envio; 
 
-try {
-    // CREAR REGISTRO DE VENTA 
-    $sql_venta = "INSERT INTO ventas (cliente_id, vendedor_id, total_venta, metodo_pago, tipo_transferencia, fecha_venta) 
-                  VALUES ($cliente_id, $vendedor_id, $total_venta, '$metodo_pago', $tipo_transferencia, NOW())";
-    
-    if (!mysqli_query($conn, $sql_venta)) {
-        throw new Exception("Error al registrar venta: " . mysqli_error($conn));
+            // Capturamos los campos específicos enviados desde el formulario
+            $direccion_entrega     = !empty($_POST['direccion_entrega']) ? trim($_POST['direccion_entrega']) : null;
+            $barrio_entrega        = !empty($_POST['barrio_entrega']) ? trim($_POST['barrio_entrega']) : null;
+            $ciudad_entrega        = !empty($_POST['ciudad_entrega']) ? trim($_POST['ciudad_entrega']) : 'Sogamoso';
+            $observaciones_entrega = !empty($_POST['observaciones_entrega']) ? trim($_POST['observaciones_entrega']) : null;
+        }
+
+        $metodo_pago = $_POST['metodo_pago'] ?? 'Efectivo';
+        
+        // CORREGIDO: Soporta el name 'tipo_transferencia_final' del JS dinámico o el select básico
+        $tipo_transferencia = null;
+        if ($metodo_pago === 'Transferencia') {
+            $tipo_transferencia = $_POST['tipo_transferencia_final'] ?? ($_POST['tipo_transferencia'] ?? 'Nequi');
+            $tipo_transferencia = !empty($tipo_transferencia) ? trim($tipo_transferencia) : 'Nequi';
+        }
+        
+        // Cálculo del cambio en efectivo
+        $paga_con = !empty($_POST['paga_con']) ? floatval($_POST['paga_con']) : 0;
+        $cambio = 0.00;
+        if ($metodo_pago === 'Efectivo' && $paga_con >= $total_final) {
+            $cambio = $paga_con - $total_final;
+        }
+
+        // Recuperar el ID del vendedor activo en la sesión (Obligatorio NOT NULL)
+        $vendedor_id = $_SESSION['user_id'] ?? ($_SESSION['usuario_id'] ?? 1); 
+
+        // Generar un número de ticket único bajo el patrón T-YYYYMMDDHHMMSS-RAND
+        $ticket_numero = 'T-' . date('YmdHis') . '-' . rand(100, 999);
+
+        // 3. REGISTRAR EN LA TABLA VENTAS
+        $sqlVenta = "INSERT INTO ventas (
+                        ticket_numero, cliente_id, vendedor_id, total_venta, 
+                        metodo_pago, tipo_entrega, costo_envio, 
+                        direccion_entrega, barrio_entrega, ciudad_entrega, observaciones_entrega, 
+                        cambio, tipo_transferencia, fecha_venta
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        
+        $stmtVenta = $pdo->prepare($sqlVenta);
+        $stmtVenta->execute([
+            $ticket_numero,
+            $cliente_id,
+            $vendedor_id,
+            $total_final,
+            $metodo_pago,
+            $tipo_entrega,
+            $costo_envio,
+            $direccion_entrega,
+            $barrio_entrega,
+            $ciudad_entrega,
+            $observaciones_entrega,
+            $cambio,
+            $tipo_transferencia
+        ]);
+        
+        $venta_id = $pdo->lastInsertId();
+
+        // 4. PROCESAR DETALLES DEL CARRITO Y STOCK
+        // CORREGIDO: Mapea tanto 'venta_json' como 'ventaJSON' provenientes de la sincronización JS
+        $json_raw = $_POST['venta_json'] ?? ($_POST['ventaJSON'] ?? null);
+
+        if (empty($json_raw)) {
+            throw new Exception("El carrito de compras está vacío.");
+        }
+
+        $productos_carrito = json_decode($json_raw, true);
+
+        if (!is_array($productos_carrito) || count($productos_carrito) === 0) {
+            throw new Exception("El formato del carrito de compras es inválido o no se pudo procesar.");
+        }
+
+        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
+        $stmtDetalle = $pdo->prepare($sqlDetalle);
+
+        $sqlRestarStock = "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?";
+        $stmtStock = $pdo->prepare($sqlRestarStock);
+
+        foreach ($productos_carrito as $item) {
+            $producto_id = intval($item['id']); 
+            $cantidad    = intval($item['cantidad']);
+            $precio_u    = floatval($item['precio']); 
+            $subtotal    = $cantidad * $precio_u;
+
+            // Registrar el ítem vendido en la tabla intermedia
+            $stmtDetalle->execute([
+                $venta_id,
+                $producto_id,
+                $cantidad,
+                $precio_u,
+                $subtotal
+            ]);
+
+            // Descontar del inventario físico de la fábrica validando stock concurrente
+            $stmtStock->execute([$cantidad, $producto_id, $cantidad]);
+            
+            if ($stmtStock->rowCount() === 0) {
+                throw new Exception("Stock insuficiente para uno de los productos seleccionados. La operación fue cancelada.");
+            }
+        }
+
+        // Si todo el proceso se ejecutó correctamente, consolidamos de forma atómica en la BD
+        $pdo->commit();
+        
+        // Redirección inmediata a la vista del Ticket de Venta
+        header("Location: ../views/ticket_actual.php?id=" . $venta_id);
+        exit();
+
+    } catch (Exception $e) {
+        // Cancelamos cualquier inserción parcial si algo falla en el ciclo protegiendo la integridad
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        header("Location: ../views/nueva_venta.php?error=" . urlencode($e->getMessage()));
+        exit();
     }
-    
-    $venta_id = mysqli_insert_id($conn);
-    
-    // B. PROCESAR CADA DETALLE DE VENTA
-    foreach ($venta_json as $detalle) {
-        $producto_id = intval($detalle['producto_id']);
-        $cantidad = intval($detalle['cantidad']);
-        $precio_unitario = floatval($detalle['precio_unitario']);
-        
-        // Calculamos el subtotal directamente para asegurar consistencia matemática
-        $subtotal = $cantidad * $precio_unitario;
-        
-        // Validar que el producto existe
-        $res_prod = mysqli_query($conn, "SELECT stock FROM productos WHERE id = $producto_id");
-        if (mysqli_num_rows($res_prod) == 0) {
-            throw new Exception("Producto $producto_id no existe");
-        }
-        
-        $prod = mysqli_fetch_array($res_prod);
-        $stock_actual = $prod['stock'];
-        
-        // Validar stock suficiente
-        if ($cantidad > $stock_actual) {
-            throw new Exception("Stock insuficiente para el producto $producto_id. Disponible: $stock_actual, Solicitado: $cantidad");
-        }
-        
-        // INSERTAR DETALLE DE VENTA
-        $sql_detalle = "INSERT INTO detalles_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal) 
-                        VALUES ($venta_id, $producto_id, $cantidad, $precio_unitario, $subtotal)";
-        
-        if (!mysqli_query($conn, $sql_detalle)) {
-            throw new Exception("Error al registrar detalle: " . mysqli_error($conn));
-        }
-        
-        // DESCONTAR DEL INVENTARIO
-        $nuevo_stock = $stock_actual - $cantidad;
-        $sql_update = "UPDATE productos SET stock = $nuevo_stock WHERE id = $producto_id";
-        
-        if (!mysqli_query($conn, $sql_update)) {
-            throw new Exception("Error al actualizar inventario: " . mysqli_error($conn));
-        }
-    }
-    
-    // 5. ZONA DE CONFIRMACIÓN O REVERSIÓN: Cierre seguro de la transacción
-    mysqli_commit($conn);
-    
-    // 7. REDIRIGIR CON ÉXITO
-    header("Location: ../views/panel_vendedor.php?success=venta_registrada&id=$venta_id");
-    exit();
-    
-} catch (Exception $e) {
-    // REVERTIR TRANSACCIÓN EN CASO DE ERROR 
-    mysqli_rollback($conn);
-    
-    $error = urlencode($e->getMessage());
-    header("Location: ../views/nueva_venta.php?error=$error");
+} else {
+    header("Location: ../views/nueva_venta.php");
     exit();
 }
-
-mysqli_close($conn);

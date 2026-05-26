@@ -1,11 +1,23 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// ZONA 1: INICIALIZACIÓN Y SEGURIDAD
+require_once __DIR__ . '/../config/bootstrap.php';
 
-$usuario_nombre = $_SESSION['username'] ?? 'Invitado';
-$rol_usuario = $_SESSION['role'] ?? 'colaborador';
+// Validamos la sesión y los roles permitidos
+require_login(['vendedor', 'colaborador', 'admin']);
+
+// Cargamos la conexión PDO
+$pdo = app();
+$conn = connection(); 
+
+// Variables de sesión para la cabecera
+$rol_usuario = $_SESSION['role'] ?? '';
+$usuario_nombre = $_SESSION['username'] ?? 'Usuario';
+
+// Variable para saber qué página estamos viendo (para marcar el activo)
+$pagina_actual = basename($_SERVER['PHP_SELF']);
+$base = "/unideportes-system"; // Asegúrate que esto coincida con tu ruta raíz
 ?>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -13,9 +25,7 @@ $rol_usuario = $_SESSION['role'] ?? 'colaborador';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unideportes - Gestión</title>
-       <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=<?php echo time(); ?>">
-    
 </head>
 <body>
 
@@ -40,7 +50,7 @@ $rol_usuario = $_SESSION['role'] ?? 'colaborador';
 
         <div class="user-info">
             <span>Hola, <strong><?= ucfirst($usuario_nombre) ?></strong></span>
-            <a href="/unideportes-system/controllers/logout.php" class="btn-salir">Salir</a>
+            <a href="/unideportes-system/controllers/auth.php?logout=1" class="btn-salir">Salir</a>
         </div>
     </div>
 </header>

@@ -285,6 +285,30 @@ body {
     transition: background 0.3s;
 }
 
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.action-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
 .btn-secondary {
     display: inline-block;
     padding: 10px 20px;

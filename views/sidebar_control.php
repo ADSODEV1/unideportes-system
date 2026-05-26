@@ -3,41 +3,50 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Datos base de la sesión
 $user = htmlspecialchars($_SESSION['username'] ?? 'Invitado');
-$role = $_SESSION['role'] ?? 'vendedor'; // 'administrador' o 'vendedor'
+$role = $_SESSION['role'] ?? 'vendedor'; 
 $current = basename($_SERVER['PHP_SELF']);
 
-// 2. Configuración Inteligente de Roles (Títulos y Accesos Directos Clave)
+// Configuración de menús por rol
 $menuConfig = [
     'vendedor' => [
-        'titulo_area' => 'Área Comercial',
+        'titulo_area' => 'Punto de Venta',
         'principales' => [
             'nueva_venta.php' => '🛒 Nueva Venta',
             'panel_vendedor.php' => '📊 Mi Panel'
         ],
-        'secundarios' => []
+        'secundarios' => [
+            'mis_ventas.php' => '📜 Mis Ventas',
+            'clientes.php' => '👥 Clientes'
+        ]
     ],
-    'administrador' => [
-        'titulo_area' => 'Panel Corporativo',
+    'colaborador' => [
+        'titulo_area' => 'Producción',
         'principales' => [
-            'panel_admin.php' => '📊 Dashboard General',
-            'productos.php' => '🏷️ Gestión Productos'
+            'pedidos_admin.php' => '📦 Mis Pedidos',
+            'panel_vendedor.php' => '📊 Panel General'
         ],
         'secundarios' => [
+            'inventario.php' => '📦 Inventario'
+        ]
+    ],
+    'admin' => [
+        'titulo_area' => 'Administración',
+        'principales' => [
+            'panel_admin.php' => '📊 Dashboard',
+            'productos.php' => '🏷️ Productos'
+        ],
+        'secundarios' => [
+            'usuarios.php' => '👤 Usuarios',
             'clientes.php' => '👥 Clientes',
-            'pedidos.php' => '📦 Pedidos Fábrica',
-            'nueva_venta.php' => '🛒 Módulo Venta'
+            'pedidos.php' => '📦 Pedidos',
+            'reportes_ventas.php' => '📜 Reportes Globales'
         ]
     ]
 ];
 
-// Obtener la configuración del rol actual (o usar vendedor por defecto si no existe)
 $configActual = $menuConfig[$role] ?? $menuConfig['vendedor'];
 
-/**
- * Renderiza un enlace evaluando si es el archivo actual en el DOM
- */
 function renderNavLink($file, $label, $isPriority = false) {
     global $current;
     $isActive = ($current === $file) ? 'active' : '';
@@ -58,9 +67,8 @@ function renderNavLink($file, $label, $isPriority = false) {
     </div>
 
     <nav class="sidebar-nav">
-        
         <div class="nav-group">
-            <span class="group-title">Acciones Clave</span>
+            <span class="group-title">Acciones Principales</span>
             <?php foreach ($configActual['principales'] as $archivo => $texto): ?>
                 <?= renderNavLink($archivo, $texto, true) ?>
             <?php endforeach; ?>
@@ -68,18 +76,23 @@ function renderNavLink($file, $label, $isPriority = false) {
 
         <?php if (!empty($configActual['secundarios'])): ?>
             <div class="nav-group" style="margin-top: 20px;">
-                <span class="group-title">Administración</span>
+                <span class="group-title">Consultas</span>
                 <?php foreach ($configActual['secundarios'] as $archivo => $texto): ?>
                     <?= renderNavLink($archivo, $texto, false) ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
+        <?php if (isset($sidebarExtra)): ?>
+            <div class="sidebar-dynamic-widgets" style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                <?= $sidebarExtra ?>
+            </div>
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
-        <a href="/unideportes-system/controllers/logout.php" class="btn-logout">
-            <span>❌</span> Salir del Sistema
+        <a href="/unideportes-system/controllers/auth.php?logout=1" class="btn-logout">
+            <span>🚪</span> Salir
         </a>
     </div>
 </aside>

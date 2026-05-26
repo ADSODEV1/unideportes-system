@@ -1,15 +1,9 @@
 <?php
-session_start();
-include("../config/connection.php");
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
+require_login(['admin']);
 
-// SEGURIDAD
-if (!isset($_SESSION['username']) || $_SESSION['role'] != 'admin') {
-    header("Location: index.php");
-    exit();
-}
-
-// CONSULTA
-$query = mysqli_query($conn, "SELECT * FROM usuarios");
+$query = $pdo->query("SELECT * FROM usuarios");
 
 include("header.php");
 ?>
@@ -56,7 +50,7 @@ include("header.php");
                 </thead>
 
                 <tbody>
-                    <?php while ($row = mysqli_fetch_assoc($query)): ?>
+                    <?php while ($row = $query->fetch(PDO::FETCH_ASSOC)): ?>
                         <tr>
                             <td><?= $row['id'] ?></td>
                             <td><?= $row['name'] ?></td>

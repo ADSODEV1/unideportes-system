@@ -9,11 +9,6 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     redirect('clientes.php?error=id_invalido');
 }
 
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header('Location: clientes.php?error=id_invalido');
-    exit();
-}
-
 $id = intval($_GET['id']);
 $cliente = obtenerClientePorId($conn, $id);
 if (!$cliente) {
@@ -24,11 +19,16 @@ if (!$cliente) {
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
-        'nombre_completo' => $_POST['nombre_completo'] ?? '',
-        'nit_cedula' => $_POST['nit_cedula'] ?? '',
-        'telefono' => $_POST['telefono'] ?? '',
-        'email' => $_POST['email'] ?? '',
-        'tipo_cliente' => $_POST['tipo_cliente'] ?? 'Individual',
+        'nombre_completo'   => $_POST['nombre_completo'] ?? '',
+        'nit_cedula'        => $_POST['nit_cedula'] ?? '',
+        'telefono'          => $_POST['telefono'] ?? '',
+        'email'             => $_POST['email'] ?? '',
+        'tipo_cliente'      => $_POST['tipo_cliente'] ?? 'Individual',
+        // NUEVO: Captura de campos de domicilio para actualizar el registro
+        'direccion'         => !empty($_POST['direccion']) ? trim($_POST['direccion']) : null,
+        'barrio'            => !empty($_POST['barrio']) ? trim($_POST['barrio']) : null,
+        'ciudad'            => !empty($_POST['ciudad']) ? trim($_POST['ciudad']) : 'Sogamoso',
+        'referencia_entrega'=> !empty($_POST['referencia_entrega']) ? trim($_POST['referencia_entrega']) : null,
     ];
 
     if (trim($data['nombre_completo']) === '' || trim($data['nit_cedula']) === '') {
@@ -70,6 +70,22 @@ include(__DIR__ . '/header.php');
                     <option value="<?= $tipo ?>" <?= $cliente['tipo_cliente'] === $tipo ? 'selected' : '' ?>><?= $tipo ?></option>
                 <?php endforeach; ?>
             </select>
+
+            <div style="margin-top: 25px; margin-bottom: 15px; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b;">Información Predeterminada de Envío / Domicilio</h3>
+                
+                <label>Dirección base</label>
+                <input type="text" name="direccion" value="<?= htmlspecialchars($cliente['direccion'] ?? '') ?>" placeholder="Ej: Calle 11 # 12-34">
+
+                <label>Barrio</label>
+                <input type="text" name="barrio" value="<?= htmlspecialchars($cliente['barrio'] ?? '') ?>" placeholder="Ej: Centro">
+
+                <label>Ciudad</label>
+                <input type="text" name="ciudad" value="<?= htmlspecialchars($cliente['ciudad'] ?: 'Sogamoso') ?>">
+
+                <label>Referencias / Observaciones de entrega</label>
+                <input type="text" name="referencia_entrega" value="<?= htmlspecialchars($cliente['referencia_entrega'] ?? '') ?>" placeholder="Ej: Frente al parque principal, casa de rejas negras">
+            </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Guardar cambios</button>

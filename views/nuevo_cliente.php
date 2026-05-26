@@ -8,11 +8,16 @@ $conn = app();
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
-        'nombre_completo' => request('nombre_completo'),
-        'nit_cedula' => request('nit_cedula'),
-        'telefono' => request('telefono'),
-        'email' => request('email'),
-        'tipo_cliente' => request('tipo_cliente') ?: 'Individual',
+        'nombre_completo'   => request('nombre_completo'),
+        'nit_cedula'        => request('nit_cedula'),
+        'telefono'          => request('telefono'),
+        'email'             => request('email'),
+        'tipo_cliente'      => request('tipo_cliente') ?: 'Individual',
+        // NUEVO: Captura de campos de domicilio para el modelo
+        'direccion'         => request('direccion') ?: null,
+        'barrio'            => request('barrio') ?: null,
+        'ciudad'            => request('ciudad') ?: 'Sogamoso',
+        'referencia_entrega'=> request('referencia_entrega') ?: null,
     ];
 
     if (trim($data['nombre_completo']) === '' || trim($data['nit_cedula']) === '') {
@@ -55,6 +60,22 @@ include(__DIR__ . '/header.php');
                 <option value="Colegio">Institución Educativa</option>
                 <option value="Empresa">Empresa</option>
             </select>
+
+            <div style="margin-top: 25px; margin-bottom: 15px; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b;">Información Predeterminada de Envío / Domicilio</h3>
+                
+                <label>Dirección base</label>
+                <input type="text" name="direccion" placeholder="Ej: Calle 11 # 12-34">
+
+                <label>Barrio</label>
+                <input type="text" name="barrio" placeholder="Ej: Centro">
+
+                <label>Ciudad</label>
+                <input type="text" name="ciudad" value="Sogamoso">
+
+                <label>Referencias / Observaciones de entrega</label>
+                <input type="text" name="referencia_entrega" placeholder="Ej: Frente al parque principal, casa de rejas negras">
+            </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Guardar cliente</button>

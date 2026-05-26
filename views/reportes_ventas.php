@@ -1,13 +1,9 @@
 <?php
 session_start();
-require_once __DIR__ . '/../config/connection.php';
-$conn = connection();
+require_once __DIR__ . '/../config/bootstrap.php';
+$pdo = app();
 
-// 1. SEGURIDAD: Solo Admin
-if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') != 'admin') {
-    header("Location: ../public/index.php?error=acceso_denegado");
-    exit();
-}
+require_login(['admin', 'vendedor', 'colaborador']);
 
 // 2. PROCESAR FILTROS
 $filtro_fecha_desde = $_GET['fecha_desde'] ?? '';
@@ -15,24 +11,27 @@ $filtro_fecha_hasta = $_GET['fecha_hasta'] ?? '';
 $filtro_vendedor = $_GET['vendedor'] ?? '';
 $filtro_cliente = $_GET['cliente'] ?? '';
 
-// Construir WHERE dinámico
 $where_parts = [];
+$params = [];
 if ($filtro_fecha_desde) {
-    $where_parts[] = "DATE(v.fecha_venta) >= '" . mysqli_real_escape_string($conn, $filtro_fecha_desde) . "'";
+    $where_parts[] = "DATE(v.fecha_venta) >= ?";
+    $params[] = $filtro_fecha_desde;
 }
 if ($filtro_fecha_hasta) {
-    $where_parts[] = "DATE(v.fecha_venta) <= '" . mysqli_real_escape_string($conn, $filtro_fecha_hasta) . "'";
+    $where_parts[] = "DATE(v.fecha_venta) <= ?";
+    $params[] = $filtro_fecha_hasta;
 }
 if ($filtro_vendedor) {
-    $where_parts[] = "u.id = " . intval($filtro_vendedor);
+    $where_parts[] = "u.id = ?";
+    $params[] = intval($filtro_vendedor);
 }
 if ($filtro_cliente) {
-    $where_parts[] = "c.id = " . intval($filtro_cliente);
+    $where_parts[] = "c.id = ?";
+    $params[] = intval($filtro_cliente);
 }
 
 $where_clause = !empty($where_parts) ? "WHERE " . implode(" AND ", $where_parts) : "";
 
-// 3. CONSULTA PRINCIPAL
 $sql = "SELECT v.id, v.total_venta, v.fecha_venta, c.id AS cliente_id, c.nombre_completo AS cliente, u.id AS vendedor_id, u.username AS vendedor
         FROM ventas v
         INNER JOIN clientes c ON v.cliente_id = c.id
@@ -40,28 +39,27 @@ $sql = "SELECT v.id, v.total_venta, v.fecha_venta, c.id AS cliente_id, c.nombre_
         $where_clause
         ORDER BY v.fecha_venta DESC";
 
-$query = mysqli_query($conn, $sql);
-if (!$query) {
-    die("Error en la base de datos: " . mysqli_error($conn));
-}
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$datos_ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// 4. CALCULAR TOTALES
 $total_ventas = 0;
-$cantidad_transacciones = 0;
-$datos_ventas = [];
-while ($row = mysqli_fetch_assoc($query)) {
-    $datos_ventas[] = $row;
+$cantidad_transacciones = count($datos_ventas);
+foreach ($datos_ventas as $row) {
     $total_ventas += $row['total_venta'];
-    $cantidad_transacciones++;
 }
 
-// 5. OBTENER SELECTORES PARA FILTROS
-$res_vendedores = mysqli_query($conn, "SELECT DISTINCT u.id, u.username FROM usuarios u 
+$res_vendedores = $pdo->query("SELECT DISTINCT u.id, u.username FROM usuarios u 
                                         INNER JOIN ventas v ON u.id = v.vendedor_id 
-                                        ORDER BY u.username");
-$res_clientes = mysqli_query($conn, "SELECT DISTINCT c.id, c.nombre_completo FROM clientes c 
+                                        ORDER BY u.username")->fetchAll(PDO::FETCH_ASSOC);
+$res_clientes = $pdo->query("SELECT DISTINCT c.id, c.nombre_completo FROM clientes c 
                                       INNER JOIN ventas v ON c.id = v.cliente_id 
-                                      ORDER BY c.nombre_completo");
+                                      ORDER BY c.nombre_completo")->fetchAll(PDO::FETCH_ASSOC);
+
+$stmtDetalles = $pdo->prepare("SELECT dv.cantidad, dv.precio_unitario, dv.subtotal, p.nombre, p.referencia
+                                        FROM detalle_venta dv
+                                        INNER JOIN productos p ON dv.producto_id = p.id
+                                        WHERE dv.venta_id = ?");
 
 include(__DIR__ . "/header.php");
 ?>
@@ -92,11 +90,11 @@ include(__DIR__ . "/header.php");
                 <label>Vendedor:</label>
                 <select name="vendedor">
                     <option value="">Todos</option>
-                    <?php while ($v = mysqli_fetch_array($res_vendedores)): ?>
+                    <?php foreach ($res_vendedores as $v): ?>
                         <option value="<?= $v['id'] ?>" <?= ($filtro_vendedor == $v['id']) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($v['username']) ?>
                         </option>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -104,11 +102,11 @@ include(__DIR__ . "/header.php");
                 <label>Cliente:</label>
                 <select name="cliente">
                     <option value="">Todos</option>
-                    <?php while ($c = mysqli_fetch_array($res_clientes)): ?>
-                        <option value="<?= $c['id'] ?>" <?= ($filtro_cliente == $c['id']) ? 'selected' : '' ?>>
+                    <?php foreach ($res_clientes as $c): ?>
+                        <option value="<?= $c['id'] ?>" <?= ($filtro_cliente == $c['id']) ? 'selected' : '' ?>
                             <?= htmlspecialchars($c['nombre_completo']) ?>
                         </option>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -175,14 +173,9 @@ include(__DIR__ . "/header.php");
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $res_detalles = mysqli_query($conn, "
-                                        SELECT dv.cantidad, dv.precio_unitario, dv.subtotal, p.nombre, p.referencia
-                                        FROM detalles_venta dv
-                                        INNER JOIN productos p ON dv.producto_id = p.id
-                                        WHERE dv.venta_id = " . intval($venta['id']) . "
-                                    ");
-                                    
-                                    while ($detalle = mysqli_fetch_assoc($res_detalles)):
+                                    $stmtDetalles->execute([$venta['id']]);
+                                    $detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
+                                    foreach ($detalles as $detalle):
                                     ?>
                                         <tr>
                                             <td><?= htmlspecialchars($detalle['nombre']) ?></td>
@@ -191,7 +184,7 @@ include(__DIR__ . "/header.php");
                                             <td>$<?= number_format($detalle['precio_unitario'], 2, '.', ',') ?></td>
                                             <td>$<?= number_format($detalle['subtotal'], 2, '.', ',') ?></td>
                                         </tr>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>

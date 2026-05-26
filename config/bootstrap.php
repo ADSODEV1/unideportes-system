@@ -4,7 +4,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 require_once __DIR__ . '/connection.php';
 
-function app(): mysqli {
+function app(): PDO {
     static $conn;
     if (!$conn) {
         $conn = connection();
