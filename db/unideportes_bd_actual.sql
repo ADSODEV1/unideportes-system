@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 25-05-2026 a las 19:45:17
+-- Tiempo de generación: 26-05-2026 a las 23:40:18
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -59,20 +59,6 @@ INSERT INTO `clientes` (`id`, `codigo_descriptivo`, `nombre_completo`, `nit_cedu
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `detalle_pedido`
---
-
-CREATE TABLE `detalle_pedido` (
-  `id` int(11) NOT NULL,
-  `id_d_pedido` int(11) NOT NULL,
-  `id_d_producto` int(11) NOT NULL,
-  `cantidad` int(11) DEFAULT 1,
-  `subtotal` decimal(10,2) DEFAULT 0.00
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Estructura de tabla para la tabla `detalle_venta`
 --
 
@@ -100,7 +86,8 @@ INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `preci
 (10, 39, 3, 1, 249900.00, 249900.00),
 (18, 40, 4, 1, 249900.00, 249900.00),
 (19, 41, 4, 1, 249900.00, 249900.00),
-(20, 42, 3, 1, 249900.00, 249900.00);
+(20, 42, 3, 1, 249900.00, 249900.00),
+(21, 43, 3, 1, 249900.00, 249900.00);
 
 -- --------------------------------------------------------
 
@@ -122,7 +109,9 @@ CREATE TABLE `pagos` (
 INSERT INTO `pagos` (`id_pago`, `id_pg_pedido`, `monto`, `fecha`) VALUES
 (1, 1, 500000.00, '2026-05-25 12:43:41'),
 (2, 2, 3000000.00, '2026-05-25 12:43:41'),
-(3, 3, 360000.00, '2026-05-25 12:43:41');
+(3, 3, 360000.00, '2026-05-25 12:43:41'),
+(4, 3, 360000.00, '2026-05-26 15:44:45'),
+(5, 2, 1500000.00, '2026-05-26 16:13:56');
 
 -- --------------------------------------------------------
 
@@ -148,8 +137,8 @@ CREATE TABLE `pedidos` (
 
 INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_entrega`, `created_at`) VALUES
 (1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'En Costura', '2026-06-15', '2026-05-25 17:43:41'),
-(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Terminado', '2026-06-10', '2026-05-25 17:43:41'),
-(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'En Corte', '2026-06-28', '2026-05-25 17:43:41');
+(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', '2026-06-10', '2026-05-25 17:43:41'),
+(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', '2026-06-28', '2026-05-25 17:43:41');
 
 -- --------------------------------------------------------
 
@@ -177,14 +166,19 @@ CREATE TABLE `productos` (
 INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `categoria`, `talla`, `stock`, `unidad`, `precio`, `created_at`) VALUES
 (1, 'PROD-0001', 'Camiseta Polo Azul', 'REF-001', 'Camisetas', 'S', 19, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
 (2, 'PROD-0002', 'Pantaloneta Roja', 'REF-002', 'Pantalonetas', 'S', 9, 'Unidad', 0.00, '2026-05-12 00:39:13'),
-(3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', 'M', 22, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
+(3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', 'M', 21, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Selección', 'L', 15, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (5, 'PROD-0005', 'Balón Adidas Al Rihla Pro', 'BALL-QA22', 'Balones', '5', 17, 'Unidad', 185000.00, '2026-05-12 00:39:13'),
 (6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', '40', 20, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
 (7, 'PROD-0007', 'Sudadera Entrenamiento Negra', 'SUD-TR-05', 'Sudaderas', 'S', 17, 'Unidad', 145000.00, '2026-05-12 00:39:13'),
 (8, 'PROD-0008', 'Gorra Unideportes Classic', 'ACC-CAP-01', 'Accesorios', 'Única', 30, 'Unidad', 45000.00, '2026-05-12 00:39:13'),
 (9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', '41', 19, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
-(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'M', 29, 'Unidad', 35000.00, '2026-05-12 00:39:13');
+(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'M', 29, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
+(11, NULL, 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', NULL, 'L', 15, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
+(12, NULL, 'Medias Ciclismo Negras', 'MED-CIC-02', NULL, 'Única', 40, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
+(13, NULL, 'Maletín Deportivo Gym', 'MAL-GYM-05', NULL, 'Única', 8, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
+(14, NULL, 'Tula Deportiva Impermeable', 'TUL-IMP-09', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
+(15, NULL, 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', 'M', 50, 'Unidad', 85000.00, '2026-05-26 03:37:04');
 
 -- --------------------------------------------------------
 
@@ -211,7 +205,9 @@ INSERT INTO `usuarios` (`id`, `name`, `lastname`, `username`, `password`, `email
 (1, 'Admin', 'Principal', 'admin', '$2y$10$oZlWCHxkLWRyaEF1mOvzzOuHTv4EUxdmB3Z/m9ZP4i9Dj7mI./ZkW', 'admin@unideportes.com', 'admin', '2026-05-12 00:39:11'),
 (2, 'Joel', 'Castro', 'joel_dev', '$2y$10$MgVEakN4Aw0PbSAJtzgg2.ub83ZnW.2U.wduFxFY5E54c3UgOwnuO', 'joel@unideportes.com', 'admin', '2026-05-12 00:39:11'),
 (3, 'Pablo', 'Rios', 'Pablo', '$2y$10$lw5ofRmHQ2eWpHJwG/qvbuxeyrr7vNcZ.QeNdcA9h.0FnRPzZB6xu', 'pablo@unideportes.com', 'colaborador', '2026-05-12 00:39:11'),
-(5, 'Jonathan', 'Suarez', 'JonathanS', '$2y$10$rNeSPoTbGVM34ZAuhdE/Be1tXDrpDXUiE6p2uEi6Eb2.Q4pW3A3PO', 'jaysuarezap@gmail.com', 'vendedor', '2026-05-12 00:39:11');
+(5, 'Jonathan', 'Suarez', 'JonathanS', '$2y$10$rNeSPoTbGVM34ZAuhdE/Be1tXDrpDXUiE6p2uEi6Eb2.Q4pW3A3PO', 'jaysuarezap@gmail.com', 'vendedor', '2026-05-12 00:39:11'),
+(8, 'Administrador Dos', 'Central', 'admin_sena', '$2y$10$M9rWvXexamplehashforadminpassworddontchange', 'admin2@unideportes.com', 'admin', '2026-05-26 18:50:40'),
+(9, 'Vendedor Nuevo', 'Caja', 'vendedor02', '$2y$10$M9rWvXexamplehashforvendedorpassworddontchange', 'ventas2@unideportes.com', 'vendedor', '2026-05-26 18:50:40');
 
 -- --------------------------------------------------------
 
@@ -278,7 +274,8 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 (39, 'VEN-000039', 'FAC-000039', 6, 3, 249900.00, 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, 'Nequi', '2026-05-23 13:16:39'),
 (40, NULL, 'T-20260524212424-434', 6, 3, 249900.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, NULL, '2026-05-24 14:24:24'),
 (41, NULL, 'T-20260524215507-819', 3, 3, 249900.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, NULL, '2026-05-24 14:55:07'),
-(42, NULL, 'T-20260525190940-871', 12, 3, 254900.00, 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 B BIS 6 - 38', 'sadsad', 'Sogamoso', 'Puerta Roja', 0.00, NULL, '2026-05-25 12:09:40');
+(42, NULL, 'T-20260525190940-871', 12, 3, 254900.00, 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 B BIS 6 - 38', 'sadsad', 'Sogamoso', 'Puerta Roja', 0.00, NULL, '2026-05-25 12:09:40'),
+(43, NULL, 'T-20260526155241-769', 3, 3, 249900.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 100.00, NULL, '2026-05-26 08:52:41');
 
 --
 -- Índices para tablas volcadas
@@ -290,14 +287,6 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_clientes_nit_cedula` (`nit_cedula`);
-
---
--- Indices de la tabla `detalle_pedido`
---
-ALTER TABLE `detalle_pedido`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_det_ped_pedido` (`id_d_pedido`),
-  ADD KEY `idx_det_ped_producto` (`id_d_producto`);
 
 --
 -- Indices de la tabla `detalle_venta`
@@ -356,22 +345,16 @@ ALTER TABLE `clientes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- AUTO_INCREMENT de la tabla `detalle_pedido`
---
-ALTER TABLE `detalle_pedido`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT de la tabla `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT de la tabla `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `pedidos`
@@ -383,30 +366,23 @@ ALTER TABLE `pedidos`
 -- AUTO_INCREMENT de la tabla `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de la tabla `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- Restricciones para tablas volcadas
 --
-
---
--- Filtros para la tabla `detalle_pedido`
---
-ALTER TABLE `detalle_pedido`
-  ADD CONSTRAINT `fk_det_pedido_rel` FOREIGN KEY (`id_d_pedido`) REFERENCES `pedidos` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_det_producto_rel` FOREIGN KEY (`id_d_producto`) REFERENCES `productos` (`id`) ON UPDATE CASCADE;
 
 --
 -- Filtros para la tabla `detalle_venta`

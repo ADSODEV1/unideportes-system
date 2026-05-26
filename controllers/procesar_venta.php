@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($clienteExistente) {
                 $cliente_id = $clienteExistente['id'];
-            } : {
+            } else {
                 $sqlCli = "INSERT INTO clientes (nombre_completo, nit_cedula, telefono, email, tipo_cliente) 
                            VALUES (?, ?, ?, ?, ?)";
                 $stmtCli = $pdo->prepare($sqlCli);

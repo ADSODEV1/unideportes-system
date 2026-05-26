@@ -1,4 +1,5 @@
 <?php
+// views/panel_admin.php
 require_once __DIR__ . '/../config/bootstrap.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -7,32 +8,33 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $pdo = app();
 
-// Seguridad: Solo admin puede entrar
+// Seguridad: Solo el rol admin puede ingresar
 require_login(['admin']);
 
-// Consultas dinámicas usando PDO para los indicadores del Administrador
+// Consultas dinámicas optimizadas
 try {
-    // 1. Total Colaboradores activos
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM usuarios WHERE role = 'colaborador'");
+    // 1. Total Colaboradores activos (Vendedores + Administradores)
+    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE estado = 'Activo'");
     $total_colab = $stmt->fetchColumn() ?: 0;
 
     // 2. Total Productos en el catálogo
-    $stmtProd = $pdo->query("SELECT COUNT(*) as total FROM productos");
+    $stmtProd = $pdo->query("SELECT COUNT(*) FROM productos");
     $total_productos = $stmtProd->fetchColumn() ?: 0;
 
-    // 3. Ventas de stock común hoy
-    $stmtVentas = $pdo->query("SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha_venta) = CURRENT_DATE");
+    // 3. Cantidad de ventas realizadas el día de HOY
+    $stmtVentas = $pdo->query("SELECT COUNT(*) FROM ventas WHERE DATE(fecha_venta) = CURRENT_DATE");
     $ventas_hoy = $stmtVentas->fetchColumn() ?: 0;
 
-    // 4. NUEVO KPI: Órdenes activas en taller (Para dar visibilidad al Admin)
-    $stmtPedidos = $pdo->query("SELECT COUNT(*) as total FROM pedidos WHERE estado != 'Entregado'");
+    // 4. Productos con existencias críticas en bodega
+    $stmtBajoStock = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5");
+    $productos_bajo_stock = $stmtBajoStock->fetchColumn() ?: 0;
+
+    // 5. Órdenes activas en taller que requieren seguimiento
+    $stmtPedidos = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE estado != 'Entregado'");
     $ordenes_taller = $stmtPedidos->fetchColumn() ?: 0;
 
 } catch (Exception $e) {
-    $total_colab = 0;
-    $total_productos = 0;
-    $ventas_hoy = 0;
-    $ordenes_taller = 0;
+    $total_colab = $total_productos = $ventas_hoy = $productos_bajo_stock = $ordenes_taller = 0;
 }
 
 // Header del sistema
@@ -45,43 +47,40 @@ include(__DIR__ . "/header.php");
 
     <main class="main-content-panel">
 
-        <div class="page-header">
-            <h1>📊 Panel de Administración</h1>
-            <p>Bienvenido al centro de control global de Unideportes. Monitorea el rendimiento de tu negocio.</p>
+        <div class="page-header header-dashboard">
+            <div>
+                <h1>📊 Panel de Administración</h1>
+                <p>
+                    Centro de control global de Unideportes.
+                    <span class="badge azul">👥 <?= htmlspecialchars($total_colab); ?> Personal</span>
+                    <span class="badge azul">🏷️ <?= htmlspecialchars($total_productos); ?> Items Catálogo</span>
+                </p>
+            </div>
         </div>
 
-        <div class="resumen-kpi">
+        <div class="alert-grid">
             
-            <div class="kpi-card">
-                <div class="kpi-icon icon-red">👥</div>
-                <div class="kpi-data">
-                    <small>Personal Activo</small>
-                    <h2><?= htmlspecialchars($total_colab); ?> <span>Colab.</span></h2>
+            <div class="alert-card success">
+                <div class="alert-icon">📈</div>
+                <div class="alert-text">
+                    <strong>Actividad Comercial Hoy</strong>
+                    <p>Se procesaron <strong><?= htmlspecialchars($ventas_hoy) ?></strong> ventas. Hay <strong><?= htmlspecialchars($ordenes_taller) ?></strong> prendas en taller.</p>
                 </div>
             </div>
 
-            <div class="kpi-card">
-                <div class="kpi-icon icon-blue">🏷️</div>
-                <div class="kpi-data">
-                    <small>Catálogo</small>
-                    <h2><?= htmlspecialchars($total_productos); ?> <span>Productos</span></h2>
+            <div class="alert-card <?= $productos_bajo_stock > 0 ? 'danger' : 'neutral' ?>">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-text">
+                    <strong>Alertas de Stock de Fábrica</strong>
+                    <p>
+                        <?= $productos_bajo_stock > 0 
+                            ? "¡Atención! Hay <strong>".htmlspecialchars($productos_bajo_stock)."</strong> item(s) con existencias bajas." 
+                            : "Todos los productos cuentan con stock estable." ?>
+                    </p>
                 </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon icon-green">📈</div>
-                <div class="kpi-data">
-                    <small>Ventas de Hoy</small>
-                    <h2><?= htmlspecialchars($ventas_hoy); ?> <span>Órdenes</span></h2>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon icon-amber">⚙️</div>
-                <div class="kpi-data">
-                    <small>En Producción</small>
-                    <h2><?= htmlspecialchars($ordenes_taller); ?> <span>Prendas</span></h2>
-                </div>
+                <?php if ($productos_bajo_stock > 0): ?>
+                    <a href="/unideportes-system/views/inventario.php" class="btn-alert-action">Ver</a>
+                <?php endif; ?>
             </div>
 
         </div>
@@ -90,72 +89,72 @@ include(__DIR__ . "/header.php");
 
         <div class="menu-maestro">
             
-            <div class="dashboard-card card-highlight">
-                <a href="/unideportes-system/views/pedidos_admin.php" class="card-link">
+            <div class="dashboard-card border-green">
+                <a href="/unideportes-system/views/linea_confeccion.php" class="card-link">
                     <div class="card-icon">🏭</div>
                     <div class="card-body">
                         <h3>Línea de Confección</h3>
-                        <p>Monitorea y cambia las fases de fabricación (Corte, Costura, Terminado).</p>
+                        <p>Monitorea y cambia las fases de fabricación en taller (Corte, Costura, Terminado).</p>
                     </div>
                 </a>
             </div>
 
-            <div class="dashboard-card card-highlight">
-                <a href="/unideportes-system/views/pedidos_vendedor.php" class="card-link">
+            <div class="dashboard-card border-emerald">
+                <a href="/unideportes-system/views/mis_pedidos.php" class="card-link">
                     <div class="card-icon">📦</div>
                     <div class="card-body">
-                        <h3>Despacho Mayorista</h3>
-                        <p>Busca pedidos por cliente/NIT, registra el pago de saldos y entrega.</p>
+                        <h3>Despacho / Entregas</h3>
+                        <p>Busca pedidos por cliente, controla saldos monetarios y gestiona entregas.</p>
                     </div>
                 </a>
             </div>
 
-            <div class="dashboard-card">
+            <div class="dashboard-card border-red">
                 <a href="/unideportes-system/views/nueva_venta.php" class="card-link">
                     <div class="card-icon">🛒</div>
                     <div class="card-body">
                         <h3>Realizar Venta</h3>
-                        <p>Abre el módulo de punto de venta para facturar uniformes en stock.</p>
+                        <p>Abre el POS de mostrador para facturar uniformes listos de stock común.</p>
                     </div>
                 </a>
             </div>
 
-            <div class="dashboard-card">
-                <a href="/unideportes-system/views/admin_user.php" class="card-link">
-                    <div class="card-icon">👤</div>
-                    <div class="card-body">
-                        <h3>Gestionar Personal</h3>
-                        <p>Administra las cuentas, accesos y contraseñas de tus usuarios.</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="dashboard-card">
-                <a href="/unideportes-system/views/productos.php" class="card-link">
+            <div class="dashboard-card border-slate">
+                <a href="/unideportes-system/views/inventario.php" class="card-link">
                     <div class="card-icon">🎽</div>
                     <div class="card-body">
                         <h3>Control de Productos</h3>
-                        <p>Edita precios, añade referencias y revisa existencias de fábrica.</p>
+                        <p>Edita precios bases, añade nuevas referencias y gestiona tallajes de fábrica.</p>
                     </div>
                 </a>
             </div>
 
-            <div class="dashboard-card">
+            <div class="dashboard-card border-blue">
                 <a href="/unideportes-system/views/clientes.php" class="card-link">
                     <div class="card-icon">👥</div>
                     <div class="card-body">
                         <h3>Base de Clientes</h3>
-                        <p>Mira el historial de clientes, NITs y cambia estados activo/inactivo.</p>
+                        <p>Administración de historiales, NITs, bases de datos comerciales y estados.</p>
                     </div>
                 </a>
             </div>
 
-            <div class="dashboard-card">
-                <a href="/unideportes-system/views/reportes_ventas.php" class="card-link">
-                    <div class="card-icon">📜</div>
+            <div class="dashboard-card border-indigo">
+                <a href="/unideportes-system/views/admin_usuarios.php" class="card-link">
+                    <div class="card-icon">👤</div>
                     <div class="card-body">
-                        <h3>Reportes Globales</h3>
-                        <p>Audita los ingresos totales y el rendimiento general de los vendedores.</p>
+                        <h3>Gestionar Personal</h3>
+                        <p>Alta de cuentas de trabajadores, asignación de roles y reseteo de claves.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="dashboard-card border-amber full-width-card">
+                <a href="/unideportes-system/views/reportes_ventas.php" class="card-link link-wide">
+                    <div class="card-icon icon-small">📜</div>
+                    <div class="card-body">
+                        <h3>Reportes Financieros y Auditoría Global</h3>
+                        <p>Inspecciona ingresos brutos diarios, históricos y rendimiento comercial individual por vendedor.</p>
                     </div>
                 </a>
             </div>
@@ -163,130 +162,80 @@ include(__DIR__ . "/header.php");
         </div>
 
     </main>
-
 </div>
 
 <style>
-.page-header {
+/* Estilos Semánticos y Limpios para el Dashboard */
+.header-dashboard {
+    background: var(--card);
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
     margin-bottom: 30px;
 }
-.page-header h1 {
-    color: #1e293b; 
-    font-size: 1.8rem; 
-    font-weight: 700;
-    margin: 0;
-}
-.page-header p {
-    color: #64748b; 
-    margin-top: 5px;
-    font-size: 0.95rem;
-}
-
-/* Contenedores KPI */
-.resumen-kpi {
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-    gap: 20px; 
+.alert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
     margin-bottom: 35px;
 }
-.kpi-card {
-    background: white; 
-    padding: 20px; 
-    border-radius: 12px; 
-    border: 1px solid #e2e8f0; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.01); 
-    display: flex; 
-    align-items: center; 
+.alert-card {
+    border: 1px solid var(--border);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
     gap: 15px;
 }
-.kpi-icon {
-    font-size: 1.6rem; 
-    width: 50px; 
-    height: 50px; 
-    border-radius: 10px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-}
-.icon-red { background: #fee2e2; color: #c91a25; }
-.icon-blue { background: #e0f2fe; color: #0284c7; }
-.icon-green { background: #dcfce7; color: #16a34a; }
-.icon-amber { background: #fef3c7; color: #d97706; }
+.alert-card.success { background: #f0fdf4; border-left: 4px solid var(--success); color: #166534; }
+.alert-card.danger { background: #fef2f2; border-left: 4px solid var(--danger); color: #991b1b; }
+.alert-card.neutral { background: #f8fafc; border-left: 4px solid var(--text-light); color: var(--text); }
+.alert-icon { font-size: 1.6rem; }
+.alert-text p { font-size: 0.85rem; margin: 2px 0 0 0; opacity: 0.9; }
 
-.kpi-data small {
-    color: #64748b; 
-    font-weight: 600; 
-    font-size: 0.75rem; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px;
+.btn-alert-action {
+    background: var(--danger);
+    color: white;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: auto;
 }
-.kpi-data h2 {
-    color: #1e293b; 
-    font-size: 1.4rem; 
-    margin: 2px 0 0 0; 
-    font-weight: 700;
-}
-.kpi-data h2 span {
-    font-size: 0.9rem; 
-    font-weight: 400; 
-    color: #64748b;
-}
+.section-title { color: var(--text-light); font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
 
-/* Grilla de Opciones */
-.section-title {
-    color: #475569; 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    margin-bottom: 20px;
-}
 .menu-maestro {
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
 }
 .dashboard-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01);
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 .dashboard-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
-    border-color: #cbd5e1;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
 }
+.border-green  { border-top: 4px solid #16a34a; }
+.border-emerald{ border-top: 4px solid var(--success); }
+.border-red    { border-top: 4px solid var(--primary); }
+.border-slate  { border-top: 4px solid var(--text-light); }
+.border-blue   { border-top: 4px solid #0284c7; }
+.border-indigo { border-top: 4px solid #4f46e5; }
+.border-amber  { border-top: 4px solid var(--warning); }
 
-/* Resaltado suave para las dos opciones del nuevo módulo */
-.card-highlight {
-    border-left: 4px solid #c91a25;
-}
+.card-link { display: flex; align-items: flex-start; padding: 24px 20px; text-decoration: none; gap: 15px; }
+.card-icon { font-size: 2rem; line-height: 1; }
+.card-body h3 { margin: 0; font-size: 1.05rem; color: var(--navy); font-weight: 600; }
+.card-body p { margin: 6px 0 0 0; font-size: 0.85rem; color: var(--text-light); line-height: 1.4; }
 
-.card-link {
-    display: flex;
-    align-items: flex-start;
-    padding: 22px;
-    text-decoration: none;
-    gap: 15px;
-    height: 100%;
-    box-sizing: border-box;
-}
-.card-icon {
-    font-size: 2rem;
-    line-height: 1;
-}
-.card-body h3 {
-    margin: 0;
-    font-size: 1.05rem;
-    color: #1e293b;
-    font-weight: 600;
-}
-.card-body p {
-    margin: 6px 0 0 0;
-    font-size: 0.88rem;
-    color: #64748b;
-    line-height: 1.4;
-}
+.full-width-card { grid-column: 1 / -1; }
+.link-wide { padding: 15px 22px; }
+.icon-small { font-size: 1.5rem; }
 </style>
 
 <?php include(__DIR__ . "/footer.php"); ?>

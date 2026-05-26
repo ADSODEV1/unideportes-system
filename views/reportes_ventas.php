@@ -1,436 +1,251 @@
 <?php
-session_start();
-require_once __DIR__ . '/../config/bootstrap.php';
-$pdo = app();
-
-require_login(['admin', 'vendedor', 'colaborador']);
-
-// 2. PROCESAR FILTROS
-$filtro_fecha_desde = $_GET['fecha_desde'] ?? '';
-$filtro_fecha_hasta = $_GET['fecha_hasta'] ?? '';
-$filtro_vendedor = $_GET['vendedor'] ?? '';
-$filtro_cliente = $_GET['cliente'] ?? '';
-
-$where_parts = [];
-$params = [];
-if ($filtro_fecha_desde) {
-    $where_parts[] = "DATE(v.fecha_venta) >= ?";
-    $params[] = $filtro_fecha_desde;
-}
-if ($filtro_fecha_hasta) {
-    $where_parts[] = "DATE(v.fecha_venta) <= ?";
-    $params[] = $filtro_fecha_hasta;
-}
-if ($filtro_vendedor) {
-    $where_parts[] = "u.id = ?";
-    $params[] = intval($filtro_vendedor);
-}
-if ($filtro_cliente) {
-    $where_parts[] = "c.id = ?";
-    $params[] = intval($filtro_cliente);
+// reportes_ventas.php
+// Conexión interna (Ajusta según tu arquitectura, ej: include '../config/conexion.php')
+try {
+    $pdo = new PDO("mysql:host=localhost;dbname=unideportes;charset=utf8mb4", "root", "");
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Error de conexión: " . $e->getMessage());
 }
 
-$where_clause = !empty($where_parts) ? "WHERE " . implode(" AND ", $where_parts) : "";
+// 1. CONTROL DE FILTROS (Por defecto el mes actual)
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : date('Y-m-01');
+$fecha_fin = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : date('Y-m-t');
 
-$sql = "SELECT v.id, v.total_venta, v.fecha_venta, c.id AS cliente_id, c.nombre_completo AS cliente, u.id AS vendedor_id, u.username AS vendedor
-        FROM ventas v
-        INNER JOIN clientes c ON v.cliente_id = c.id
-        INNER JOIN usuarios u ON v.vendedor_id = u.id
-        $where_clause
-        ORDER BY v.fecha_venta DESC";
+// 2. CONSULTA 1: KPIs Generales (Total ingresos, Total transacciones, Promedio por ticket)
+$sql_kpis = "SELECT 
+                SUM(total_venta) as total_ingresos, 
+                COUNT(id) as total_transacciones,
+                AVG(total_venta) as promedio_ticket
+             FROM ventas 
+             WHERE DATE(fecha_venta) BETWEEN :inicio AND :fin";
+$stmt = $pdo->prepare($sql_kpis);
+$stmt->execute(['inicio' => $fecha_inicio, 'fin' => $fecha_fin]);
+$kpis = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$datos_ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// 3. CONSULTA 2: Ventas agrupadas por Método de Pago
+$sql_metodos = "SELECT metodo_pago, SUM(total_venta) as total, COUNT(id) as cantidad
+                FROM ventas 
+                WHERE DATE(fecha_venta) BETWEEN :inicio AND :fin
+                GROUP BY metodo_pago";
+$stmt_metodos = $pdo->prepare($sql_metodos);
+$stmt_metodos->execute(['inicio' => $fecha_inicio, 'fin' => $fecha_fin]);
+$reporte_metodos = $stmt_metodos->fetchAll(PDO::FETCH_ASSOC);
 
-$total_ventas = 0;
-$cantidad_transacciones = count($datos_ventas);
-foreach ($datos_ventas as $row) {
-    $total_ventas += $row['total_venta'];
-}
+// 4. CONSULTA 3: Listado detallado de Ventas (Con joins a clientes y usuarios/vendedores)
+$sql_detallado = "SELECT 
+                    v.id,
+                    v.ticket_numero,
+                    v.fecha_venta,
+                    c.nombre_completo as cliente,
+                    u.username as vendedor,
+                    v.metodo_pago,
+                    v.tipo_entrega,
+                    v.total_venta
+                  FROM ventas v
+                  INNER JOIN clientes c ON v.cliente_id = c.id
+                  INNER JOIN usuarios u ON v.vendedor_id = u.id
+                  WHERE DATE(v.fecha_venta) BETWEEN :inicio AND :fin
+                  ORDER BY v.fecha_venta DESC";
+$stmt_detallado = $pdo->prepare($sql_detallado);
+$stmt_detallado->execute(['inicio' => $fecha_inicio, 'fin' => $fecha_fin]);
+$ventas_detalladas = $stmt_detallado->fetchAll(PDO::FETCH_ASSOC);
 
-$res_vendedores = $pdo->query("SELECT DISTINCT u.id, u.username FROM usuarios u 
-                                        INNER JOIN ventas v ON u.id = v.vendedor_id 
-                                        ORDER BY u.username")->fetchAll(PDO::FETCH_ASSOC);
-$res_clientes = $pdo->query("SELECT DISTINCT c.id, c.nombre_completo FROM clientes c 
-                                      INNER JOIN ventas v ON c.id = v.cliente_id 
-                                      ORDER BY c.nombre_completo")->fetchAll(PDO::FETCH_ASSOC);
-
-$stmtDetalles = $pdo->prepare("SELECT dv.cantidad, dv.precio_unitario, dv.subtotal, p.nombre, p.referencia
-                                        FROM detalle_venta dv
-                                        INNER JOIN productos p ON dv.producto_id = p.id
-                                        WHERE dv.venta_id = ?");
-
-include(__DIR__ . "/header.php");
+// 5. CONSULTA 4: Top 5 Productos más vendidos (Calculando cantidad * precio_unitario como subtotal)
+$sql_top_prod = "SELECT 
+                    p.nombre, 
+                    p.referencia, 
+                    SUM(dv.cantidad) as total_vendido, 
+                    SUM(dv.cantidad * dv.precio_unitario) as total_recaudado
+                 FROM detalle_venta dv
+                 INNER JOIN productos p ON dv.producto_id = p.id
+                 INNER JOIN ventas v ON dv.venta_id = v.id
+                 WHERE DATE(v.fecha_venta) BETWEEN :inicio AND :fin
+                 GROUP BY p.id
+                 ORDER BY total_vendido DESC
+                 LIMIT 5";
+$stmt_top = $pdo->prepare($sql_top_prod);
+$stmt_top->execute(['inicio' => $fecha_inicio, 'fin' => $fecha_fin]);
+$top_productos = $stmt_top->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="reporte-page">
-    <div class="reporte-header">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Unideportes - Reporte de Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
         <div>
-            <h1> Reporte de Ventas</h1>
-            <p>Balance económico y detalle de transacciones.</p>
+            <h2 class="text-dark mb-1"><i class="bi bi-bar-chart-line-fill text-danger"></i> Reportes de Ventas</h2>
+            <p class="text-muted mb-0">Análisis del rendimiento comercial y balance de caja de Unideportes.</p>
+        </div>
+        <div>
+            <span class="badge bg-primary fs-6">Filtro Activo: <?php echo $fecha_inicio; ?> a <?php echo $fecha_fin; ?></span>
         </div>
     </div>
 
-    <!-- FILTROS -->
-    <div class="filtros-section">
-        <h3> Filtros</h3>
-        <form method="GET" class="filtros-form">
-            <div class="filtro-grupo">
-                <label>Desde:</label>
-                <input type="date" name="fecha_desde" value="<?= htmlspecialchars($filtro_fecha_desde) ?>">
-            </div>
-
-            <div class="filtro-grupo">
-                <label>Hasta:</label>
-                <input type="date" name="fecha_hasta" value="<?= htmlspecialchars($filtro_fecha_hasta) ?>">
-            </div>
-
-            <div class="filtro-grupo">
-                <label>Vendedor:</label>
-                <select name="vendedor">
-                    <option value="">Todos</option>
-                    <?php foreach ($res_vendedores as $v): ?>
-                        <option value="<?= $v['id'] ?>" <?= ($filtro_vendedor == $v['id']) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($v['username']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="filtro-grupo">
-                <label>Cliente:</label>
-                <select name="cliente">
-                    <option value="">Todos</option>
-                    <?php foreach ($res_clientes as $c): ?>
-                        <option value="<?= $c['id'] ?>" <?= ($filtro_cliente == $c['id']) ? 'selected' : '' ?>
-                            <?= htmlspecialchars($c['nombre_completo']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <button type="submit" class="btn-filtrar"> Filtrar</button>
-            <a href="reportes_ventas.php" class="btn-limpiar"> Limpiar</a>
-        </form>
-    </div>
-
-    <!-- RESUMEN -->
-    <div class="resumen-totales">
-        <div class="total-card">
-            <p>Transacciones</p>
-            <h2><?= $cantidad_transacciones ?></h2>
-        </div>
-        <div class="total-card">
-            <p>Venta Total</p>
-            <h2>$<?= number_format($total_ventas, 2, '.', ',') ?></h2>
-        </div>
-        <div class="total-card">
-            <p>Promedio por Venta</p>
-            <h2>$<?= number_format($cantidad_transacciones > 0 ? $total_ventas / $cantidad_transacciones : 0, 2, '.', ',') ?></h2>
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Fecha Inicial</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="<?php echo $fecha_inicio; ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Fecha Final</label>
+                    <input type="date" name="fecha_fin" class="form-control" value="<?php echo $fecha_fin; ?>">
+                </div>
+                <div class="col-md-4 d-grid">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-filter"></i> Filtrar Reporte</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- TABLA PRINCIPAL -->
-    <section class="users-table">
-        <table id="tablasVentas" class="tabla-reportes">
-            <thead>
-                <tr>
-                    <th>ID Venta</th>
-                    <th>Fecha / Hora</th>
-                    <th>Cliente</th>
-                    <th>Vendedor</th>
-                    <th class="text-right">Total</th>
-                    <th>Detalles</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($datos_ventas as $venta): ?>
-                <tr>
-                    <td><strong>#<?= str_pad($venta['id'], 5, "0", STR_PAD_LEFT) ?></strong></td>
-                    <td><?= date("d/m/Y H:i", strtotime($venta['fecha_venta'])) ?></td>
-                    <td><?= htmlspecialchars($venta['cliente']) ?></td>
-                    <td><span class="user-tag"><?= htmlspecialchars(ucfirst($venta['vendedor'])) ?></span></td>
-                    <td class="text-right total-bold">$<?= number_format($venta['total_venta'], 2, '.', ',') ?></td>
-                    <td>
-                        <button type="button" class="toggle-detalle-venta" data-venta-id="<?= $venta['id'] ?>"> Ver</button>
-                    </td>
-                </tr>
-                <!-- Fila expandible de detalles -->
-                <tr id="detalle-venta-<?= $venta['id'] ?>" class="detalle-venta-row">
-                    <td colspan="6">
-                        <div class="detalle-venta-content">
-                            <h4>Productos vendidos:</h4>
-                            <table class="tabla-detalles-interna">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Referencia</th>
-                                        <th>Cantidad</th>
-                                        <th>Precio Unit.</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $stmtDetalles->execute([$venta['id']]);
-                                    $detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
-                                    foreach ($detalles as $detalle):
-                                    ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($detalle['nombre']) ?></td>
-                                            <td><?= htmlspecialchars($detalle['referencia']) ?></td>
-                                            <td><?= $detalle['cantidad'] ?></td>
-                                            <td>$<?= number_format($detalle['precio_unitario'], 2, '.', ',') ?></td>
-                                            <td>$<?= number_format($detalle['subtotal'], 2, '.', ',') ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <?php if ($cantidad_transacciones == 0): ?>
-            <div class="sin-resultados">
-                <p>No hay ventas registradas con los filtros seleccionados.</p>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white border-0 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">Total Ingresos</h6>
+                        <h3 class="mb-0">$<?php echo number_format($kpis['total_ingresos'] ?? 0, 0, ',', '.'); ?></h3>
+                    </div>
+                    <i class="bi bi-currency-dollar fs-1 opacity-50"></i>
+                </div>
             </div>
-        <?php endif; ?>
-    </section>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white border-0 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">Transacciones</h6>
+                        <h3 class="mb-0"><?php echo $kpis['total_transacciones']; ?> Facturas</h3>
+                    </div>
+                    <i class="bi bi-receipt fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark border-0 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">Ticket Promedio</h6>
+                        <h3 class="mb-0">$<?php echo number_format($kpis['promedio_ticket'] ?? 0, 0, ',', '.'); ?></h3>
+                    </div>
+                    <i class="bi bi-calculator fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- ACCIONES -->
-    <div class="acciones-reporte">
-        <button onclick="window.print()" class="btn-imprimir"> Imprimir / PDF</button>
-        <button onclick="exportarCSV()" class="btn-exportar"> Descargar CSV</button>
+    <div class="row mb-4">
+        <div class="col-md-5 mb-4 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold"><i class="bi bi-pie-chart"></i> Resumen Métodos de Pago</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <?php if(empty($reporte_metodos)): ?>
+                            <li class="list-group-item text-center text-muted">No hay registros en este periodo</li>
+                        <?php endif; ?>
+                        <?php foreach($reporte_metodos as $metodo): ?>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <span class="fw-bold"><?php echo $metodo['metodo_pago']; ?></span>
+                                    <small class="text-muted d-block"><?php echo $metodo['cantidad']; ?> operaciones</small>
+                                </div>
+                                <span class="badge bg-secondary rounded-pill">$<?php echo number_format($metodo['total'], 0, ',', '.'); ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold"><i class="bi bi-star-fill text-warning"></i> Top 5 Productos Más Vendidos</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Ref</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Recaudado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if(empty($top_productos)): ?>
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Sin datos de ventas de catálogo</td></tr>
+                                <?php endif; ?>
+                                <?php foreach($top_productos as $prod): ?>
+                                <tr>
+                                    <td class="fw-semibold"><?php echo $prod['nombre']; ?></td>
+                                    <td><span class="badge bg-light text-dark border"><?php echo $prod['referencia']; ?></span></td>
+                                    <td class="text-center fw-bold"><?php echo $prod['total_vendido']; ?></td>
+                                    <td class="text-end text-success fw-bold">$<?php echo number_format($prod['total_recaudado'], 0, ',', '.'); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 fw-bold d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-task text-danger"></i> Bitácora de Movimientos del Periodo</span>
+            <button onclick="window.print();" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i> Imprimir Informe</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nº Factura</th>
+                            <th>Fecha/Hora</th>
+                            <th>Cliente</th>
+                            <th>Vendedor</th>
+                            <th>Método</th>
+                            <th>Entrega</th>
+                            <th class="text-end">Total Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if(empty($ventas_detalladas)): ?>
+                            <tr><td colspan="7" class="text-center text-muted py-4">Ninguna transacción efectuada en las fechas seleccionadas.</td></tr>
+                        <?php endif; ?>
+                        <?php foreach($ventas_detalladas as $v): ?>
+                        <tr>
+                            <td class="fw-bold text-primary"><?php echo $v['ticket_numero'] ?? 'Directa POS (ID: '.$v['id'].')'; ?></td>
+                            <td><?php echo date('d/m/Y g:i a', strtotime($v['fecha_venta'])); ?></td>
+                            <td><?php echo $v['cliente']; ?></td>
+                            <td><span class="badge bg-light text-secondary"><?php echo $v['vendedor']; ?></span></td>
+                            <td><?php echo $v['metodo_pago']; ?></td>
+                            <td>
+                                <span class="badge <?php echo $v['tipo_entrega'] == 'Domicilio' ? 'bg-info text-dark' : 'bg-light text-dark'; ?>">
+                                    <?php echo $v['tipo_entrega']; ?>
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold">$<?php echo number_format($v['total_venta'], 0, ',', '.'); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<style>
-.reporte-page {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 0 15px;
-}
-
-.filtros-section {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.filtros-form {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.filtro-grupo {
-    display: flex;
-    flex-direction: column;
-}
-
-.filtro-grupo label {
-    font-weight: 600;
-    margin-bottom: 6px;
-    font-size: 0.95rem;
-}
-
-.filtro-grupo input,
-.filtro-grupo select {
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-}
-
-.btn-filtrar,
-.btn-limpiar {
-    align-self: flex-end;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-filtrar {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-limpiar {
-    background: #9ca3af;
-    color: white;
-}
-
-.resumen-totales {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.total-card {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-left: 4px solid var(--primary);
-}
-
-.total-card p {
-    margin: 0 0 10px 0;
-    color: #6B7280;
-    font-weight: 600;
-}
-
-.total-card h2 {
-    margin: 0;
-    color: var(--primary);
-    font-size: 1.8rem;
-}
-
-.tabla-reportes {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.tabla-reportes th {
-    background: #1A2B4C;
-    color: #fff;
-    padding: 15px;
-    text-align: left;
-}
-
-.tabla-reportes td {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.detalle-venta-row {
-    display: none;
-    background: #f8fafc;
-}
-
-.detalle-venta-row.abierto {
-    display: table-row;
-}
-
-.detalle-venta-content {
-    padding: 15px;
-    background: #eef2f7;
-    border-radius: 10px;
-}
-
-.tabla-detalles-interna {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.tabla-detalles-interna th {
-    background: #1A2B4C;
-    color: #fff;
-    padding: 10px;
-    font-size: 0.9rem;
-}
-
-.tabla-detalles-interna td {
-    padding: 10px;
-    border-bottom: 1px solid #d1d5db;
-}
-
-.toggle-detalle-venta {
-    padding: 6px 12px;
-    background: #0ea5e9;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.toggle-detalle-venta:hover {
-    background: #0284c7;
-}
-
-.sin-resultados {
-    text-align: center;
-    padding: 30px;
-    color: #6B7280;
-}
-
-.acciones-reporte {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-}
-
-.btn-imprimir,
-.btn-exportar {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-imprimir {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-exportar {
-    background: #10b981;
-    color: white;
-}
-
-@media print {
-    .filtros-section,
-    .acciones-reporte {
-        display: none;
-    }
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.toggle-detalle-venta').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const ventaId = this.dataset.ventaId;
-            const detalleRow = document.getElementById('detalle-venta-' + ventaId);
-            if (detalleRow) {
-                detalleRow.classList.toggle('abierto');
-                this.textContent = detalleRow.classList.contains('abierto') ? '✓ Cerrar' : '👁️ Ver';
-            }
-        });
-    });
-});
-
-function exportarCSV() {
-    const tabla = document.getElementById('tablasVentas');
-    let csv = 'ID Venta,Fecha,Cliente,Vendedor,Total\n';
-    
-    tabla.querySelectorAll('tbody > tr:not(.detalle-venta-row)').forEach(row => {
-        const celdas = row.querySelectorAll('td');
-        csv += `${celdas[0].textContent},${celdas[1].textContent},${celdas[2].textContent},${celdas[3].textContent},${celdas[4].textContent}\n`;
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'reporte_ventas.csv';
-    a.click();
-}
-</script>
-
-<?php include(__DIR__ . "/footer.php"); ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

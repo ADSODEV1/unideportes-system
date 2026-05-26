@@ -39,10 +39,10 @@ $base = "/unideportes-system"; // Asegúrate que esto coincida con tu ruta raíz
         <nav class="main-nav">
             <ul class="nav-list">
                 <li><a href="inventario.php">Inventario</a></li>
-                <li><a href="pedidos.php">Producción</a></li>
+                <li><a href="mis_pedidos.php">Producción</a></li>
                 <li><a href="clientes.php">Clientes</a></li>
+                <li><a href="reportes_ventas.php">Reportes</a></li>
                 <?php if ($rol_usuario == 'admin'): ?>
-                    <li><a href="reportes_ventas.php">Reportes</a></li>
                     <li><a href="admin_user.php">Personal</a></li>
                 <?php endif; ?>
             </ul>

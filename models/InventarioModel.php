@@ -11,12 +11,11 @@
  * @return array Arreglo asociativo con los productos encontrados.
  */
 function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $offset): array {
-    // 🔥 SOLUCIÓN CRÍTICA: Desactivar emulación de consultas preparadas.
-    // Esto obliga a PHP/PDO a enviar LIMIT y OFFSET como verdaderos enteros (INT) a MySQL,
-    // solucionando el problema de carga infinita cuando no se usa el buscador.
+    // Desactivar emulación de consultas preparadas para corregir tipos de datos
     $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
-    $sql = "SELECT id, nombre, referencia, talla, stock, precio 
+    // Agregamos 'categoria' a la consulta SQL
+    $sql = "SELECT id, nombre, referencia, categoria, talla, stock, precio 
             FROM productos 
             WHERE 1=1";
     
@@ -47,10 +46,6 @@ function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $o
 
 /**
  * Cuenta el total de productos que coinciden con el criterio de búsqueda.
- *
- * @param PDO $conn Conexión a la base de datos mediante PDO.
- * @param string $search Término de búsqueda (nombre o referencia).
- * @return int Total de productos encontrados.
  */
 function contarInventarioFiltrado(PDO $conn, string $search): int {
     $sql = "SELECT COUNT(*) FROM productos WHERE 1=1";

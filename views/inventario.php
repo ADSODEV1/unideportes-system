@@ -77,7 +77,7 @@ include(__DIR__ . "/../views/header.php");
             <thead>
                 <tr>
                     <th>Producto</th>
-                    <th>Talla</th>
+                    <th>Categoría</th> <th>Talla</th>
                     <th>Estado</th>
                     <th>Precio</th>
                     <th>Características</th>
@@ -91,6 +91,13 @@ include(__DIR__ . "/../views/header.php");
                                 <strong><?= htmlspecialchars($row['nombre']) ?></strong><br>
                                 <small style="color: #666;">Ref: <?= htmlspecialchars($row['referencia']) ?></small>
                             </td>
+                            
+                            <td>
+                                <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; border: 1px solid #e2e8f0;">
+                                    <?= htmlspecialchars($row['categoria'] ?? 'Sin Línea') ?>
+                                </span>
+                            </td>
+
                             <td><span class="talla-badge"><?= htmlspecialchars($row['talla']) ?></span></td>
                             <td>
                                 <?php 
@@ -108,8 +115,7 @@ include(__DIR__ . "/../views/header.php");
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" style="text-align:center; color: #888; padding: 40px;">No se encontraron productos coincidentes en el catálogo.</td>
-                    </tr>
+                        <td colspan="6" style="text-align:center; color: #888; padding: 40px;">No se encontraron productos coincidentes en el catálogo.</td> </tr>
                 <?php endif; ?>
             </tbody>
         </table>
