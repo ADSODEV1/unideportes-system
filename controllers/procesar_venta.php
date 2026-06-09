@@ -91,6 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Generar un número de ticket único bajo el patrón T-YYYYMMDDHHMMSS-RAND
         $ticket_numero = 'T-' . date('YmdHis') . '-' . rand(100, 999);
 
+        // Detectar si es venta mayorista
+        $es_mayorista = ($_POST['venta_tipo'] ?? '') === 'mayorista';
+        $abono = $es_mayorista ? floatval($_POST['abono'] ?? 0) : 0;
+        $saldo_pendiente = $es_mayorista ? ($total_final - $abono) : 0;
+        // Guardar observaciones para AMBAS ventas (mayorista y regular)
+        $observaciones_pedido = !empty($_POST['observaciones_pedido']) ? trim($_POST['observaciones_pedido']) : null;
+
+        // Si es mayorista con abono, calcular fecha de entrega (15 días)
+        $fecha_entrega = null;
+        if ($es_mayorista && $abono > 0) {
+            $fecha_entrega = date('Y-m-d', strtotime('+15 days'));
+        }
+
         // 3. REGISTRAR EN LA TABLA VENTAS
         $sqlVenta = "INSERT INTO ventas (
                         ticket_numero, cliente_id, vendedor_id, total_venta, 
@@ -132,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("El formato del carrito de compras es inválido o no se pudo procesar.");
         }
 
-        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
+        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmtDetalle = $pdo->prepare($sqlDetalle);
 
         $sqlRestarStock = "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?";
@@ -143,6 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cantidad    = intval($item['cantidad']);
             $precio_u    = floatval($item['precio']); 
             $subtotal    = $cantidad * $precio_u;
+            $color       = !empty($item['color']) ? trim($item['color']) : null;
+            $talla       = !empty($item['talla']) ? trim($item['talla']) : null;
+            $comentario  = !empty($item['comentario']) ? trim($item['comentario']) : null;
 
             // Registrar el ítem vendido en la tabla intermedia
             $stmtDetalle->execute([
@@ -150,7 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $producto_id,
                 $cantidad,
                 $precio_u,
-                $subtotal
+                $subtotal,
+                $color,
+                $talla,
+                $comentario
             ]);
 
             // Descontar del inventario físico de la fábrica validando stock concurrente
@@ -158,6 +177,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($stmtStock->rowCount() === 0) {
                 throw new Exception("Stock insuficiente para uno de los productos seleccionados. La operación fue cancelada.");
+            }
+
+            // Si es venta mayorista con abono, crear pedido y detalle_pedido
+            if ($es_mayorista && $abono > 0) {
+                // Crear el pedido
+                $sqlPedido = "INSERT INTO pedidos (cliente_id, vendedor_id, detalle, descripcion, cantidad, total_pedido, abono, saldo_pendiente, estado, fecha_entrega) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'En Corte', ?)";
+                $stmtPedido = $pdo->prepare($sqlPedido);
+                $stmtPedido->execute([
+                    $cliente_id,
+                    $vendedor_id,
+                    "Venta mayorista - " . date('Y-m-d H:i'),
+                    $observaciones_pedido,
+                    $cantidad,
+                    $subtotal,
+                    $abono,
+                    $saldo_pendiente,
+                    $fecha_entrega
+                ]);
+                $pedido_id = $pdo->lastInsertId();
+
+                // Registrar en detalle_pedido con color y talla
+                $sqlDetallePedido = "INSERT INTO detalle_pedido (pedido_id, producto_id, cantidad, precio_unitario, color, talla, comentario_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmtDetallePedido = $pdo->prepare($sqlDetallePedido);
+                $stmtDetallePedido->execute([
+                    $pedido_id,
+                    $producto_id,
+                    $cantidad,
+                    $precio_u,
+                    $color,
+                    $talla,
+                    $comentario
+                ]);
             }
         }
 

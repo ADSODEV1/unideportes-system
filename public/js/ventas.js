@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const nuevoClienteSection = document.getElementById('nuevoClienteSection');
     const btnAgregar = document.getElementById('btnAgregar');
     const productoInput = document.getElementById('productoInput');
+    const wrapperProductoColor = document.getElementById('wrapperProductoColor');
+    const wrapperProductoTalla = document.getElementById('wrapperProductoTalla');
+    let productoColor = document.getElementById('productoColor');
+    let productoTalla = document.getElementById('productoTalla');
+    const productoComentario = document.getElementById('productoComentario');
+    const productoCantidad = document.getElementById('productoCantidad');
     const carritoBody = document.getElementById('carritoBody');
     const metodoPagoSelect = document.querySelector('select[name="metodo_pago"]');
     const tipoTransferenciaSelect = document.getElementById('tipo_transferencia_select');
@@ -107,45 +113,208 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- AGREGAR PRODUCTOS AL CARRITO DE COMPRAS ---
-    if (btnAgregar && productoInput && carritoBody) {
-        btnAgregar.addEventListener('click', function() {
-            const value = productoInput.value.trim();
-            const opts = document.getElementById('listaProductos').options;
-            let objetoProducto = null;
+    function clearWrapper(wrapper, labelText, placeholder, disabled = true) {
+        wrapper.innerHTML = `
+            <label><strong>${labelText}</strong></label>
+            <input type="text" id="${wrapper.id === 'wrapperProductoColor' ? 'productoColor' : 'productoTalla'}" placeholder="${placeholder}" ${disabled ? 'disabled' : ''} style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: ${disabled ? '#f8fafc' : 'white'};">`;
+        if (wrapper.id === 'wrapperProductoColor') {
+            productoColor = document.getElementById('productoColor');
+        } else {
+            productoTalla = document.getElementById('productoTalla');
+        }
+    }
 
-            for (let i = 0; i < opts.length; i++) {
-                if (opts[i].value.trim() === value) {
-                    objetoProducto = {
-                        id: parseInt(opts[i].dataset.id),
-                        nombre: opts[i].dataset.nombre,
-                        precio: parseFloat(opts[i].dataset.precio),
-                        stock: parseInt(opts[i].dataset.stock)
-                    };
-                    break;
-                }
+    function renderField(wrapper, items, labelText, placeholder, fieldId) {
+        const useSelect = items.length > 0 && items.length <= 8;
+        let html = `<label><strong>${labelText}</strong></label>`;
+
+        if (useSelect) {
+            html += `<select id="${fieldId}" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">`;
+            html += `<option value="">${placeholder}</option>`;
+            items.forEach(item => {
+                const safe = item === '' ? 'Sin valor' : item;
+                html += `<option value="${safe}">${safe}</option>`;
+            });
+            html += `</select>`;
+        } else {
+            html += `<input type="text" list="list_${fieldId}" id="${fieldId}" placeholder="${placeholder}" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">`;
+            html += `<datalist id="list_${fieldId}">`;
+            items.forEach(item => {
+                const safe = item === '' ? 'Sin valor' : item;
+                html += `<option value="${safe}"></option>`;
+            });
+            html += `</datalist>`;
+        }
+
+        wrapper.innerHTML = html;
+        if (fieldId === 'productoColor') {
+            productoColor = document.getElementById('productoColor');
+            if (productoColor) {
+                productoColor.addEventListener('input', onColorChange);
+                productoColor.addEventListener('change', onColorChange);
+            }
+        } else {
+            productoTalla = document.getElementById('productoTalla');
+            if (productoTalla) {
+                productoTalla.addEventListener('input', onTallaChange);
+                productoTalla.addEventListener('change', onTallaChange);
+            }
+        }
+    }
+
+    function getSelectedProductName() {
+        return productoInput ? productoInput.value.trim() : '';
+    }
+
+    function isSelectedProductValid() {
+        if (!productoInput) return false;
+        const value = getSelectedProductName();
+        return Array.from(document.getElementById('listaProductos').options).some(opt => opt.value === value);
+    }
+
+    async function fetchProductColors(productName) {
+        if (!productName) {
+            clearWrapper(wrapperProductoColor, 'Color:', 'Selecciona primero un producto', true);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+            return;
+        }
+
+        const url = `../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.colors && data.colors.length > 0) {
+                renderField(wrapperProductoColor, data.colors, 'Color:', 'Selecciona color', 'productoColor');
+                clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+            } else {
+                clearWrapper(wrapperProductoColor, 'Color:', 'No hay colores disponibles', true);
+                clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
+            }
+        } catch (error) {
+            console.error(error);
+            clearWrapper(wrapperProductoColor, 'Color:', 'No hay colores disponibles', true);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
+        }
+    }
+
+    async function fetchProductTallas(productName, colorValue) {
+        if (!productName || !colorValue) {
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+            return;
+        }
+
+        const url = `../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.tallas && data.tallas.length > 0) {
+                renderField(wrapperProductoTalla, data.tallas, 'Talla:', 'Selecciona talla', 'productoTalla');
+            } else {
+                clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
+            }
+        } catch (error) {
+            console.error(error);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
+        }
+    }
+
+    function onColorChange() {
+        const productName = getSelectedProductName();
+        const colorValue = productoColor ? productoColor.value.trim() : '';
+        if (productName && colorValue) {
+            fetchProductTallas(productName, colorValue);
+        } else {
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+        }
+    }
+
+    function onTallaChange() {
+        // Intentionally left blank for future behavior changes.
+    }
+
+    if (productoInput) {
+        productoInput.addEventListener('input', function() {
+            const current = getSelectedProductName();
+            if (isSelectedProductValid()) {
+                fetchProductColors(current);
+            } else {
+                clearWrapper(wrapperProductoColor, 'Color:', 'Selecciona primero un producto', true);
+                clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+            }
+        });
+    }
+
+    if (btnAgregar && productoInput && carritoBody) {
+        btnAgregar.addEventListener('click', async function() {
+            const productName = getSelectedProductName();
+            if (!productName) return alert('Por favor, selecciona un producto válido de la lista.');
+            if (!isSelectedProductValid()) return alert('Por favor, selecciona un producto válido de la lista.');
+
+            const colorValue = productoColor ? productoColor.value.trim() : '';
+            const tallaValue = productoTalla ? productoTalla.value.trim() : '';
+            if (!colorValue) return alert('Por favor, selecciona un color válido.');
+            if (!tallaValue) return alert('Por favor, selecciona una talla válida.');
+
+            const cantidad = parseInt(productoCantidad.value) || 1;
+            if (cantidad < 1) return alert('La cantidad debe ser al menos 1.');
+
+            let variant;
+            try {
+                const res = await fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}&talla=${encodeURIComponent(tallaValue)}`);
+                const data = await res.json();
+                variant = data.variant;
+            } catch (error) {
+                console.error(error);
+                return alert('No se pudo verificar la variante seleccionada. Intenta de nuevo.');
             }
 
-            if (!objetoProducto || isNaN(objetoProducto.id)) return alert('Por favor, seleccione un producto válido de la lista.');
-            if (objetoProducto.stock <= 0) return alert('El producto seleccionado no cuenta con existencias en inventario.');
-            if (document.querySelector(`input[data-id="${objetoProducto.id}"]`)) return alert('El producto ya se encuentra en el pedido.');
+            if (!variant) {
+                return alert('No se encontró una variante válida en stock para el producto, color y talla seleccionados.');
+            }
+
+            if (variant.stock <= 0) {
+                return alert('La variante seleccionada no tiene stock disponible.');
+            }
+
+            if (cantidad > variant.stock) return alert(`Stock insuficiente. Disponibles: ${variant.stock}`);
+            if (document.querySelector(`input[data-id="${variant.id}"]`)) return alert('El producto ya se encuentra en el pedido.');
+
+            const colorText = colorValue === 'Sin color' ? '' : colorValue;
+            const tallaText = tallaValue === 'Sin talla' ? '' : tallaValue;
+            const comentario = productoComentario ? productoComentario.value.trim() : '';
+            const comentarioSafe = comentario.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #dee2e6';
+            const subtotal = cantidad * parseFloat(variant.precio);
             tr.innerHTML = `
-                <td style="padding: 10px;">${objetoProducto.nombre}</td>
-                <td style="padding: 10px;">$${formatoCOP(objetoProducto.precio)}</td>
+                <td style="padding: 10px;">${productName}</td>
+                <td style="padding: 10px;">${colorText || 'N/D'}</td>
+                <td style="padding: 10px;">${tallaText || 'N/D'}</td>
+                <td style="padding: 10px;">${comentarioSafe || '-'}</td>
+                <td style="padding: 10px;">$${formatoCOP(parseFloat(variant.precio))}</td>
                 <td style="padding: 10px;">
-                    <input type="number" class="cant-input" value="1" min="1" max="${objetoProducto.stock}" 
-                    data-id="${objetoProducto.id}" data-precio="${objetoProducto.precio}" data-stock="${objetoProducto.stock}" style="width: 60px; padding: 4px;" onchange="validarYCalcular(this)">
+                    <input type="number" class="cant-input" value="${cantidad}" min="1" max="${variant.stock}"
+                        data-id="${variant.id}"
+                        data-precio="${parseFloat(variant.precio)}"
+                        data-stock="${variant.stock}"
+                        data-color="${colorText}"
+                        data-talla="${tallaText}"
+                        data-comentario="${comentarioSafe}"
+                        style="width: 60px; padding: 4px; text-align: center;" onchange="validarYCalcular(this)">
                 </td>
-                <td class="subtotal-txt" style="padding: 10px;">$${formatoCOP(objetoProducto.precio)}</td>
+                <td class="subtotal-txt" style="padding: 10px; text-align: right;">$${formatoCOP(subtotal)}</td>
                 <td style="padding: 10px; text-align: center;">
                     <button type="button" onclick="this.closest('tr').remove(); calcularTotales();" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">❌</button>
                 </td>
             `;
+
             carritoBody.appendChild(tr);
             productoInput.value = '';
+            clearWrapper(wrapperProductoColor, 'Color:', 'Selecciona primero un producto', true);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
+            if (productoComentario) productoComentario.value = '';
+            productoCantidad.value = '1';
             calcularTotales();
         });
     }
@@ -291,7 +460,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.push({
                     id: parseInt(input.dataset.id),
                     cantidad: parseInt(input.value),
-                    precio: parseFloat(input.dataset.precio)
+                    precio: parseFloat(input.dataset.precio),
+                    color: input.dataset.color || '',
+                    talla: input.dataset.talla || '',
+                    comentario: input.dataset.comentario || ''
                 });
             });
             ventaJSONInput.value = JSON.stringify(datos);

@@ -106,6 +106,16 @@ include(__DIR__ . "/header.php");
                 </a>
             </div>
 
+            <div class="dashboard-card border-amber">
+                <a href="/unideportes-system/views/linea_confeccion.php" class="card-link">
+                    <div class="card-icon icon-amber">📦</div>
+                    <div class="card-body">
+                        <h3>Venta Mayorista</h3>
+                        <p>Realiza pedidos de volumen con descuentos automáticos por cantidad y registra el vendedor responsable.</p>
+                    </div>
+                </a>
+            </div>
+
             <div class="dashboard-card border-emerald">
                 <a href="/unideportes-system/views/mis_pedidos.php" class="card-link">
                     <div class="card-icon icon-emerald">🎁</div>

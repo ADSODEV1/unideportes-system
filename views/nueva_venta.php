@@ -10,7 +10,8 @@ require_login(['vendedor', 'colaborador', 'admin']);
 $stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes ORDER BY nombre_completo ASC");
 $res_clientes = $stmtClientes->fetchAll(PDO::FETCH_ASSOC);
 
-$stmtProductos = $pdo->query("SELECT id, nombre, referencia, precio, stock FROM productos WHERE stock > 0 ORDER BY nombre ASC");
+// Usamos nombres únicos de producto para que el vendedor seleccione la familia de artículo
+$stmtProductos = $pdo->query("SELECT DISTINCT nombre FROM productos WHERE stock > 0 ORDER BY nombre ASC");
 $res_productos = $stmtProductos->fetchAll(PDO::FETCH_ASSOC);
 
 include(__DIR__ . "/header.php");
@@ -155,20 +156,37 @@ include(__DIR__ . "/header.php");
                 </div>
             </div>
 
-            <div class="venta-container" style="display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end;">
-                <div style="flex: 1;">
+            <div class="venta-container" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; align-items: flex-end;">
+                <div>
                     <label><strong>Producto:</strong></label>
                     <input type="text" list="listaProductos" id="productoInput" placeholder="Buscar producto..." style="width:100%; padding: 8px; margin-top: 5px;">
                     <datalist id="listaProductos">
                         <?php foreach ($res_productos as $prod): ?>
-                            <option value="<?= htmlspecialchars($prod['nombre']) ?> (Ref: <?= $prod['referencia'] ?>)" 
-                                    data-id="<?= $prod['id'] ?>" 
-                                    data-nombre="<?= htmlspecialchars($prod['nombre']) ?>" 
-                                    data-precio="<?= $prod['precio'] ?>" 
-                                    data-stock="<?= $prod['stock'] ?>"></option>
+                            <option value="<?= htmlspecialchars($prod['nombre']) ?>"></option>
                         <?php endforeach; ?>
                     </datalist>
                 </div>
+
+                <div id="wrapperProductoColor">
+                    <label><strong>Color:</strong></label>
+                    <input type="text" id="productoColor" placeholder="Selecciona primero un producto" disabled style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+                </div>
+
+                <div id="wrapperProductoTalla">
+                    <label><strong>Talla:</strong></label>
+                    <input type="text" id="productoTalla" placeholder="Selecciona primero un color" disabled style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+                </div>
+
+                <div>
+                    <label><strong>Comentario:</strong></label>
+                    <input type="text" id="productoComentario" placeholder="Ej: Cliente prefiere algodón" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </div>
+
+                <div>
+                    <label><strong>Cantidad:</strong></label>
+                    <input type="number" id="productoCantidad" value="1" min="1" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
+                </div>
+
                 <button type="button" id="btnAgregar" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; font-weight: bold; cursor:pointer;">+ Añadir</button>
             </div>
 
@@ -177,6 +195,9 @@ include(__DIR__ . "/header.php");
                     <thead>
                         <tr style="background: #1A2B4C; color: white; text-align: left;">
                             <th style="padding: 10px;">Producto</th>
+                            <th style="padding: 10px;">Color</th>
+                            <th style="padding: 10px;">Talla</th>
+                            <th style="padding: 10px;">Comentario</th>
                             <th style="padding: 10px;">Precio</th>
                             <th style="padding: 10px; width: 80px;">Cant</th>
                             <th style="padding: 10px;">Subtotal</th>

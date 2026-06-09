@@ -58,7 +58,10 @@ $saldo_pendiente = $pedido['total_pedido'] - $pedido['total_abonado'];
 
     <p><strong>DETALLE:</strong><br><?= htmlspecialchars($pedido['detalle']) ?></p>
     <?php if(!empty($pedido['descripcion'])): ?>
-        <p><strong>NOTAS DE TALLAS:</strong><br><em><?= htmlspecialchars($pedido['descripcion']) ?></em></p>
+        <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 10px; margin: 10px 0; border-radius: 4px;">
+            <p style="margin: 0;"><strong style="color: #92400e;">📝 OBSERVACIONES ESPECIALES DE CONFECCIÓN:</strong></p>
+            <p style="margin: 5px 0 0 0; color: #b45309;"><em><?= htmlspecialchars($pedido['descripcion']) ?></em></p>
+        </div>
     <?php endif; ?>
     <p><strong>CANTIDAD TOTAL:</strong> <?= (int)$pedido['cantidad'] ?> Unidades.</p>
     <div class="linea"></div>

@@ -173,6 +173,9 @@ include(__DIR__ . "/header.php");
                     <tr>
                         <th>Producto</th>
                         <th>Referencia</th>
+                        <th>Color</th>
+                        <th>Talla</th>
+                        <th>Comentario</th>
                         <th>Cantidad</th>
                         <th>Precio unitario</th>
                         <th>Subtotal</th>
@@ -184,6 +187,9 @@ include(__DIR__ . "/header.php");
                             <tr>
                                 <td><?= htmlspecialchars($item['nombre']) ?></td>
                                 <td><?= htmlspecialchars($item['referencia']) ?></td>
+                                <td><?= htmlspecialchars($item['color'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($item['talla'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($item['comentario_vendedor'] ?? '-') ?></td>
                                 <td><?= intval($item['cantidad']) ?></td>
                                 <td>$<?= number_format($item['precio_unitario'], 2, ',', '.') ?></td>
                                 <td>$<?= number_format($item['subtotal'], 2, ',', '.') ?></td>
