@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $nombre = trim($_POST['nombre'] ?? '');
 $referencia = trim($_POST['referencia'] ?? '');
+$categoria = trim($_POST['categoria'] ?? '');
+$color = trim($_POST['color'] ?? '');
+$material = trim($_POST['material'] ?? '');
+$genero = trim($_POST['genero'] ?? 'Unisex');
+$estado = trim($_POST['estado'] ?? 'activo');
+$descripcion = trim($_POST['descripcion'] ?? '');
 $talla = trim($_POST['talla'] ?? '');
 $stock = intval($_POST['stock'] ?? 0);
 $precio = floatval($_POST['precio'] ?? 0);
@@ -19,9 +25,9 @@ if ($nombre === '' || $referencia === '' || $precio <= 0) {
 }
 
 try {
-    $sql = "INSERT INTO productos (nombre, referencia, talla, stock, precio) VALUES (?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO productos (nombre, referencia, categoria, color, material, genero, estado, descripcion, talla, stock, precio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
-    $success = $stmt->execute([$nombre, $referencia, $talla, $stock, $precio]);
+    $success = $stmt->execute([$nombre, $referencia, $categoria, $color, $material, $genero, $estado, $descripcion, $talla, $stock, $precio]);
 
     if ($success) {
         redirect('../views/inventario.php?success=producto_registrado');

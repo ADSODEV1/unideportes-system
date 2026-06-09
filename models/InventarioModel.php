@@ -15,7 +15,7 @@ function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $o
     $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
     // Agregamos 'categoria' a la consulta SQL
-    $sql = "SELECT id, nombre, referencia, categoria, talla, stock, precio 
+    $sql = "SELECT id, nombre, referencia, categoria, color, material, talla, stock, precio 
             FROM productos 
             WHERE 1=1";
     

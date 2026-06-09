@@ -30,13 +30,17 @@ function obtenerProductoPorId(PDO $pdo, int $id): ?array {
  * Sincronizado con el Controlador: Inserta un nuevo producto en el catálogo
  */
 function crearProducto(PDO $pdo, array $data): bool {
-    // Agregamos 'categoria' a la query SQL para que use la columna de tu base de datos
-    $stmt = $pdo->prepare("INSERT INTO productos (nombre, referencia, talla, categoria, stock, precio) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO productos (nombre, referencia, categoria, color, material, genero, estado, descripcion, talla, stock, precio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     return $stmt->execute([
         $data['nombre'],
         $data['referencia'],
+        $data['categoria'],
+        $data['color'],
+        $data['material'],
+        $data['genero'],
+        $data['estado'],
+        $data['descripcion'],
         $data['talla'],
-        $data['categoria'], 
         $data['stock'],
         $data['precio'],
     ]);
@@ -46,10 +50,16 @@ function crearProducto(PDO $pdo, array $data): bool {
  * Actualiza las propiedades físicas y económicas de una prenda existente
  */
 function actualizarProducto(PDO $pdo, int $id, array $data): bool {
-    $stmt = $pdo->prepare("UPDATE productos SET nombre = ?, referencia = ?, talla = ?, stock = ?, precio = ? WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE productos SET nombre = ?, referencia = ?, categoria = ?, color = ?, material = ?, genero = ?, estado = ?, descripcion = ?, talla = ?, stock = ?, precio = ? WHERE id = ?");
     return $stmt->execute([
         $data['nombre'],
         $data['referencia'],
+        $data['categoria'],
+        $data['color'],
+        $data['material'],
+        $data['genero'],
+        $data['estado'],
+        $data['descripcion'],
         $data['talla'],
         $data['stock'],
         $data['precio'],

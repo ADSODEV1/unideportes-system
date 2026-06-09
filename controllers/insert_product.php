@@ -16,15 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $data = [
     'nombre'     => trim($_POST['nombre'] ?? ''),
     'referencia' => trim($_POST['referencia'] ?? ''),
+    'categoria'  => trim($_POST['categoria'] ?? ''),
+    'color'      => trim($_POST['color'] ?? ''),
+    'material'   => trim($_POST['material'] ?? ''),
+    'genero'     => trim($_POST['genero'] ?? 'Unisex'),
+    'estado'     => trim($_POST['estado'] ?? 'activo'),
+    'descripcion'=> trim($_POST['descripcion'] ?? ''),
     'talla'      => trim($_POST['talla'] ?? ''),
-    'categoria'  => trim($_POST['categoria'] ?? ''), 
     'stock'      => intval($_POST['stock'] ?? 0),
     'precio'     => floatval($_POST['precio'] ?? 0.0),
 ];
 
 
 // 3. VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS
-if ($data['nombre'] === '' || $data['referencia'] === '' || $data['categoria']  === '' || $data['precio'] <= 0) {
+if ($data['nombre'] === '' || $data['referencia'] === '' || $data['categoria'] === '' || $data['precio'] <= 0) {
     header('Location: ../views/registrar_productos.php?error=datos_invalidos');
     exit();
 }
