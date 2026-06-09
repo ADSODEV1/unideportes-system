@@ -65,6 +65,40 @@ include(__DIR__ . "/header.php");
                     </div>
                 </div>
 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155;">Color</label>
+                        <input type="text" name="color" placeholder="Ej: Azul, Negro, Verde" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155;">Material</label>
+                        <input type="text" name="material" placeholder="Ej: Algodón, Poliéster" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155;">Género</label>
+                        <select name="genero" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; background: white;">
+                            <option value="Unisex" selected>Unisex</option>
+                            <option value="Hombre">Hombre</option>
+                            <option value="Mujer">Mujer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155;">Estado</label>
+                        <select name="estado" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; background: white;">
+                            <option value="activo" selected>Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155;">Descripción</label>
+                    <textarea name="descripcion" rows="3" placeholder="Descripción corta para tienda y vendedor..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem;"></textarea>
+                </div>
+
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #334155;">Referencia / Código Autogenerado</label>
                     <small style="display: block; color: #64748b; margin-bottom: 6px;">Este código lo calcula el sistema para evitar duplicados en fábrica.</small>

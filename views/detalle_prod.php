@@ -41,6 +41,26 @@ include(__DIR__ . '/header.php');
                     <p><?= htmlspecialchars($producto['referencia']) ?></p>
                 </div>
                 <div>
+                    <p><strong>Color:</strong></p>
+                    <p><?= htmlspecialchars($producto['color'] ?: 'N/A') ?></p>
+                </div>
+                <div>
+                    <p><strong>Material:</strong></p>
+                    <p><?= htmlspecialchars($producto['material'] ?: 'N/A') ?></p>
+                </div>
+                <div>
+                    <p><strong>Género:</strong></p>
+                    <p><?= htmlspecialchars($producto['genero'] ?: 'Unisex') ?></p>
+                </div>
+                <div>
+                    <p><strong>Estado:</strong></p>
+                    <p><?= htmlspecialchars($producto['estado'] ?: 'activo') ?></p>
+                </div>
+                <div style="grid-column: span 2;">
+                    <p><strong>Descripción:</strong></p>
+                    <p><?= nl2br(htmlspecialchars($producto['descripcion'] ?: 'Sin descripción')) ?></p>
+                </div>
+                <div>
                     <p><strong>Talla:</strong></p>
                     <p><?= htmlspecialchars($producto['talla'] ?: 'N/A') ?></p>
                 </div>

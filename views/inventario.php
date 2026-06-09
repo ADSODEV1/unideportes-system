@@ -89,7 +89,13 @@ include(__DIR__ . "/../views/header.php");
                         <tr>
                             <td style="text-align: left;">
                                 <strong><?= htmlspecialchars($row['nombre']) ?></strong><br>
-                                <small style="color: #666;">Ref: <?= htmlspecialchars($row['referencia']) ?></small>
+                                <small style="color: #666;">Ref: <?= htmlspecialchars($row['referencia']) ?></small><br>
+                                <?php if (!empty($row['color'])): ?>
+                                    <small style="color: #4b5563;">Color: <?= htmlspecialchars($row['color']) ?></small><br>
+                                <?php endif; ?>
+                                <?php if (!empty($row['material'])): ?>
+                                    <small style="color: #4b5563;">Material: <?= htmlspecialchars($row['material']) ?></small>
+                                <?php endif; ?>
                             </td>
                             
                             <td>

@@ -40,6 +40,7 @@ $menuConfig = [
         ],
         'secundarios' => [
             'linea_confeccion.php' => '🏭 Línea de Confección',
+            'registrar_productos.php' => ' 🆕 Registrar Productos',
             'mis_pedidos.php' => '📦 Despacho / Entregas',
             'inventario.php' => '🎽 Control de Productos',
             'clientes.php' => '👥 Base de Clientes',

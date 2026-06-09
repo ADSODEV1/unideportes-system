@@ -21,6 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         'nombre' => trim($_POST['nombre'] ?? ''),
         'referencia' => trim($_POST['referencia'] ?? ''),
+        'categoria' => trim($_POST['categoria'] ?? ''),
+        'color' => trim($_POST['color'] ?? ''),
+        'material' => trim($_POST['material'] ?? ''),
+        'genero' => trim($_POST['genero'] ?? 'Unisex'),
+        'estado' => trim($_POST['estado'] ?? 'activo'),
+        'descripcion' => trim($_POST['descripcion'] ?? ''),
         'talla' => trim($_POST['talla'] ?? ''),
         'stock' => intval($_POST['stock'] ?? 0),
         'precio' => floatval($_POST['precio'] ?? 0),
@@ -59,6 +65,31 @@ include(__DIR__ . '/header.php');
 
                 <label>Referencia:</label>
                 <input type="text" name="referencia" value="<?= htmlspecialchars($producto['referencia']) ?>" required>
+
+                <label>Categoría / Línea:</label>
+                <input type="text" name="categoria" value="<?= htmlspecialchars($producto['categoria'] ?? '') ?>">
+
+                <label>Color:</label>
+                <input type="text" name="color" value="<?= htmlspecialchars($producto['color'] ?? '') ?>">
+
+                <label>Material:</label>
+                <input type="text" name="material" value="<?= htmlspecialchars($producto['material'] ?? '') ?>">
+
+                <label>Género:</label>
+                <select name="genero">
+                    <option value="Unisex" <?= ($producto['genero'] ?? '') === 'Unisex' ? 'selected' : '' ?>>Unisex</option>
+                    <option value="Hombre" <?= ($producto['genero'] ?? '') === 'Hombre' ? 'selected' : '' ?>>Hombre</option>
+                    <option value="Mujer" <?= ($producto['genero'] ?? '') === 'Mujer' ? 'selected' : '' ?>>Mujer</option>
+                </select>
+
+                <label>Estado:</label>
+                <select name="estado">
+                    <option value="activo" <?= ($producto['estado'] ?? 'activo') === 'activo' ? 'selected' : '' ?>>Activo</option>
+                    <option value="inactivo" <?= ($producto['estado'] ?? '') === 'inactivo' ? 'selected' : '' ?>>Inactivo</option>
+                </select>
+
+                <label>Descripción:</label>
+                <textarea name="descripcion" rows="3"><?= htmlspecialchars($producto['descripcion'] ?? '') ?></textarea>
 
                 <label>Talla:</label>
                 <input type="text" name="talla" value="<?= htmlspecialchars($producto['talla']) ?>">

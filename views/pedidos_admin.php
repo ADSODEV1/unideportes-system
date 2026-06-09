@@ -89,7 +89,12 @@ include(__DIR__ . "/header.php");
                                 </td>
                                 <td style="padding: 12px;">
                                     <span style="font-weight: 600; color: #475569;"><?= htmlspecialchars($row['detalle']) ?></span>
-                                    <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #64748b;"><em><?= htmlspecialchars($row['descripcion']) ?></em></p>
+                                    <?php if (!empty($row['descripcion'])): ?>
+                                        <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border-left: 3px solid #d97706; border-radius: 4px; font-size: 0.85rem;">
+                                            <strong style="color: #92400e;">📝 Observaciones especiales:</strong><br>
+                                            <em style="color: #b45309;"><?= htmlspecialchars($row['descripcion']) ?></em>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b;"><?= (int)$row['cantidad'] ?></td>
                                 <td style="padding: 12px; color: #dc2626; font-weight: 600; font-size: 0.9rem;">

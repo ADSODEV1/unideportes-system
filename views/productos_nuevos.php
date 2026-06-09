@@ -24,6 +24,31 @@ include("header.php");
         <label>Referencia:</label>
         <input type="text" name="referencia" required placeholder="REF-001">
 
+        <label>Categoría:</label>
+        <input type="text" name="categoria" placeholder="Camisetas, Pantalonetas, Accesorios...">
+
+        <label>Color:</label>
+        <input type="text" name="color" placeholder="Ej: Azul, Rojo, Verde">
+
+        <label>Material:</label>
+        <input type="text" name="material" placeholder="Ej: Algodón, Poliéster">
+
+        <label>Género:</label>
+        <select name="genero">
+            <option value="Unisex">Unisex</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+        </select>
+
+        <label>Estado:</label>
+        <select name="estado">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+        </select>
+
+        <label>Descripción:</label>
+        <textarea name="descripcion" placeholder="Descripción para vendedor y catálogo..." rows="3"></textarea>
+
         <label>Talla:</label>
         <select name="talla">
             <option value="S">S</option>
