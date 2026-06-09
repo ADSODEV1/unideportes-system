@@ -32,7 +32,7 @@ $base = "/unideportes-system"; // Asegúrate que esto coincida con tu ruta raíz
 <header class="main-header">
     <div class="nav-container">
         <a class="logo" href="<?= ($rol_usuario == 'admin') ? 'panel_admin.php' : 'panel_vendedor.php' ?>">
-            <img src="/unideportes-system/assets/logo-imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
+            <img src="/unideportes-system/assets/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
             UNI<span style="color: var(--primary);">DEPORTES</span>
         </a>
 

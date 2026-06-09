@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 08, 2026 at 06:54 PM
+-- Generation Time: Jun 09, 2026 at 05:44 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -109,7 +109,28 @@ INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `preci
 (19, 41, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
 (20, 42, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
 (21, 43, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
-(22, 44, 15, 1, 85000.00, 85000.00, NULL, NULL, NULL);
+(22, 44, 15, 1, 85000.00, 85000.00, NULL, NULL, NULL),
+(23, 45, 1, 2, 25000.00, 0.00, NULL, NULL, NULL);
+
+--
+-- Triggers `detalle_venta`
+--
+DELIMITER $$
+CREATE TRIGGER `after_delete_detalle_venta` AFTER DELETE ON `detalle_venta` FOR EACH ROW BEGIN
+    UPDATE productos
+    SET stock = stock + OLD.cantidad
+    WHERE id = OLD.producto_id;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `after_insert_detalle_venta` AFTER INSERT ON `detalle_venta` FOR EACH ROW BEGIN
+    UPDATE productos
+    SET stock = stock - NEW.cantidad
+    WHERE id = NEW.producto_id;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -208,7 +229,7 @@ CREATE TABLE `productos` (
 --
 
 INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `categoria`, `color`, `material`, `genero`, `estado`, `descripcion`, `talla`, `stock`, `unidad`, `precio`, `created_at`) VALUES
-(1, 'PROD-0001', 'Camiseta Polo Azul', 'REF-001', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'S', 19, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
+(1, 'PROD-0001', 'Camiseta Polo Azul', 'REF-001', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'S', 17, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
 (2, 'PROD-0002', 'Pantaloneta Roja', 'REF-002', 'Pantalonetas', NULL, NULL, NULL, 'activo', NULL, 'S', 9, 'Unidad', 0.00, '2026-05-12 00:39:13'),
 (3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', NULL, NULL, NULL, 'activo', NULL, 'M', 21, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Selección', NULL, NULL, NULL, 'activo', NULL, 'L', 15, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
@@ -222,7 +243,8 @@ INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `ca
 (12, NULL, 'Medias Ciclismo Negras', 'MED-CIC-02', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 40, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
 (13, NULL, 'Maletín Deportivo Gym', 'MAL-GYM-05', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 8, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
 (14, NULL, 'Tula Deportiva Impermeable', 'TUL-IMP-09', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
-(15, NULL, 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'M', 49, 'Unidad', 85000.00, '2026-05-26 03:37:04');
+(15, NULL, 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'M', 49, 'Unidad', 85000.00, '2026-05-26 03:37:04'),
+(16, NULL, 'Camiseta Polo', 'CAMPOL-M-431', 'Camisetas', 'Azul', 'Poliester', 'Hombre', 'activo', 'Camiseta polo sport hombre', 'M', 20, 'Unidad', 58900.00, '2026-06-08 17:06:20');
 
 -- --------------------------------------------------------
 
@@ -320,7 +342,29 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 (41, NULL, 'T-20260524215507-819', 3, 3, 249900.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, NULL, '2026-05-24 14:55:07'),
 (42, NULL, 'T-20260525190940-871', 12, 3, 254900.00, 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 B BIS 6 - 38', 'sadsad', 'Sogamoso', 'Puerta Roja', 0.00, NULL, '2026-05-25 12:09:40'),
 (43, NULL, 'T-20260526155241-769', 3, 3, 249900.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 100.00, NULL, '2026-05-26 08:52:41'),
-(44, NULL, 'T-20260526235209-569', 12, 3, 85000.00, 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, 'Nequi', '2026-05-26 16:52:09');
+(44, NULL, 'T-20260526235209-569', 12, 3, 85000.00, 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, 'Nequi', '2026-05-26 16:52:09'),
+(45, NULL, 'FACT-001', 1, 1, 50000.00, 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, NULL, '2026-06-08 15:13:36');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `vista_saldos_pedidos`
+-- (See below for the actual view)
+--
+CREATE TABLE `vista_saldos_pedidos` (
+`id` int(11)
+,`total_pedido` decimal(10,2)
+,`saldo_pendiente` decimal(33,2)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `vista_saldos_pedidos`
+--
+DROP TABLE IF EXISTS `vista_saldos_pedidos`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vista_saldos_pedidos`  AS SELECT `p`.`id` AS `id`, `p`.`total_pedido` AS `total_pedido`, `p`.`total_pedido`- ifnull(sum(`pg`.`monto`),0) AS `saldo_pendiente` FROM (`pedidos` `p` left join `pagos` `pg` on(`p`.`id` = `pg`.`id_pg_pedido`)) GROUP BY `p`.`id` ;
 
 --
 -- Indexes for dumped tables
@@ -414,7 +458,7 @@ ALTER TABLE `detalle_pedido`
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `pagos`
@@ -438,7 +482,7 @@ ALTER TABLE `pedidos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
@@ -450,7 +494,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- Constraints for dumped tables

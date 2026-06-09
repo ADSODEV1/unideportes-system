@@ -26,13 +26,14 @@ require_once __DIR__ . '/../config/connection.php';
         
         /* Si quieres que el fondo sea un color sólido o gradiente simple */
         body {
-            background: #f0f2f5; /* Gris muy suave o puedes usar un gradiente simple */
+            background: #f0f2f5; 
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between; 
             align-items: center;
-            font-family: Arial, sans-serif; /* Fuente segura */
+            font-family: Arial, sans-serif;
+            margin: 0;
         }
 
         .login-container {
@@ -101,18 +102,42 @@ require_once __DIR__ . '/../config/connection.php';
         }
 
         footer.main-footer {
-            margin-top: auto;
-            padding: 20px;
-            text-align: center;
-            color: #666;
-            font-size: 0.85rem;
-            width: 100%;
+        margin-top: auto; 
+        padding: 20px 0; 
+        text-align: center;
+        color: #666;
+        font-size: 0.85rem;
+        width: 100%; 
+        background-color: #ffffff; 
+        border-top: 1px solid #e5e7eb;
         }
 
-        @media (max-width: 700px) {
-            .login-container { flex-direction: column; }
-            .hero-card, .login-wrapper { width: 100%; }
-        }
+       @media (max-width: 700px) {
+    /* Al pasar a celular, quitamos el espaciado interno excesivo del contenedor */
+    .login-container { 
+        flex-direction: column; 
+        padding: 20px;
+        gap: 15px;
+        margin: 10px;
+        width: 95%; /* Obliga al contenedor a usar casi todo el ancho del celular */
+    }
+    
+    /* Hacemos que las tarjetas ocupen todo el ancho real disponible */
+    .hero-card, .login-wrapper { 
+        width: 100%; 
+        min-width: 100%;
+    }
+    
+    /* Optimizamos el relleno interno del formulario para ganar más espacio horizontal */
+    .login-box, .welcome-box {
+        padding: 15px;
+    }
+
+    /* Ajustamos el tamaño del título para que no se desborde en pantallas muy pequeñas */
+    h1 {
+        font-size: 1.5rem;
+    }
+}
     </style>
 </head>
 
@@ -121,7 +146,7 @@ require_once __DIR__ . '/../config/connection.php';
 <div class="login-container">
     <div class="hero-card">
         <!-- LOGO -->
-        <img src="/unideportes-system/assets/logo-imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
+        <img src="/unideportes-system/public/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
         
         <h1>UNI<span style="color: #E8310E;">DEPORTES</span></h1>
         <p class="subtitulo">Sistema de gestión de inventarios</p>
@@ -173,7 +198,9 @@ require_once __DIR__ . '/../config/connection.php';
     <?php endif; ?>
 </div>
 
+
 </body>
+<?php include(__DIR__ . "/../views/footer.php"); ?>
 </html>
 
 
