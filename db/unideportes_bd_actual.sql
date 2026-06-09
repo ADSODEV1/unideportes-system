@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 28-05-2026 a las 21:28:30
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Host: 127.0.0.1
+-- Generation Time: Jun 08, 2026 at 06:54 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de datos: `unideportes`
+-- Database: `unideportes`
 --
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `clientes`
+-- Table structure for table `clientes`
 --
 
 CREATE TABLE `clientes` (
@@ -44,7 +44,7 @@ CREATE TABLE `clientes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `clientes`
+-- Dumping data for table `clientes`
 --
 
 INSERT INTO `clientes` (`id`, `codigo_descriptivo`, `nombre_completo`, `nit_cedula`, `telefono`, `email`, `direccion`, `barrio`, `ciudad`, `referencia_entrega`, `tipo_cliente`, `estado`, `created_at`) VALUES
@@ -59,7 +59,7 @@ INSERT INTO `clientes` (`id`, `codigo_descriptivo`, `nombre_completo`, `nit_cedu
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `detalle_pedido`
+-- Table structure for table `detalle_pedido`
 --
 
 CREATE TABLE `detalle_pedido` (
@@ -68,13 +68,16 @@ CREATE TABLE `detalle_pedido` (
   `producto_id` int(11) NOT NULL,
   `cantidad` int(11) NOT NULL DEFAULT 1,
   `precio_unitario` decimal(10,2) NOT NULL,
-  `subtotal` decimal(10,2) GENERATED ALWAYS AS (`cantidad` * `precio_unitario`) STORED
+  `subtotal` decimal(10,2) GENERATED ALWAYS AS (`cantidad` * `precio_unitario`) STORED,
+  `color` varchar(50) DEFAULT NULL,
+  `talla` varchar(10) DEFAULT NULL,
+  `comentario_vendedor` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `detalle_venta`
+-- Table structure for table `detalle_venta`
 --
 
 CREATE TABLE `detalle_venta` (
@@ -83,32 +86,35 @@ CREATE TABLE `detalle_venta` (
   `producto_id` int(11) NOT NULL,
   `cantidad` int(11) NOT NULL,
   `precio_unitario` decimal(10,2) NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL
+  `subtotal` decimal(10,2) NOT NULL,
+  `color` varchar(50) DEFAULT NULL,
+  `talla` varchar(10) DEFAULT NULL,
+  `comentario_vendedor` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `detalle_venta`
+-- Dumping data for table `detalle_venta`
 --
 
-INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`) VALUES
-(2, 26, 1, 2, 100.00, 200.00),
-(3, 26, 1, 2, 100.00, 200.00),
-(4, 33, 3, 1, 249900.00, 249900.00),
-(5, 34, 3, 1, 249900.00, 249900.00),
-(6, 35, 4, 1, 249900.00, 249900.00),
-(8, 37, 4, 1, 249900.00, 249900.00),
-(9, 38, 4, 1, 249900.00, 249900.00),
-(10, 39, 3, 1, 249900.00, 249900.00),
-(18, 40, 4, 1, 249900.00, 249900.00),
-(19, 41, 4, 1, 249900.00, 249900.00),
-(20, 42, 3, 1, 249900.00, 249900.00),
-(21, 43, 3, 1, 249900.00, 249900.00),
-(22, 44, 15, 1, 85000.00, 85000.00);
+INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`, `color`, `talla`, `comentario_vendedor`) VALUES
+(2, 26, 1, 2, 100.00, 200.00, NULL, NULL, NULL),
+(3, 26, 1, 2, 100.00, 200.00, NULL, NULL, NULL),
+(4, 33, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(5, 34, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(6, 35, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(8, 37, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(9, 38, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(10, 39, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(18, 40, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(19, 41, 4, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(20, 42, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(21, 43, 3, 1, 249900.00, 249900.00, NULL, NULL, NULL),
+(22, 44, 15, 1, 85000.00, 85000.00, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `pagos`
+-- Table structure for table `pagos`
 --
 
 CREATE TABLE `pagos` (
@@ -119,7 +125,7 @@ CREATE TABLE `pagos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `pagos`
+-- Dumping data for table `pagos`
 --
 
 INSERT INTO `pagos` (`id_pago`, `id_pg_pedido`, `monto`, `fecha`) VALUES
@@ -127,12 +133,26 @@ INSERT INTO `pagos` (`id_pago`, `id_pg_pedido`, `monto`, `fecha`) VALUES
 (2, 2, 3000000.00, '2026-05-25 12:43:41'),
 (3, 3, 360000.00, '2026-05-25 12:43:41'),
 (4, 3, 360000.00, '2026-05-26 15:44:45'),
-(5, 2, 1500000.00, '2026-05-26 16:13:56');
+(5, 2, 1500000.00, '2026-05-26 16:13:56'),
+(6, 1, 600000.00, '2026-06-08 10:20:17');
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `pedidos`
+-- Table structure for table `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `token` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pedidos`
 --
 
 CREATE TABLE `pedidos` (
@@ -144,22 +164,25 @@ CREATE TABLE `pedidos` (
   `total_pedido` decimal(10,2) NOT NULL DEFAULT 0.00,
   `estado` enum('En Corte','En Costura','Terminado','Entregado') NOT NULL DEFAULT 'En Corte',
   `fecha_entrega` date NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `vendedor_id` int(11) DEFAULT NULL,
+  `abono` decimal(10,2) DEFAULT NULL,
+  `saldo_pendiente` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `pedidos`
+-- Dumping data for table `pedidos`
 --
 
-INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_entrega`, `created_at`) VALUES
-(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'En Costura', '2026-06-15', '2026-05-25 17:43:41'),
-(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', '2026-06-10', '2026-05-25 17:43:41'),
-(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', '2026-06-28', '2026-05-25 17:43:41');
+INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_entrega`, `created_at`, `vendedor_id`, `abono`, `saldo_pendiente`) VALUES
+(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'Entregado', '2026-06-15', '2026-05-25 17:43:41', NULL, NULL, NULL),
+(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', '2026-06-10', '2026-05-25 17:43:41', NULL, NULL, NULL),
+(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', '2026-06-28', '2026-05-25 17:43:41', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `productos`
+-- Table structure for table `productos`
 --
 
 CREATE TABLE `productos` (
@@ -168,6 +191,11 @@ CREATE TABLE `productos` (
   `nombre` varchar(100) NOT NULL,
   `referencia` varchar(50) NOT NULL,
   `categoria` varchar(50) DEFAULT NULL,
+  `color` varchar(50) DEFAULT NULL,
+  `material` varchar(50) DEFAULT NULL,
+  `genero` varchar(20) DEFAULT NULL,
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+  `descripcion` text DEFAULT NULL,
   `talla` varchar(10) DEFAULT NULL,
   `stock` int(11) DEFAULT 0,
   `unidad` varchar(50) DEFAULT 'Unidad',
@@ -176,30 +204,30 @@ CREATE TABLE `productos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `productos`
+-- Dumping data for table `productos`
 --
 
-INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `categoria`, `talla`, `stock`, `unidad`, `precio`, `created_at`) VALUES
-(1, 'PROD-0001', 'Camiseta Polo Azul', 'REF-001', 'Camisetas', 'S', 19, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
-(2, 'PROD-0002', 'Pantaloneta Roja', 'REF-002', 'Pantalonetas', 'S', 9, 'Unidad', 0.00, '2026-05-12 00:39:13'),
-(3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', 'M', 21, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
-(4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Selección', 'L', 15, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
-(5, 'PROD-0005', 'Balón Adidas Al Rihla Pro', 'BALL-QA22', 'Balones', '5', 17, 'Unidad', 185000.00, '2026-05-12 00:39:13'),
-(6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', '40', 20, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
-(7, 'PROD-0007', 'Sudadera Entrenamiento Negra', 'SUD-TR-05', 'Sudaderas', 'S', 17, 'Unidad', 145000.00, '2026-05-12 00:39:13'),
-(8, 'PROD-0008', 'Gorra Unideportes Classic', 'ACC-CAP-01', 'Accesorios', 'Única', 30, 'Unidad', 45000.00, '2026-05-12 00:39:13'),
-(9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', '41', 19, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
-(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'M', 29, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
-(11, NULL, 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', NULL, 'L', 15, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
-(12, NULL, 'Medias Ciclismo Negras', 'MED-CIC-02', NULL, 'Única', 40, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
-(13, NULL, 'Maletín Deportivo Gym', 'MAL-GYM-05', NULL, 'Única', 8, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
-(14, NULL, 'Tula Deportiva Impermeable', 'TUL-IMP-09', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
-(15, NULL, 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', 'M', 49, 'Unidad', 85000.00, '2026-05-26 03:37:04');
+INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `categoria`, `color`, `material`, `genero`, `estado`, `descripcion`, `talla`, `stock`, `unidad`, `precio`, `created_at`) VALUES
+(1, 'PROD-0001', 'Camiseta Polo Azul', 'REF-001', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'S', 19, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
+(2, 'PROD-0002', 'Pantaloneta Roja', 'REF-002', 'Pantalonetas', NULL, NULL, NULL, 'activo', NULL, 'S', 9, 'Unidad', 0.00, '2026-05-12 00:39:13'),
+(3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', NULL, NULL, NULL, 'activo', NULL, 'M', 21, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
+(4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Selección', NULL, NULL, NULL, 'activo', NULL, 'L', 15, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
+(5, 'PROD-0005', 'Balón Adidas Al Rihla Pro', 'BALL-QA22', 'Balones', NULL, NULL, NULL, 'activo', NULL, '5', 17, 'Unidad', 185000.00, '2026-05-12 00:39:13'),
+(6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', NULL, NULL, NULL, 'activo', NULL, '40', 20, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
+(7, 'PROD-0007', 'Sudadera Entrenamiento Negra', 'SUD-TR-05', 'Sudaderas', NULL, NULL, NULL, 'activo', NULL, 'S', 17, 'Unidad', 145000.00, '2026-05-12 00:39:13'),
+(8, 'PROD-0008', 'Gorra Unideportes Classic', 'ACC-CAP-01', 'Accesorios', NULL, NULL, NULL, 'activo', NULL, 'Única', 30, 'Unidad', 45000.00, '2026-05-12 00:39:13'),
+(9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', NULL, NULL, NULL, 'activo', NULL, '41', 19, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
+(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', NULL, NULL, NULL, 'activo', NULL, 'M', 29, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
+(11, NULL, 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', NULL, NULL, NULL, NULL, 'activo', NULL, 'L', 15, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
+(12, NULL, 'Medias Ciclismo Negras', 'MED-CIC-02', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 40, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
+(13, NULL, 'Maletín Deportivo Gym', 'MAL-GYM-05', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 8, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
+(14, NULL, 'Tula Deportiva Impermeable', 'TUL-IMP-09', NULL, NULL, NULL, NULL, 'activo', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
+(15, NULL, 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', NULL, NULL, NULL, 'activo', NULL, 'M', 49, 'Unidad', 85000.00, '2026-05-26 03:37:04');
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `usuarios`
+-- Table structure for table `usuarios`
 --
 
 CREATE TABLE `usuarios` (
@@ -214,7 +242,7 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `usuarios`
+-- Dumping data for table `usuarios`
 --
 
 INSERT INTO `usuarios` (`id`, `name`, `lastname`, `username`, `password`, `email`, `role`, `created_at`) VALUES
@@ -228,7 +256,7 @@ INSERT INTO `usuarios` (`id`, `name`, `lastname`, `username`, `password`, `email
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `ventas`
+-- Table structure for table `ventas`
 --
 
 CREATE TABLE `ventas` (
@@ -251,7 +279,7 @@ CREATE TABLE `ventas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `ventas`
+-- Dumping data for table `ventas`
 --
 
 INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`, `vendedor_id`, `total_venta`, `metodo_pago`, `tipo_entrega`, `costo_envio`, `direccion_entrega`, `barrio_entrega`, `ciudad_entrega`, `observaciones_entrega`, `cambio`, `tipo_transferencia`, `fecha_venta`) VALUES
@@ -295,18 +323,18 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 (44, NULL, 'T-20260526235209-569', 12, 3, 85000.00, 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, 0.00, 'Nequi', '2026-05-26 16:52:09');
 
 --
--- Índices para tablas volcadas
+-- Indexes for dumped tables
 --
 
 --
--- Indices de la tabla `clientes`
+-- Indexes for table `clientes`
 --
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_clientes_nit_cedula` (`nit_cedula`);
 
 --
--- Indices de la tabla `detalle_pedido`
+-- Indexes for table `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
   ADD PRIMARY KEY (`id`),
@@ -314,7 +342,7 @@ ALTER TABLE `detalle_pedido`
   ADD KEY `fk_detalle_pedido_productos` (`producto_id`);
 
 --
--- Indices de la tabla `detalle_venta`
+-- Indexes for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
   ADD PRIMARY KEY (`id`),
@@ -322,36 +350,43 @@ ALTER TABLE `detalle_venta`
   ADD KEY `producto_id` (`producto_id`);
 
 --
--- Indices de la tabla `pagos`
+-- Indexes for table `pagos`
 --
 ALTER TABLE `pagos`
   ADD PRIMARY KEY (`id_pago`),
   ADD KEY `fk_pago_pedido` (`id_pg_pedido`);
 
 --
--- Indices de la tabla `pedidos`
+-- Indexes for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `pedidos`
 --
 ALTER TABLE `pedidos`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_pedidos_cliente` (`cliente_id`),
-  ADD KEY `idx_pedidos_estado` (`estado`);
+  ADD KEY `idx_pedidos_estado` (`estado`),
+  ADD KEY `idx_vendedor_id` (`vendedor_id`);
 
 --
--- Indices de la tabla `productos`
+-- Indexes for table `productos`
 --
 ALTER TABLE `productos`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `referencia` (`referencia`);
 
 --
--- Indices de la tabla `usuarios`
+-- Indexes for table `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `username` (`username`);
 
 --
--- Indices de la tabla `ventas`
+-- Indexes for table `ventas`
 --
 ALTER TABLE `ventas`
   ADD PRIMARY KEY (`id`),
@@ -360,89 +395,95 @@ ALTER TABLE `ventas`
   ADD KEY `idx_ventas_vendedor` (`vendedor_id`);
 
 --
--- AUTO_INCREMENT de las tablas volcadas
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT de la tabla `clientes`
+-- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- AUTO_INCREMENT de la tabla `detalle_pedido`
+-- AUTO_INCREMENT for table `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de la tabla `detalle_venta`
+-- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
--- AUTO_INCREMENT de la tabla `pagos`
+-- AUTO_INCREMENT for table `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
--- AUTO_INCREMENT de la tabla `pedidos`
+-- AUTO_INCREMENT for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pedidos`
 --
 ALTER TABLE `pedidos`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT de la tabla `productos`
+-- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT de la tabla `usuarios`
+-- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
--- AUTO_INCREMENT de la tabla `ventas`
+-- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
--- Restricciones para tablas volcadas
+-- Constraints for dumped tables
 --
 
 --
--- Filtros para la tabla `detalle_pedido`
+-- Constraints for table `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
   ADD CONSTRAINT `fk_detalle_pedido_pedidos_rel` FOREIGN KEY (`pedido_id`) REFERENCES `pedidos` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_detalle_pedido_productos_rel` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE;
 
 --
--- Filtros para la tabla `detalle_venta`
+-- Constraints for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
   ADD CONSTRAINT `detalle_venta_ibfk_1` FOREIGN KEY (`venta_id`) REFERENCES `ventas` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `detalle_venta_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON DELETE CASCADE;
 
 --
--- Filtros para la tabla `pagos`
+-- Constraints for table `pagos`
 --
 ALTER TABLE `pagos`
   ADD CONSTRAINT `fk_pago_pedido_rel` FOREIGN KEY (`id_pg_pedido`) REFERENCES `pedidos` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
--- Filtros para la tabla `pedidos`
+-- Constraints for table `pedidos`
 --
 ALTER TABLE `pedidos`
   ADD CONSTRAINT `fk_pedidos_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE;
 
 --
--- Filtros para la tabla `ventas`
+-- Constraints for table `ventas`
 --
 ALTER TABLE `ventas`
   ADD CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE,
