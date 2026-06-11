@@ -1,5 +1,5 @@
 <?php
-//index.php
+// index.php
 session_start();
 require_once __DIR__ . '/../config/connection.php';
 ?>
@@ -9,14 +9,11 @@ require_once __DIR__ . '/../config/connection.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unideportes - Iniciar sesión</title>
-    <!-- Tu CSS -->
     <link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=1">
     
-    
-    <!-- Un pequeño estilo extra para el logo si no está definido en tu CSS principal -->
     <style>
         .logo-img {
-            max-width: 150px; /* Tamaño máximo del logo */
+            max-width: 150px;
             height: auto;
             margin-bottom: 15px;
             display: block;
@@ -24,7 +21,6 @@ require_once __DIR__ . '/../config/connection.php';
             margin-right: auto;
         }
         
-        /* Si quieres que el fondo sea un color sólido o gradiente simple */
         body {
             background: #f0f2f5; 
             min-height: 100vh;
@@ -46,7 +42,7 @@ require_once __DIR__ . '/../config/connection.php';
             display: flex;
             flex-wrap: wrap;
             gap: 30px;
-            margin: 20px;
+            margin: auto; /* Centra el contenedor verticalmente */
         }
 
         .hero-card {
@@ -75,7 +71,7 @@ require_once __DIR__ . '/../config/connection.php';
         .subtitulo { color: #666; font-size: 0.9rem; margin-top: 0; }
         
         button.btn-login, a.btn-panel {
-            background: #2563eb; /* Azul estándar */
+            background: #2563eb; 
             color: white;
             border: none;
             padding: 10px 20px;
@@ -86,6 +82,7 @@ require_once __DIR__ . '/../config/connection.php';
             width: 100%;
             text-align: center;
             font-weight: bold;
+            box-sizing: border-box;
         }
         
         button.btn-login:hover, a.btn-panel:hover {
@@ -99,53 +96,49 @@ require_once __DIR__ . '/../config/connection.php';
             border-radius: 4px;
             font-size: 0.85rem;
             text-align: center;
+            margin-top: 10px;
         }
 
+        /* --- ESTILOS DEL FOOTER COMPLETO --- */
         footer.main-footer {
-        margin-top: auto; 
-        padding: 20px 0; 
-        text-align: center;
-        color: #666;
-        font-size: 0.85rem;
-        width: 100%; 
-        background-color: #ffffff; 
-        border-top: 1px solid #e5e7eb;
+            margin-top: auto; 
+            padding: 20px 0; 
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            width: 100%; 
+            background-color: #ffffff; 
+            border-top: 1px solid #e5e7eb;
         }
 
-       @media (max-width: 700px) {
-    /* Al pasar a celular, quitamos el espaciado interno excesivo del contenedor */
-    .login-container { 
-        flex-direction: column; 
-        padding: 20px;
-        gap: 15px;
-        margin: 10px;
-        width: 95%; /* Obliga al contenedor a usar casi todo el ancho del celular */
-    }
-    
-    /* Hacemos que las tarjetas ocupen todo el ancho real disponible */
-    .hero-card, .login-wrapper { 
-        width: 100%; 
-        min-width: 100%;
-    }
-    
-    /* Optimizamos el relleno interno del formulario para ganar más espacio horizontal */
-    .login-box, .welcome-box {
-        padding: 15px;
-    }
+        @media (max-width: 700px) {
+            .login-container { 
+                flex-direction: column; 
+                padding: 20px;
+                gap: 15px;
+                margin: 20px 10px;
+                width: 95%; 
+            }
+            
+            .hero-card, .login-wrapper { 
+                width: 100%; 
+                min-width: 100%;
+            }
+            
+            .login-box, .welcome-box {
+                padding: 15px;
+            }
 
-    /* Ajustamos el tamaño del título para que no se desborde en pantallas muy pequeñas */
-    h1 {
-        font-size: 1.5rem;
-    }
-}
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
-
 <body>
 
 <div class="login-container">
     <div class="hero-card">
-        <!-- LOGO -->
         <img src="/unideportes-system/public/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
         
         <h1>UNI<span style="color: #E8310E;">DEPORTES</span></h1>
@@ -171,36 +164,47 @@ require_once __DIR__ . '/../config/connection.php';
                 </form>
 
                 <?php if (isset($_GET['error'])): ?>
-    <div class="error-msg">⚠️ Datos incorrectos.</div>
-<?php endif; ?>
+                    <div class="error-msg">⚠️ Datos incorrectos. Intente de nuevo.</div>
+                <?php endif; ?>
+                
                 <?php if (isset($_GET['success']) && $_GET['success'] === 'reset_completado'): ?>
-                    <div class="error-msg" style="background: #d1fae5; color: #065f46; border-left-color: #10b981;">
+                    <div class="error-msg" style="background: #d1fae5; color: #065f46; border: 1px solid #10b981;">
                         ✅ Contraseña restablecida correctamente. Ingresa con tu nueva contraseña.
                     </div>
                 <?php endif; ?>
 
-<!-- NUEVO ENLACE DE RECUPERACIÓN -->
-<div style="margin-top: 15px; text-align: center;">
-    <a href="/unideportes-system/views/recuperar_password.php" style="color: #666; font-size: 0.9rem; text-decoration: none;">
-        ¿Olvidaste tu contraseña?
-    </a>
-</div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="/unideportes-system/views/recuperar_password.php" style="color: #666; font-size: 0.9rem; text-decoration: none;">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+            </div>
         </div>
+
     <?php else: ?>
         <div class="login-wrapper">
             <div class="welcome-box">
                 <h3 style="margin-top: 0; color: #333;">¡Hola de nuevo!</h3>
                 <p style="margin: 10px 0;">Sesión activa: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></p>
-                <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">IR AL PANEL</a>
-                <p style="margin-top: 15px; text-align: center;"><a href="/unideportes-system/controllers/auth.php?logout=1" style="color: #666; text-decoration: none; font-size: 0.9rem;">Cerrar sesión</a></p>
+                
+                <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">
+                    IR AL PANEL
+                </a>
+                
+                <p style="margin-top: 15px; text-align: center;">
+                    <a href="/unideportes-system/controllers/auth.php?logout=1" style="color: #666; text-decoration: none; font-size: 0.9rem;">Cerrar sesión</a>
+                </p>
             </div>
         </div>
     <?php endif; ?>
 </div>
 
+<footer class="main-footer">
+    <div class="footer-content">
+        <p>&copy; <?php echo date("Y"); ?> <strong>Unideportes</strong>. Todos los derechos reservados.</p>
+        <p style="font-size: 0.75rem; color: #999; margin-top: 5px;">Sistema de Control de Inventario y Ventas v1.2</p>
+    </div>
+</footer>
 
 </body>
-<?php include(__DIR__ . "/../views/footer.php"); ?>
 </html>
-
-

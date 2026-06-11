@@ -228,21 +228,17 @@ body {
 }
 
 /* =========================================
-   4. TABLAS & CONTENEDORES
+   4. TABLAS & CONTENEDORES (Versión Responsive Corregida)
    ========================================= */
 .table-responsive {
-    overflow-x: auto;
-    background: #fff;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
     width: 100%;
-    margin: 0 auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Suaviza el scroll en iPhones */
 }
 
-.data-table, .tabla-maestra {
+.tabla-maestra {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px;
 }
 
 .data-table th, .tabla-maestra th {
@@ -253,7 +249,7 @@ body {
     font-weight: 600;
     font-size: 0.88rem;
     border-bottom: 1px solid var(--border);
-    white-space: nowrap;
+    white-space: nowrap; /* Evita que los títulos se rompan en dos renglones */
 }
 
 .data-table td, .tabla-maestra td {
@@ -261,25 +257,13 @@ body {
     border-bottom: 1px solid var(--border);
     color: var(--text);
     font-size: 0.9rem;
+    white-space: normal; /* Permite que los detalles de prendas salten de línea si el texto es largo */
+    vertical-align: top; /* Alinea el contenido arriba para que se vea ordenado */
 }
 
 .data-table tr:hover, .tabla-maestra tr:hover {
     background-color: #f8fafc;
 }
-
-.badge {
-    padding: 4px 10px;
-    border-radius: 20px;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-block;
-}
-.badge.rojo { background: var(--danger); }
-.badge.naranja { background: var(--warning); }
-.badge.verde { background: var(--success); }
-.badge.azul { background: var(--navy); }
-
 /* =========================================
    5. BOTONES & FORMULARIOS
    ========================================= */

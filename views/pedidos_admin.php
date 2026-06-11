@@ -16,23 +16,30 @@ $success = $_GET['success'] ?? null;
 // PROCESAR CAMBIO DE ESTADO DESDE LA FÁBRICA
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado'])) {
     $pedido_id = intval($_POST['pedido_id']);
-    $nuevo_estado = $_POST['estado_fabrica'];
+    $nuevo_estado = isset($_POST['estado_fabrica']) ? trim($_POST['estado_fabrica']) : '';
 
-    // Validación de seguridad para que producción no salte a 'Entregado' sin cobrar en tienda
+    // ATENCIÓN: Asegúrate de que coincida EXACTAMENTE con lo que acepta tu base de datos
     $estados_validos = ['En Corte', 'En Costura', 'Terminado'];
     
     if (in_array($nuevo_estado, $estados_validos)) {
         try {
             $stmt = $pdo->prepare("UPDATE pedidos SET estado = ? WHERE id = ?");
-            $stmt->execute([$nuevo_estado, $pedido_id]);
-            header("Location: pedidos_admin.php?success=estado_actualizado");
-            exit();
+            $resultado = $stmt->execute([$nuevo_estado, $pedido_id]);
+            
+            if ($resultado) {
+                header("Location: pedidos_admin.php?success=estado_actualizado");
+                exit();
+            } else {
+                header("Location: pedidos_admin.php?error=no_cambio");
+                exit();
+            }
         } catch (Exception $e) {
-            header("Location: pedidos_admin.php?error=db_error");
+            // Si la base de datos falla, esto te dirá por qué en la URL
+            header("Location: pedidos_admin.php?error=" . urlencode($e->getMessage()));
             exit();
         }
     } else {
-        header("Location: pedidos_admin.php?error=estado_invalido");
+        header("Location: pedidos_admin.php?error=estado_invalido_recibido_" . urlencode($nuevo_estado));
         exit();
     }
 }

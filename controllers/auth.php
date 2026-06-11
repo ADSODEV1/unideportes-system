@@ -7,12 +7,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$base_url = "/unideportes-system";
+// DEFINICIÓN DE LA RUTA BASE CORRECTA CON LA CARPETA PUBLIC
+$base_url = "/unideportes-system/public";
 
 // 1. MOTOR DE SALIDA (Logout) 
 if (isset($_GET['logout'])) {
     session_destroy();
-    header("Location: " . $base_url . "/public/index.php");
+    header("Location: " . $base_url . "/index.php");
     exit();
 }
 
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validamos que no vengan vacíos
     if (empty($userForm) || empty($passForm)) {
-        header("Location: " . $base_url . "/public/index.php?msj=vacio");
+        header("Location: " . $base_url . "/index.php?msj=vacio");
         exit();
     }
 
@@ -39,22 +40,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($row && password_verify($passForm, $row['password'])) {
             // Variables de sesión estándar para todo el sistema
-            $_SESSION['user_id']  = $row['id'];
-            $_SESSION['username'] = $row['username'];
-            $_SESSION['role']     = $row['role'];
+            $_SESSION['user_id']     = $row['id'];
+            $_SESSION['vendedor_id'] = $row['id']; // Para el módulo de ventas
+            $_SESSION['username']    = $row['username'];
+            $_SESSION['role']        = $row['role'];
 
-            // Determinar destino con rutas web absolutas y limpias
+            // Determinar destino con rutas web absolutas y limpias (Salen de la carpeta public hacia views)
             if ($row['role'] === 'admin') {
-                $destino = $base_url . "/views/panel_admin.php";
+                $destino = "/unideportes-system/views/panel_admin.php";
             } else {
-                $destino = $base_url . "/views/panel_vendedor.php";
+                $destino = "/unideportes-system/views/panel_vendedor.php";
             }
 
             header("Location: " . $destino);
             exit();
         } else {
-            // Credenciales incorrectas
-            header("Location: " . $base_url . "/public/index.php?error=datos_incorrectos");
+            // Credenciales incorrectas - Redirecciona al index dentro de public
+            header("Location: " . $base_url . "/index.php?error=datos_incorrectos");
             exit();
         }
 
@@ -63,6 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 } else {
     // Si alguien intenta entrar a este archivo por URL sin POST ni GET[logout]
-    header("Location: " . $base_url . "/public/index.php");
+    header("Location: " . $base_url . "/index.php");
     exit();
 }

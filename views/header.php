@@ -1,24 +1,17 @@
 <?php
-// ZONA 1: INICIALIZACIÓN Y SEGURIDAD
-require_once __DIR__ . '/../config/bootstrap.php';
+// views/header.php
 
-// Validamos la sesión y los roles permitidos
-require_login(['vendedor', 'colaborador', 'admin']);
+// Si por alguna razón no se ha iniciado sesión en la página padre, la iniciamos aquí
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Cargamos la conexión PDO
-$pdo = app();
-$conn = connection(); 
-
-// Variables de sesión para la cabecera
+// Variables listas para usar (ya validadas y creadas en la página que incluye este header)
 $rol_usuario = $_SESSION['role'] ?? '';
 $usuario_nombre = $_SESSION['username'] ?? 'Usuario';
-
-// Variable para saber qué página estamos viendo (para marcar el activo)
 $pagina_actual = basename($_SERVER['PHP_SELF']);
-$base = "/unideportes-system"; // Asegúrate que esto coincida con tu ruta raíz
+$base = "/unideportes-system"; 
 ?>
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,12 +31,12 @@ $base = "/unideportes-system"; // Asegúrate que esto coincida con tu ruta raíz
 
         <nav class="main-nav">
             <ul class="nav-list">
-                <li><a href="inventario.php">Inventario</a></li>
-                <li><a href="mis_pedidos.php">Producción</a></li>
-                <li><a href="clientes.php">Clientes</a></li>
-                <li><a href="reportes_ventas.php">Reportes</a></li>
+                <li><a href="inventario.php" class="<?= ($pagina_actual == 'inventario.php') ? 'active' : '' ?>">Inventario</a></li>
+                <li><a href="pedidos_admin.php" class="<?= ($pagina_actual == 'pedidos_admin.php') ? 'active' : '' ?>">Producción</a></li>
+                <li><a href="clientes.php" class="<?= ($pagina_actual == 'clientes.php') ? 'active' : '' ?>">Clientes</a></li>
+                <li><a href="reportes_ventas.php" class="<?= ($pagina_actual == 'reportes_ventas.php') ? 'active' : '' ?>">Reportes</a></li>
                 <?php if ($rol_usuario == 'admin'): ?>
-                    <li><a href="admin_user.php">Personal</a></li>
+                    <li><a href="admin_usuarios.php" class="<?= ($pagina_actual == 'admin_usuarios.php') ? 'active' : '' ?>">Personal</a></li>
                 <?php endif; ?>
             </ul>
         </nav>

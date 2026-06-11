@@ -14,7 +14,7 @@ require_login(['admin' , 'colaborador', 'vendedor']);
 // Capturar filtro de búsqueda si existe
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 
-// Construir consulta dinámica alineada a unideportes-bd.sql
+// Construir consulta dinámica alineada a unideportes-bd.sql con cálculo matemático corregido
 try {
     $sql = "SELECT p.id, 
                    c.nombre_completo AS cliente_nombre, 
@@ -22,17 +22,16 @@ try {
                    p.detalle, 
                    p.total_pedido, 
                    p.estado,
-                   IFNULL(SUM(pa.monto), 0) AS total_pagado
+                   IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado
             FROM pedidos p
             INNER JOIN clientes c ON p.cliente_id = c.id
-            LEFT JOIN pagos pa ON p.id = pa.id_pg_pedido
             WHERE p.estado != 'Entregado'"; 
 
     if ($busqueda !== '') {
         $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda)";
     }
 
-    $sql .= " GROUP BY p.id ORDER BY p.id DESC";
+    $sql .= " ORDER BY p.id DESC";
     
     $stmt = $pdo->prepare($sql);
     
@@ -51,7 +50,7 @@ try {
 // Mensajes de estado
 $status = $_GET['status'] ?? null;
 
-// Incluir Header del sistema
+// Incluir Header del sistema original de la marca
 include(__DIR__ . "/header.php");
 ?>
 
@@ -108,6 +107,7 @@ include(__DIR__ . "/header.php");
                                 No se encontraron pedidos pendientes por entregar.
                             </td>
                         </tr>
+                    <?php dry: ?>
                     <?php else: ?>
                         <?php foreach ($pedidos as $pedido): 
                             $saldo_pendiente = $pedido['total_pedido'] - $pedido['total_pagado']; 
