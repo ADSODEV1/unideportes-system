@@ -26,7 +26,8 @@ $menuConfig = [
         'titulo_area' => '⚙️ Área de Producción',
         'principales' => [
             'panel_vendedor.php' => '📊 Panel General',
-            'linea_confeccion.php' => '🏭 Línea de Confección'
+            'nuevo_pedido.php' => '🏭 Línea de Confección',
+            'venta_mayorista.php' => '🛍️ Venta Mayorista'
         ],
         'secundarios' => [
             'inventario.php' => '📦 Stock de Unideportes'
@@ -39,7 +40,7 @@ $menuConfig = [
             'nueva_venta.php' => '🛒 Realizar Venta'
         ],
         'secundarios' => [
-            'linea_confeccion.php' => '🏭 Línea de Confección',
+            'pedidos_admin.php' => '🏭 Línea de Confección',
             'registrar_productos.php' => ' 🆕 Registrar Productos',
             'panel_produccion.php' => '👷‍♂️ Gestión de Taller',
             'mis_pedidos.php' => '📦 Despacho / Entregas',

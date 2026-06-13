@@ -27,7 +27,7 @@ include(__DIR__ . '/header.php');
     <main class="main-content-panel">
         <div class="page-header header-dashboard">
             <div>
-                <h1>Línea de Confección Mayorista</h1>
+                <h1>Compra Mayorista</h1>
                 <p>Ventas por volumen: Descuento por cantidad (10+ unid. = 5%, 20+ unid. = 10%).</p>
                 <p style="margin-top: 10px; color: #475569;">
                     <strong>Vendedor:</strong> <?= htmlspecialchars($_SESSION['username'] ?? 'Desconocido') ?>
