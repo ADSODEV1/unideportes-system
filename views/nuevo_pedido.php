@@ -6,41 +6,45 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_login(['admin', 'colaborador']);
+// Permitimos también el acceso a vendedores para crear pedidos desde el punto de venta
+require_login(['admin', 'colaborador', 'vendedor']);
 
 $pdo = app();
 $error = null;
 
 // 1. PROCESAR CREACIÓN RÁPIDA DE CLIENTE VÍA AJAX / POST TRADICIONAL
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_crear_cliente'])) {
+    header('Content-Type: application/json');
     $nombre = trim($_POST['nombre_completo']);
     $nit = trim($_POST['nit_cedula']);
     $telefono = trim($_POST['telefono'] ?? '');
     
-    if (!empty($nombre) && !empty($nit)) {
-        try {
-            // Validar si ya existe el NIT/Cédula
-            $check = $pdo->prepare("SELECT id FROM clientes WHERE nit_cedula = ?");
-            $check->execute([$nit]);
-            if ($check->fetch()) {
-                echo json_split_response(['status' => 'error', 'message' => 'El NIT o Cédula ya está registrado.']);
-                exit;
-            }
+    if (empty($nombre) || empty($nit)) {
+        echo json_encode(['status' => 'error', 'message' => 'El nombre y el NIT/Cédula son obligatorios.']);
+        exit;
+    }
 
-            // Generar un código descriptivo básico para el cliente (Ej: CLI-4523)
-            $codigo = 'CLI-' . substr(md5(time()), 0, 4);
-
-            $stmt = $pdo->prepare("INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, estado) VALUES (?, ?, ?, ?, 'activo')");
-            $stmt->execute([$codigo, $nombre, $nit, $telefono]);
-            
-            echo json_encode(['status' => 'success', 'id' => $pdo->lastInsertId(), 'nombre' => $nombre . ' (' . $nit . ')']);
-            exit;
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => 'Error al guardar el cliente.']);
+    try {
+        // Validar si ya existe el NIT/Cédula
+        $check = $pdo->prepare("SELECT id FROM clientes WHERE nit_cedula = ?");
+        $check->execute([$nit]);
+        if ($check->fetch()) {
+            echo json_encode(['status' => 'error', 'message' => 'El NIT o Cédula ya está registrado.']);
             exit;
         }
+
+        // Generar un código descriptivo básico para el cliente (Ej: CLI-4523)
+        $codigo = 'CLI-' . substr(md5(time()), 0, 4);
+
+        $stmt = $pdo->prepare("INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, estado) VALUES (?, ?, ?, ?, 'activo')");
+        $stmt->execute([$codigo, $nombre, $nit, $telefono]);
+        
+        echo json_encode(['status' => 'success', 'id' => $pdo->lastInsertId(), 'nombre' => $nombre . ' (' . $nit . ')']);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Error al guardar el cliente.']);
+        exit;
     }
-    exit;
 }
 
 // 2. PROCESAR CREACIÓN DE LA ORDEN DE FABRICACIÓN
@@ -51,8 +55,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
     $cantidad = intval($_POST['cantidad']);
     $abono = floatval($_POST['abono']);
     $fecha_entrega = $_POST['fecha_entrega'];
+    $tipo_entrega = trim($_POST['tipo_entrega'] ?? 'Tienda');
+    $direccion_entrega = trim($_POST['direccion_entrega'] ?? '');
+    $barrio_entrega = trim($_POST['barrio_entrega'] ?? '');
+    $ciudad_entrega = trim($_POST['ciudad_entrega'] ?? 'Sogamoso');
+    $observaciones_entrega = trim($_POST['observaciones_entrega'] ?? '');
 
-    if ($cliente_id > 0 && !empty($detalle) && $cantidad > 0) {
+    if ($tipo_entrega === 'Domicilio' && (empty($direccion_entrega) || empty($barrio_entrega) || empty($ciudad_entrega))) {
+        $error = 'Para envío a domicilio, por favor complete dirección, barrio y ciudad.';
+    } elseif ($cliente_id > 0 && !empty($detalle) && $cantidad > 0) {
         try {
             $pdo->beginTransaction();
 
@@ -69,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
             $total_pedido = $cantidad * $precio_con_descuento;
 
             // Guardar la orden principal en pedidos
-            $stmtPed = $pdo->prepare("INSERT INTO pedidos (cliente_id, detalle, descripcion, cantidad, total_pedido, estado, fecha_entrega) VALUES (?, ?, ?, ?, ?, 'En Corte', ?)");
-            $stmtPed->execute([$cliente_id, $detalle, $descripcion, $cantidad, $total_pedido, $fecha_entrega]);
+            $stmtPed = $pdo->prepare("INSERT INTO pedidos (cliente_id, detalle, descripcion, cantidad, total_pedido, estado, fecha_entrega, tipo_entrega, direccion_entrega, barrio_entrega, ciudad_entrega, observaciones_entrega) VALUES (?, ?, ?, ?, ?, 'En Corte', ?, ?, ?, ?, ?, ?)");
+            $stmtPed->execute([$cliente_id, $detalle, $descripcion, $cantidad, $total_pedido, $fecha_entrega, $tipo_entrega, $direccion_entrega ?: null, $barrio_entrega ?: null, $ciudad_entrega ?: null, $observaciones_entrega ?: null]);
             $pedido_id = $pdo->lastInsertId();
 
             // Registrar el abono inicial obligatorio en pagos
@@ -154,9 +165,37 @@ include(__DIR__ . "/header.php");
                 <input type="date" name="fecha_entrega" required value="<?= date('Y-m-d', strtotime('+12 days')) ?>" class="form-input">
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div>
+                <label class="form-label">Tipo de Entrega *</label>
+                <select name="tipo_entrega" id="tipo_entrega" required class="form-select" style="width:100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <option value="Tienda">Retiro en Tienda</option>
+                    <option value="Domicilio">Envío a Domicilio</option>
+                </select>
+            </div>
+
+            <div id="entregaDomicilio" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 15px; gap: 12px; margin-bottom: 10px;">
+                <div>
+                    <label class="form-label">Dirección de Entrega</label>
+                    <input type="text" name="direccion_entrega" id="direccion_entrega" class="form-input" placeholder="Ej: Calle 15 # 12-34">
+                </div>
+                <div>
+                    <label class="form-label">Barrio</label>
+                    <input type="text" name="barrio_entrega" id="barrio_entrega" class="form-input" placeholder="Ej: El Rosario">
+                </div>
+                <div>
+                    <label class="form-label">Ciudad</label>
+                    <input type="text" name="ciudad_entrega" id="ciudad_entrega" value="Sogamoso" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Observaciones de Entrega</label>
+                    <textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" class="form-textarea" placeholder="Ej: Dejar en la portería si no encuentra el apartamento."></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
                 <button type="submit" class="btn-submit">🚀 Guardar e Imprimir Ticket</button>
                 <a href="pedidos_admin.php" class="btn-cancel">Cancelar</a>
+                <a href="mis_pedidos.php" class="btn-secondary" style="display: inline-flex; align-items: center;">📦 Ir a Despacho / Entregas</a>
             </div>
         </form>
     </main>

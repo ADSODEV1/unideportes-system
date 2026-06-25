@@ -13,20 +13,20 @@ require_login(['admin']);
 
 // Consultas dinámicas optimizadas
 try {
-    // 1. Total Colaboradores activos (Vendedores + Administradores)
-    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE estado = 'Activo'");
+    // 1. Total de usuarios registrados en el sistema
+    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios");
     $total_colab = $stmt->fetchColumn() ?: 0;
 
-    // 2. Total Productos en el catálogo
-    $stmtProd = $pdo->query("SELECT COUNT(*) FROM productos");
+    // 2. Total de productos activos en el catálogo
+    $stmtProd = $pdo->query("SELECT COUNT(*) FROM productos WHERE estado = 'activo'");
     $total_productos = $stmtProd->fetchColumn() ?: 0;
 
     // 3. Cantidad de ventas realizadas el día de HOY
     $stmtVentas = $pdo->query("SELECT COUNT(*) FROM ventas WHERE DATE(fecha_venta) = CURRENT_DATE");
     $ventas_hoy = $stmtVentas->fetchColumn() ?: 0;
 
-    // 4. Productos con existencias críticas en bodega
-    $stmtBajoStock = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5");
+    // 4. Productos activos con existencias agotadas (alineado con la vista de inventario)
+    $stmtBajoStock = $pdo->query("SELECT COUNT(*) FROM productos WHERE estado = 'activo' AND stock <= 0");
     $productos_bajo_stock = $stmtBajoStock->fetchColumn() ?: 0;
 
     // 5. Órdenes activas en taller que requieren seguimiento
@@ -71,11 +71,11 @@ include(__DIR__ . "/header.php");
             <div class="alert-card <?= $productos_bajo_stock > 0 ? 'danger' : 'neutral' ?>">
                 <div class="alert-icon">⚠️</div>
                 <div class="alert-text">
-                    <strong>Alertas de Stock de Fábrica</strong>
+                    <strong>Alertas de Stock Agotado</strong>
                     <p>
                         <?= $productos_bajo_stock > 0 
-                            ? "¡Atención! Hay <strong>".htmlspecialchars($productos_bajo_stock)."</strong> item(s) con existencias bajas." 
-                            : "Todos los productos cuentan con stock estable." ?>
+                            ? "¡Atención! Hay <strong>".htmlspecialchars($productos_bajo_stock)."</strong> item(s) activos agotados." 
+                            : "No hay productos activos agotados en inventario." ?>
                     </p>
                 </div>
                 <?php if ($productos_bajo_stock > 0): ?>
@@ -115,6 +115,16 @@ include(__DIR__ . "/header.php");
                     <div class="card-body">
                         <h3>Realizar Venta</h3>
                         <p>Abre el POS de mostrador para facturar uniformes listos de stock común.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="dashboard-card border-amber">
+                <a href="/unideportes-system/views/venta_mayorista.php" class="card-link">
+                    <div class="card-icon">🧵</div>
+                    <div class="card-body">
+                        <h3>Nueva Venta Mayorista</h3>
+                        <p>Genera un pedido de confección por volumen y administra abonos desde la línea de producción.</p>
                     </div>
                 </a>
             </div>

@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nuevo_estado = isset($_POST['nuevo_estado']) ? trim($_POST['nuevo_estado']) : '';
 
     // Estados válidos que permite tu flujo de fabricación y tienda
-    $estados_permitidos = ['En Corte', 'En Confección', 'En Acabado', 'Terminado'];
+    $estados_permitidos = ['En Corte', 'En Confección', 'En Costura', 'En Acabado', 'Terminado'];
 
     if ($pedido_id > 0 && in_array($nuevo_estado, $estados_permitidos)) {
         try {

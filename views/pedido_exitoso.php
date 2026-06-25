@@ -1,28 +1,28 @@
 <?php
 // views/pedido_exitoso.php
 require_once __DIR__ . '/../config/bootstrap.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_login(['vendedor', 'colaborador', 'admin']);
 
 $pdo = app();
-$conn = connection(); // Usamos tu función nativa de conexión
-
-$rol_usuario = $_SESSION['role'] ?? '';
-$usuario_nombre = $_SESSION['username'] ?? 'Usuario';
-$pagina_actual = basename($_SERVER['PHP_SELF']);
-$base = "/unideportes-system";
+$conn = connection();
 
 // Validar que llegue el ID del pedido
 $pedido_id = !empty($_GET['id']) ? intval($_GET['id']) : 0;
 if ($pedido_id === 0) {
-    header("Location: linea_confeccion.php");
+    header("Location: venta_mayorista.php");
     exit();
 }
 
-// 1. Obtener datos del pedido y del cliente utilizando PDO (tu estándar)
+// 1. Obtener datos del pedido y del cliente
 try {
-    $stmt = $conn->prepare("SELECT p.*, c.nombre as cliente_nombre, c.telefono, c.email 
-                            FROM pedidos p 
-                            LEFT JOIN clientes c ON p.cliente_id = c.id 
+    $stmt = $conn->prepare("SELECT p.*, c.nombre_completo AS cliente_nombre, c.telefono
+                            FROM pedidos p
+                            LEFT JOIN clientes c ON p.cliente_id = c.id
                             WHERE p.id = ?");
     $stmt->execute([$pedido_id]);
     $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -31,128 +31,133 @@ try {
         die("El pedido solicitado no existe.");
     }
 
-    // 2. Obtener el detalle de los productos del taller
-    $stmtD = $conn->prepare("SELECT dp.*, prod.nombre as producto_nombre 
-                             FROM detalle_pedido dp
-                             LEFT JOIN productos prod ON dp.producto_id = prod.id
-                             WHERE dp.pedido_id = ?");
+    // 2. Detalle de prendas
+    $stmtD = $conn->prepare("SELECT dp.cantidad, dp.precio_unitario, dp.color, dp.talla,
+                                     dp.comentario_vendedor,
+                                     COALESCE(prod.nombre, p2.detalle, 'Producto personalizado') AS producto_nombre
+                              FROM detalle_pedido dp
+                              LEFT JOIN productos prod ON prod.id = dp.producto_id
+                              LEFT JOIN pedidos p2 ON p2.id = dp.pedido_id
+                              WHERE dp.pedido_id = ?");
     $stmtD->execute([$pedido_id]);
     $detalles = $stmtD->fetchAll(PDO::FETCH_ASSOC);
+
+    $total_real = array_sum(array_map(fn($d) => $d['cantidad'] * $d['precio_unitario'], $detalles));
+    if ($total_real <= 0) {
+        $total_real = floatval($pedido['total_pedido'] ?? 0);
+    }
+    $abono_real   = floatval($pedido['abono'] ?? 0);
+    $saldo_real   = max(0, $total_real - $abono_real);
+
 } catch (Exception $e) {
     die("Error al consultar la base de datos: " . $e->getMessage());
 }
+
+include(__DIR__ . '/header.php');
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unideportes - Pedido Registrado #<?= $pedido_id ?></title>
-    <link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=<?= time(); ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        /* Ajuste para que tu menú original no se altere por Bootstrap */
-        .main-header a { text-decoration: none; }
-        .nav-list { padding-left: 0; margin-bottom: 0; }
-    </style>
-</head>
-<body class="bg-light">
 
-<header class="main-header bg-dark text-white">
-    <div class="nav-container d-flex justify-content-between align-items-center px-4 py-2">
-        <a class="logo text-white" href="<?= ($rol_usuario == 'admin') ? 'panel_admin.php' : 'panel_vendedor.php' ?>">
-            <img src="/unideportes-system/assets/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img" style="height:40px;">
-            UNI<span style="color: var(--primary, #007bff);">DEPORTES</span>
-        </a>
-        <nav class="main-nav">
-            <ul class="nav-list d-flex list-unstyled gap-3 mb-0">
-                <li><a href="inventario.php" class="text-white">Inventario</a></li>
-                <li><a href="mis_pedidos.php" class="text-white">Producción</a></li>
-                <li><a href="clientes.php" class="text-white">Clientes</a></li>
-                <li><a href="reportes_ventas.php" class="text-white">Reportes</a></li>
-                <?php if ($rol_usuario == 'admin'): ?>
-                    <li><a href="admin_user.php" class="text-white">Personal</a></li>
+<div class="container admin-layout">
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
+
+    <main class="main-content-panel">
+
+        <div class="page-header header-dashboard" style="margin-bottom: 28px;">
+            <div>
+                <h1 style="color: #047857;">¡Pedido #<?= $pedido_id ?> Registrado con Éxito! ✅</h1>
+                <p style="color: var(--text-light);">La orden fue enviada a la línea de confección.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="window.print();" class="btn-secondary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid var(--border);">🖨️ Imprimir Ticket</button>
+                <a href="venta_mayorista.php" class="btn-primary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; background: var(--navy); color: #fff;">➕ Nueva Orden</a>
+            </div>
+        </div>
+
+        <!-- Resumen financiero -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px;">
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Total Pedido</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy);">$<?= number_format($total_real, 0, ',', '.') ?></div>
+            </div>
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Abono</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #047857;">$<?= number_format($abono_real, 0, ',', '.') ?></div>
+            </div>
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Saldo Pendiente</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">$<?= number_format($saldo_real, 0, ',', '.') ?></div>
+            </div>
+        </div>
+
+        <!-- Datos del pedido -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; flex-wrap: wrap;">
+            <div class="venta-container" style="padding: 20px;">
+                <h3 style="margin: 0 0 14px; font-size: 1rem; color: var(--navy);">Cliente</h3>
+                <p style="margin: 0 0 6px;"><strong>Nombre:</strong> <?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General') ?></p>
+                <p style="margin: 0;"><strong>Teléfono:</strong> <?= htmlspecialchars($pedido['telefono'] ?? 'N/A') ?></p>
+            </div>
+            <div class="venta-container" style="padding: 20px;">
+                <h3 style="margin: 0 0 14px; font-size: 1rem; color: var(--navy);">Entrega</h3>
+                <p style="margin: 0 0 6px;"><strong>Tipo:</strong> <?= htmlspecialchars($pedido['tipo_entrega'] ?? 'Tienda') ?></p>
+                <p style="margin: 0;"><strong>Fecha estimada:</strong> <?= date('d/m/Y', strtotime($pedido['fecha_entrega'])) ?></p>
+                <?php if (!empty($pedido['descripcion'])): ?>
+                    <p style="margin: 8px 0 0; font-size: 0.88rem; color: var(--text-light);">📝 <?= htmlspecialchars($pedido['descripcion']) ?></p>
                 <?php endif; ?>
-            </ul>
-        </nav>
-        <div class="user-info text-white">
-            <span>Hola, <strong><?= ucfirst($usuario_nombre) ?></strong></span>
-            <a href="/unideportes-system/controllers/auth.php?logout=1" class="btn btn-sm btn-danger ms-2">Salir</a>
-        </div>
-    </div>
-</header>
-
-<div class="container my-5">
-    <div class="card shadow-lg border-0 mx-auto" style="max-width: 750px;">
-        <div class="card-header bg-success text-white text-center py-4">
-            <h2 class="mb-1">¡Pedido Registrado con Éxito! 🎉</h2>
-            <p class="mb-0">La orden ha sido enviada a la Línea de Confección</p>
-        </div>
-        <div class="card-body p-4 text-dark">
-            
-            <div class="row text-center mb-4 bg-white p-3 rounded border mx-0 shadow-sm">
-                <div class="col-4 border-end">
-                    <small class="text-muted text-uppercase d-block">Total</small>
-                    <strong class="fs-4 text-dark">$<?= number_format($pedido['total_pedido'], 2); ?></strong>
-                </div>
-                <div class="col-4 border-end">
-                    <small class="text-muted text-uppercase d-block">Abono</small>
-                    <strong class="fs-4 text-success">$<?= number_format($pedido['abono'], 2); ?></strong>
-                </div>
-                <div class="col-4">
-                    <small class="text-muted text-uppercase d-block">Saldo Pendiente</small>
-                    <strong class="fs-4 text-danger">$<?= number_format($pedido['saldo_pendiente'], 2); ?></strong>
-                </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <h5>Datos del Cliente</h5>
-                    <p class="mb-1"><strong>Nombre:</strong> <?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General'); ?></p>
-                    <p class="mb-1"><strong>Teléfono:</strong> <?= htmlspecialchars($pedido['telefono'] ?? 'N/A'); ?></p>
-                </div>
-                <div class="col-md-6">
-                    <h5>Datos de Entrega</h5>
-                    <p class="mb-1"><strong>Tipo:</strong> <?= htmlspecialchars($pedido['tipo_entrega']); ?></p>
-                    <p class="mb-1"><strong>Fecha Estimada:</strong> <?= date('d/m/Y', strtotime($pedido['fecha_entrega'])); ?></p>
-                </div>
-            </div>
-
-            <h5>Detalle de Fabricación (Taller)</h5>
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered bg-white align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Producto</th>
-                            <th class="text-center">Talla</th>
-                            <th class="text-center">Color</th>
-                            <th class="text-center">Cant.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($detalles as $row): ?>
-                        <tr>
-                            <td>
-                                <strong><?= htmlspecialchars($row['producto_nombre']); ?></strong>
-                                <?php if(!empty($row['comentario_vendedor'])): ?>
-                                    <small class="text-muted d-block">* Nota: <?= htmlspecialchars($row['comentario_vendedor']); ?></small>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center"><span class="badge bg-secondary"><?= htmlspecialchars($row['talla']); ?></span></td>
-                            <td class="text-center"><?= htmlspecialchars($row['color']); ?></td>
-                            <td class="text-center"><?= $row['cantidad']; ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end pt-3 border-top">
-                <button onclick="window.print();" class="btn btn-outline-primary">Imprimir Ticket 🖨️</button>
-                <a href="linea_confeccion.php" class="btn btn-success">Nueva Orden ➕</a>
             </div>
         </div>
-    </div>
+
+        <!-- Tabla de prendas -->
+        <div class="venta-container" style="margin-bottom: 28px; overflow-x: auto;">
+            <h3 style="margin: 0 0 16px; font-size: 1rem; color: var(--navy);">🧵 Detalle de Fabricación</h3>
+            <?php if (!empty($detalles)): ?>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--navy); color: #fff; text-align: left;">
+                        <th style="padding: 12px;">Producto / Prenda</th>
+                        <th style="padding: 12px; text-align: center;">Talla</th>
+                        <th style="padding: 12px; text-align: center;">Color</th>
+                        <th style="padding: 12px; text-align: right;">Precio u.</th>
+                        <th style="padding: 12px; text-align: center;">Cant.</th>
+                        <th style="padding: 12px; text-align: right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($detalles as $det): ?>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;">
+                            <strong><?= htmlspecialchars($det['producto_nombre']) ?></strong>
+                            <?php if (!empty($det['comentario_vendedor'])): ?>
+                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?></span>
+                        </td>
+                        <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($det['color'] ?: '—') ?></td>
+                        <td style="padding: 12px; text-align: right;">$<?= number_format($det['precio_unitario'], 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: center; font-weight: 700;"><?= intval($det['cantidad']) ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f8fafc;">
+                        <td colspan="5" style="padding: 12px; text-align: right; font-weight: 700;">Total:</td>
+                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <?php else: ?>
+                <p style="color: var(--text-light); padding: 20px 0;">No hay prendas registradas en este pedido.</p>
+            <?php endif; ?>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+            <button onclick="window.print();" style="padding: 10px 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text);">🖨️ Imprimir Ticket</button>
+            <a href="venta_mayorista.php" style="padding: 10px 20px; background: var(--navy); color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">➕ Nueva Orden Mayorista</a>
+            <a href="pedidos_admin.php" style="padding: 10px 20px; background: #047857; color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">🏭 Ver en Producción</a>
+        </div>
+
+    </main>
 </div>
-</body>
-</html>
+
+<?php include(__DIR__ . '/footer.php'); ?>

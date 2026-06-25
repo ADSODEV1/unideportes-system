@@ -25,6 +25,12 @@ include(__DIR__ . "/header.php");
         <h1>Nueva Venta Directa</h1>
         <hr class="divider">
 
+        <?php if (!empty($_GET['error'])): ?>
+            <div class="alert alert-error" style="margin-bottom: 18px; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; border-left: 4px solid #ef4444;">
+                <?= htmlspecialchars($_GET['error']) ?>
+            </div>
+        <?php endif; ?>
+
         <form action="../controllers/procesar_venta.php" method="POST" id="ventaForm">
             
             <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px;">

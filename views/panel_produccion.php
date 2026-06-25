@@ -24,12 +24,29 @@ $base = "/unideportes-system";
 try {
     // CORRECCIÓN: Sumamos el p.abono (de la tabla pedidos) con los montos de la tabla pagos si existen
     $sql = "SELECT p.*, 
-                   p.total_pedido, 
+                   COALESCE(p.total_pedido, dt.total_detalle, 0) AS total_pedido_real,
                    c.nombre_completo as cliente_nombre,
-                   (p.abono + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)) AS total_abonado
+                   IFNULL(pg.total_pagado, 0) AS total_pagado_db,
+                   COALESCE(
+                       p.saldo_pendiente,
+                       GREATEST(
+                           COALESCE(p.total_pedido, dt.total_detalle, 0) - (COALESCE(p.abono, 0) + IFNULL(pg.total_pagado, 0)),
+                           0
+                       )
+                   ) AS saldo_pendiente_real
             FROM pedidos p 
+            LEFT JOIN (
+                SELECT pedido_id, SUM(cantidad * precio_unitario) AS total_detalle
+                FROM detalle_pedido
+                GROUP BY pedido_id
+            ) dt ON dt.pedido_id = p.id
+            LEFT JOIN (
+                SELECT id_pg_pedido, SUM(monto) AS total_pagado
+                FROM pagos
+                GROUP BY id_pg_pedido
+            ) pg ON pg.id_pg_pedido = p.id
             LEFT JOIN clientes c ON p.cliente_id = c.id 
-            WHERE p.estado IN ('En Corte', 'En Confección', 'En Acabado')
+            WHERE p.estado IN ('En Corte', 'En Confección', 'En Costura', 'En Acabado')
             ORDER BY p.fecha_entrega ASC";
             
     $stmt_pedidos = $conn->query($sql);
@@ -44,7 +61,7 @@ include(__DIR__ . "/header.php");
 
 <div class="container admin-layout">
 
-
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
 
@@ -80,20 +97,21 @@ include(__DIR__ . "/header.php");
                         $p_id = $pedido['id'];
                         
                         // Buscar detalles del pedido por PDO
-                        $stmtD = $conn->prepare("SELECT dp.*, prod.nombre FROM detalle_pedido dp 
+                        // Evitar referenciar columnas que pueden no existir en la BD remota
+                        $stmtD = $conn->prepare("SELECT dp.*, prod.nombre AS producto_nombre FROM detalle_pedido dp 
                                                  LEFT JOIN productos prod ON dp.producto_id = prod.id 
                                                  WHERE dp.pedido_id = ?");
                         $stmtD->execute([$p_id]);
                         $detalles = $stmtD->fetchAll(PDO::FETCH_ASSOC);
                         
                         // CÁLCULO DE CUENTAS EN TIEMPO REAL
-                        $total_cuenta = floatval($pedido['total_pedido'] ?? 0);
-                        $abono_real = floatval($pedido['total_abonado'] ?? 0);
-                        $saldo_real = $total_cuenta - $abono_real;
+                        $total_cuenta = floatval($pedido['total_pedido_real'] ?? 0);
+                        $saldo_real = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0));
+                        $abono_real = max(0, $total_cuenta - $saldo_real);
 
                         // Clases dinámicas nativas para Badges según estado
                         $clase_badge = 'naranja'; 
-                        if($pedido['estado'] == 'En Confección') $clase_badge = 'azul';
+                        if(in_array($pedido['estado'], ['En Confección', 'En Costura'])) $clase_badge = 'azul';
                         if($pedido['estado'] == 'En Acabado') $clase_badge = 'verde';
                         ?>
                         <tr>
@@ -119,13 +137,20 @@ include(__DIR__ . "/header.php");
                             </td>
                             <td>
                                 <ul style="list-style: none; padding-left: 0; margin-bottom: 0; font-size: 0.9rem;">
-                                    <?php foreach($detalles as $det): ?>
+                                    <?php if (!empty($detalles)): ?>
+                                        <?php foreach($detalles as $det): 
+                                            $nombre_det = $det['producto_nombre'] ?? $det['nombre'] ?? $det['producto'] ?? $pedido['detalle'] ?? 'Prenda'; ?>
+                                            <li style="margin-bottom: 4px;">
+                                                🧵 <strong>(x<?= $det['cantidad']; ?>)</strong> 
+                                                <?= htmlspecialchars($nombre_det); ?> 
+                                                <span style="color: #7f8c8d; font-size: 0.8rem; display: block;">[Talla: <?= $det['talla'] ?: 'N/A'; ?> | Color: <?= $det['color'] ?: 'N/A'; ?>]</span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
                                         <li style="margin-bottom: 4px;">
-                                            🧵 <strong>(x<?= $det['cantidad']; ?>)</strong> 
-                                            <?= htmlspecialchars($det['nombre'] ?? 'Prenda'); ?> 
-                                            <span style="color: #7f8c8d; font-size: 0.8rem; display: block;">[Talla: <?= $det['talla']; ?> | Color: <?= $det['color']; ?>]</span>
+                                            🧵 <?= htmlspecialchars($pedido['detalle'] ?? 'Pedido sin detalle cargado'); ?>
                                         </li>
-                                    <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </ul>
                             </td>
                             <td style="text-align: center;">

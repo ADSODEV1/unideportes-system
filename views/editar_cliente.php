@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'telefono'          => $_POST['telefono'] ?? '',
         'email'             => $_POST['email'] ?? '',
         'tipo_cliente'      => $_POST['tipo_cliente'] ?? 'Individual',
+            'estado'            => $_POST['estado'] ?? 'activo',
         // NUEVO: Captura de campos de domicilio para actualizar el registro
         'direccion'         => !empty($_POST['direccion']) ? trim($_POST['direccion']) : null,
         'barrio'            => !empty($_POST['barrio']) ? trim($_POST['barrio']) : null,
@@ -51,6 +52,13 @@ include(__DIR__ . '/header.php');
             <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
+        <div style="margin-bottom: 18px; display: inline-flex; align-items: center; gap: 10px;">
+            <span style="font-weight: 600; color: #334155;">Estado actual:</span>
+            <span style="padding: 6px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 700; color: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#14532d' : '#7f1d1d' ?>; background: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#dcfce7' : '#fee2e2' ?>; border: 1px solid <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#22c55e' : '#ef4444' ?>;">
+                <?= ucfirst($cliente['estado'] ?? 'activo') ?>
+            </span>
+        </div>
+
         <form action="editar_cliente.php?id=<?= $cliente['id'] ?>" method="POST" class="simple-form">
             <label>Nombre completo</label>
             <input type="text" name="nombre_completo" value="<?= htmlspecialchars($cliente['nombre_completo']) ?>" required>
@@ -68,6 +76,13 @@ include(__DIR__ . '/header.php');
             <select name="tipo_cliente">
                 <?php foreach (['Individual','Equipo','Colegio','Empresa'] as $tipo): ?>
                     <option value="<?= $tipo ?>" <?= $cliente['tipo_cliente'] === $tipo ? 'selected' : '' ?>><?= $tipo ?></option>
+                <?php endforeach; ?>
+            </select>
+
+            <label>Estado</label>
+            <select name="estado">
+                <?php foreach (['activo' => 'Activo', 'inactivo' => 'Inactivo'] as $valor => $etiqueta): ?>
+                    <option value="<?= $valor ?>" <?= ($cliente['estado'] ?? 'activo') === $valor ? 'selected' : '' ?>><?= $etiqueta ?></option>
                 <?php endforeach; ?>
             </select>
 

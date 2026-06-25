@@ -120,9 +120,11 @@ include(__DIR__ . "/header.php");
             <p>Confirmación detallada de la transacción registrada.</p>
         </div>
 
-        <div class="alert alert-success" style="margin-bottom: 20px;">
-            Venta registrada exitosamente. Este es tu comprobante.
-        </div>
+        <?php if (!empty($_GET['success']) && $_GET['success'] === 'venta_registrada'): ?>
+            <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px; background: #d1fae5; color: #065f46; border: 1px solid #10b981; border-radius: 8px;">
+                Venta registrada correctamente. Tickets generados: <?= htmlspecialchars($venta['ticket_numero']) ?>.
+            </div>
+        <?php endif; ?>
 
         <div class="table-responsive" style="margin-bottom: 25px; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;">
             <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between;">

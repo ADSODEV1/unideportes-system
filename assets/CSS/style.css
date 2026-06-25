@@ -261,6 +261,13 @@ body {
     vertical-align: top; /* Alinea el contenido arriba para que se vea ordenado */
 }
 
+.detalle-pedido-panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
 .data-table tr:hover, .tabla-maestra tr:hover {
     background-color: #f8fafc;
 }

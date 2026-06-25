@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado']))
     $nuevo_estado = isset($_POST['estado_fabrica']) ? trim($_POST['estado_fabrica']) : '';
 
     // ATENCIÓN: Asegúrate de que coincida EXACTAMENTE con lo que acepta tu base de datos
-    $estados_validos = ['En Corte', 'En Costura', 'Terminado'];
+    $estados_validos = ['En Corte', 'En Confección', 'Terminado'];
     
     if (in_array($nuevo_estado, $estados_validos)) {
         try {
@@ -27,7 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado']))
             $resultado = $stmt->execute([$nuevo_estado, $pedido_id]);
             
             if ($resultado) {
-                header("Location: pedidos_admin.php?success=estado_actualizado");
+                if ($nuevo_estado === 'Terminado') {
+                    header("Location: pedidos_admin.php?success=pedido_terminado");
+                } else {
+                    header("Location: pedidos_admin.php?success=estado_actualizado");
+                }
                 exit();
             } else {
                 header("Location: pedidos_admin.php?error=no_cambio");
@@ -44,11 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado']))
     }
 }
 
-// Consultar todas las órdenes activas en el taller (Excluyendo las ya entregadas en tienda)
+// Consultar todas las órdenes activas en el taller (Excluyendo las ya entregadas o finalizadas)
 $stmt = $pdo->query("SELECT p.*, c.nombre_completo, c.nit_cedula 
                      FROM pedidos p 
                      INNER JOIN clientes c ON p.cliente_id = c.id 
-                     WHERE p.estado != 'Entregado' 
+                     WHERE p.estado NOT IN ('Terminado', 'Entregado') 
                      ORDER BY p.fecha_entrega ASC");
 $pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -64,7 +68,7 @@ include(__DIR__ . "/header.php");
                 <h1 style="color: #1e293b; font-size: 1.8rem; font-weight: 700;">🏭 Control de Producción Taller</h1>
                 <p style="color: #64748b; margin-top: 5px;">Mapeo de órdenes mayoristas en confección. Cambia el estado para que se refleje en el punto de venta.</p>
             </div>
-            <a href="nuevo_pedido.php" class="btn-primary" style="background: #1e293b; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            <a href="venta_mayorista.php" class="btn-primary" style="background: #1e293b; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; font-weight: 600;">
                 ➕ Crear Orden Mayorista
             </a>
         </div>
@@ -72,6 +76,10 @@ include(__DIR__ . "/header.php");
         <?php if ($success === 'estado_actualizado'): ?>
             <div style="padding: 12px; background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; border-radius: 6px; margin-bottom: 20px; font-weight: 600; font-size: 0.9rem;">
                 🔄 Estado del pedido sincronizado con éxito.
+            </div>
+        <?php elseif ($success === 'pedido_terminado'): ?>
+            <div style="padding: 12px; background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; border-radius: 6px; margin-bottom: 20px; font-weight: 600; font-size: 0.9rem;">
+                ✅ Pedido terminado y eliminado de la línea de producción.
             </div>
         <?php endif; ?>
 
@@ -113,7 +121,7 @@ include(__DIR__ . "/header.php");
                                         <input type="hidden" name="actualizar_estado" value="1">
                                         <select name="estado_fabrica" onchange="this.form.submit()" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600; color: #334155; background: #f8fafc; cursor: pointer;">
                                             <option value="En Corte" <?= $row['estado'] === 'En Corte' ? 'selected' : '' ?>>✂️ En Corte</option>
-                                            <option value="En Costura" <?= $row['estado'] === 'En Costura' ? 'selected' : '' ?>>🪡 En Costura</option>
+                                            <option value="En Confección" <?= $row['estado'] === 'En Confección' ? 'selected' : '' ?>>🪡 En Costura</option>
                                             <option value="Terminado" <?= $row['estado'] === 'Terminado' ? 'selected' : '' ?>>✅ Terminado (Listo)</option>
                                         </select>
                                     </form>

@@ -107,8 +107,8 @@ include(__DIR__ . "/../views/header.php");
                             <td><span class="talla-badge"><?= htmlspecialchars($row['talla']) ?></span></td>
                             <td>
                                 <?php 
-                                    $s = $row['stock'];
-                                    if ($s == 0) echo "<span class='badge rojo'>AGOTADO</span>";
+                                    $s = (int)$row['stock'];
+                                    if ($s <= 0) echo "<span class='badge rojo'>AGOTADO ($s)</span>";
                                     elseif ($s <= 5) echo "<span class='badge naranja'>BAJO ($s)</span>";
                                     else echo "<span class='badge verde'>STOCK ($s)</span>";
                                 ?>

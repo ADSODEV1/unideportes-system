@@ -148,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmtDetalle = $pdo->prepare($sqlDetalle);
 
-        $sqlRestarStock = "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?";
-        $stmtStock = $pdo->prepare($sqlRestarStock);
+        // Mejor manejo de concurrencia: bloqueamos la fila con SELECT ... FOR UPDATE para validar stock.
+        $stmtSelectStock = $pdo->prepare("SELECT stock FROM productos WHERE id = ? FOR UPDATE");
 
         foreach ($productos_carrito as $item) {
             $producto_id = intval($item['id']); 
@@ -160,7 +160,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $talla       = !empty($item['talla']) ? trim($item['talla']) : null;
             $comentario  = !empty($item['comentario']) ? trim($item['comentario']) : null;
 
-            // Registrar el ítem vendido en la tabla intermedia
+            // Bloqueamos la fila y comprobamos stock disponible (evita condiciones de carrera)
+            $stmtSelectStock->execute([$producto_id]);
+            $currentStock = $stmtSelectStock->fetchColumn();
+            $currentStock = $currentStock !== false ? intval($currentStock) : null;
+
+            if ($currentStock === null) {
+                throw new Exception("Producto no encontrado en inventario (ID: {$producto_id}).");
+            }
+            if ($currentStock < $cantidad) {
+                throw new Exception("Stock insuficiente para uno de los productos seleccionados. La operación fue cancelada.");
+            }
+
+            // Registrar el ítem vendido en la tabla intermedia.
+            // El trigger de la base de datos disminuirá el stock automáticamente.
             $stmtDetalle->execute([
                 $venta_id,
                 $producto_id,
@@ -171,13 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $talla,
                 $comentario
             ]);
-
-            // Descontar del inventario físico de la fábrica validando stock concurrente
-            $stmtStock->execute([$cantidad, $producto_id, $cantidad]);
-            
-            if ($stmtStock->rowCount() === 0) {
-                throw new Exception("Stock insuficiente para uno de los productos seleccionados. La operación fue cancelada.");
-            }
 
             // Si es venta mayorista con abono, crear pedido y detalle_pedido
             if ($es_mayorista && $abono > 0) {
@@ -216,11 +222,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Si todo el proceso se ejecutó correctamente, consolidamos de forma atómica en la BD
         $pdo->commit();
         
-        // Redirección inmediata a la vista del Ticket de Venta
-        header("Location: ../views/ticket_actual.php?id=" . $venta_id);
+        // Redirección inmediata a la vista del Ticket de Venta con mensaje de éxito
+        header("Location: ../views/ticket_actual.php?id=" . $venta_id . "&success=venta_registrada");
         exit();
 
     } catch (Exception $e) {
+        // Registrar el error para diagnóstico
+        try {
+            $logDir = __DIR__ . '/../logs';
+            if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
+            $logFile = $logDir . '/procesar_venta_errors.log';
+            $payload = [
+                'time' => date('c'),
+                'message' => $e->getMessage(),
+                'post' => array_filter($_POST),
+            ];
+            @file_put_contents($logFile, json_encode($payload) . PHP_EOL, FILE_APPEND | LOCK_EX);
+        } catch (Exception $ignore) {
+            // No bloquear el flujo si el logging falla
+        }
+
         // Cancelamos cualquier inserción parcial si algo falla en el ciclo protegiendo la integridad
         if ($pdo->inTransaction()) {
             $pdo->rollBack();

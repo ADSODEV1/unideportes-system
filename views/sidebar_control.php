@@ -14,7 +14,8 @@ $menuConfig = [
         'titulo_area' => '📍 Punto de Venta',
         'principales' => [
             'panel_vendedor.php' => '📊 Mi Panel Principal',
-            'nueva_venta.php' => '🛒 Nueva Venta Directa'
+            'nueva_venta.php' => '🛒 Nueva Venta Directa',
+            'venta_mayorista.php' => '🛍️ Venta Mayorista'
         ],
         'secundarios' => [
             'mis_pedidos.php' => '🎁 Entregar Pedidos',
@@ -26,7 +27,6 @@ $menuConfig = [
         'titulo_area' => '⚙️ Área de Producción',
         'principales' => [
             'panel_vendedor.php' => '📊 Panel General',
-            'nuevo_pedido.php' => '🏭 Línea de Confección',
             'venta_mayorista.php' => '🛍️ Venta Mayorista'
         ],
         'secundarios' => [
@@ -37,7 +37,9 @@ $menuConfig = [
         'titulo_area' => '⚡ Administrador Global',
         'principales' => [
             'panel_admin.php' => '📊 Dashboard de Control',
-            'nueva_venta.php' => '🛒 Realizar Venta'
+            'nueva_venta.php' => '🛒 Realizar Venta',
+            'venta_mayorista.php' => '🛍️ Venta Mayorista',
+            'panel_produccion.php' => '👷‍♂️ Gestión de Taller'
         ],
         'secundarios' => [
             'pedidos_admin.php' => '🏭 Línea de Confección',

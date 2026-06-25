@@ -15,9 +15,9 @@ function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $o
     $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
     // Agregamos 'categoria' a la consulta SQL
-    $sql = "SELECT id, nombre, referencia, categoria, color, material, talla, stock, precio 
+        $sql = "SELECT id, nombre, referencia, categoria, color, material, talla, stock, precio 
             FROM productos 
-            WHERE 1=1";
+            WHERE estado = 'activo'";
     
     if ($search !== '') {
         $sql .= " AND (nombre LIKE :search1 OR referencia LIKE :search2)";
@@ -48,7 +48,7 @@ function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $o
  * Cuenta el total de productos que coinciden con el criterio de búsqueda.
  */
 function contarInventarioFiltrado(PDO $conn, string $search): int {
-    $sql = "SELECT COUNT(*) FROM productos WHERE 1=1";
+    $sql = "SELECT COUNT(*) FROM productos WHERE estado = 'activo'";
     
     if ($search !== '') {
         $sql .= " AND (nombre LIKE :search1 OR referencia LIKE :search2)";

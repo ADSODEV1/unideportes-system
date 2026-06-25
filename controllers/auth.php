@@ -38,27 +38,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$userForm]);
         $row = $stmt->fetch();
 
-        if ($row && password_verify($passForm, $row['password'])) {
-            // Variables de sesión estándar para todo el sistema
-            $_SESSION['user_id']     = $row['id'];
-            $_SESSION['vendedor_id'] = $row['id']; // Para el módulo de ventas
-            $_SESSION['username']    = $row['username'];
-            $_SESSION['role']        = $row['role'];
+        if ($row) {
+            $storedPassword = $row['password'];
+            $loginOk = false;
 
-            // Determinar destino con rutas web absolutas y limpias (Salen de la carpeta public hacia views)
-            if ($row['role'] === 'admin') {
-                $destino = "/unideportes-system/views/panel_admin.php";
-            } else {
-                $destino = "/unideportes-system/views/panel_vendedor.php";
+            if (password_verify($passForm, $storedPassword)) {
+                $loginOk = true;
+            } elseif ($storedPassword === $passForm) {
+                // Caso de contraseña antigua almacenada en texto plano.
+                $loginOk = true;
+                $newHash = password_hash($passForm, PASSWORD_DEFAULT);
+                $updateStmt = $pdo->prepare('UPDATE usuarios SET password = ? WHERE id = ?');
+                $updateStmt->execute([$newHash, $row['id']]);
             }
 
-            header("Location: " . $destino);
-            exit();
-        } else {
-            // Credenciales incorrectas - Redirecciona al index dentro de public
-            header("Location: " . $base_url . "/index.php?error=datos_incorrectos");
-            exit();
+            if ($loginOk) {
+                // Variables de sesión estándar para todo el sistema
+                $_SESSION['user_id']     = $row['id'];
+                $_SESSION['vendedor_id'] = $row['id']; // Para el módulo de ventas
+                $_SESSION['username']    = $row['username'];
+                $_SESSION['role']        = $row['role'];
+
+                // Determinar destino con rutas web absolutas y limpias (Salen de la carpeta public hacia views)
+                if ($row['role'] === 'admin') {
+                    $destino = "/unideportes-system/views/panel_admin.php";
+                } else {
+                    $destino = "/unideportes-system/views/panel_vendedor.php";
+                }
+
+                header("Location: " . $destino);
+                exit();
+            }
         }
+
+        // Credenciales incorrectas - Redirecciona al index dentro de public
+        header("Location: " . $base_url . "/index.php?error=datos_incorrectos");
+        exit();
 
     } catch (PDOException $e) {
         die("Error en la consulta: " . $e->getMessage());

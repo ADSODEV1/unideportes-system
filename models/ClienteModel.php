@@ -1,11 +1,19 @@
 <?php
 // models/ClienteModel.php
 
+function generarCodigoDescriptivoCliente(): string {
+    try {
+        return 'CLI-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+    } catch (Exception $e) {
+        return 'CLI-' . date('YmdHis') . '-' . strtoupper(substr(md5(uniqid('', true)), 0, 4));
+    }
+}
+
 function obtenerClientes(PDO $pdo, string $search = ''): array {
     if ($search !== '') {
         $like = '%' . $search . '%';
         $stmt = $pdo->prepare(
-            "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega 
+            "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega, estado 
              FROM clientes 
              WHERE nombre_completo LIKE ? OR nit_cedula LIKE ? 
              ORDER BY nombre_completo ASC"
@@ -15,7 +23,7 @@ function obtenerClientes(PDO $pdo, string $search = ''): array {
     }
 
     $stmt = $pdo->query(
-        "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega 
+        "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega, estado 
          FROM clientes 
          ORDER BY nombre_completo ASC"
     );
@@ -24,7 +32,7 @@ function obtenerClientes(PDO $pdo, string $search = ''): array {
 
 function obtenerClientePorId(PDO $pdo, int $id): ?array {
     $stmt = $pdo->prepare(
-        "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega 
+        "SELECT id, codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega, estado 
          FROM clientes 
          WHERE id = ? LIMIT 1"
     );
@@ -34,13 +42,17 @@ function obtenerClientePorId(PDO $pdo, int $id): ?array {
 }
 
 function crearCliente(PDO $pdo, array $data): bool {
-    // Se mapea 'codigo_descriptivo' que es un campo obligatorio en tu BD actual
+    $codigoDescriptivo = trim((string)($data['codigo_descriptivo'] ?? ''));
+    if ($codigoDescriptivo === '') {
+        $codigoDescriptivo = generarCodigoDescriptivoCliente();
+    }
+
     $stmt = $pdo->prepare(
         "INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     return $stmt->execute([
-        $data['codigo_descriptivo'],
+        $codigoDescriptivo,
         $data['nombre_completo'],
         $data['nit_cedula'],
         $data['telefono'],
@@ -56,7 +68,7 @@ function crearCliente(PDO $pdo, array $data): bool {
 function actualizarCliente(PDO $pdo, int $id, array $data): bool {
     $stmt = $pdo->prepare(
         "UPDATE clientes 
-         SET nombre_completo = ?, nit_cedula = ?, telefono = ?, email = ?, tipo_cliente = ?, direccion = ?, barrio = ?, ciudad = ?, referencia_entrega = ? 
+         SET nombre_completo = ?, nit_cedula = ?, telefono = ?, email = ?, tipo_cliente = ?, direccion = ?, barrio = ?, ciudad = ?, referencia_entrega = ?, estado = ? 
          WHERE id = ?"
     );
     return $stmt->execute([
@@ -69,6 +81,7 @@ function actualizarCliente(PDO $pdo, int $id, array $data): bool {
         $data['barrio'] ?? null,
         $data['ciudad'] ?? 'Sogamoso',
         $data['referencia_entrega'] ?? null,
+        $data['estado'] ?? 'activo',
         $id
     ]);
 }

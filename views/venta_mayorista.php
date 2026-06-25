@@ -14,9 +14,7 @@ $pdo = app();
 $stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes ORDER BY nombre_completo ASC");
 $res_clientes = $stmtClientes->fetchAll(PDO::FETCH_ASSOC);
 
-// 2. Traer productos disponibles con stock activo
-$stmtProductos = $pdo->query("SELECT id, nombre, precio, stock FROM productos WHERE stock > 0 ORDER BY nombre ASC");
-$res_productos = $stmtProductos->fetchAll(PDO::FETCH_ASSOC);
+// Nota: la venta mayorista es independiente del inventario; no cargamos el catálogo aquí.
 
 include(__DIR__ . '/header.php');
 ?>
@@ -34,14 +32,11 @@ include(__DIR__ . '/header.php');
                     <span style="margin-left: 12px;"><strong>Rol:</strong> <?= htmlspecialchars($_SESSION['role'] ?? 'N/A') ?></span>
                 </p>
             </div>
-            <a href="/unideportes-system/views/nueva_venta.php" class="btn-primary btn-icon-gap">
-                <span>🛒</span> Volver a Venta Directa
-            </a>
         </div>
 
         <div id="mensajeAlerta" style="display: none; padding: 12px; margin-bottom: 20px; border-radius: 8px; font-weight: 500;"></div>
 
-        <form action="../controllers/procesar_pedido.php" method="POST" id="formVentaMayorista">
+        <form action="../controllers/procesar_pedido.php" method="POST" id="formVentaMayorista" autocomplete="off">
             <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
                 
                 <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 12px;">
@@ -61,6 +56,7 @@ include(__DIR__ . '/header.php');
                             <?php endforeach; ?>
                         </datalist>
                         <input type="hidden" name="cliente_id" id="cliente_id_hidden">
+                        <input type="hidden" name="vendedor_id" id="vendedor_id_hidden" value="<?= htmlspecialchars($_SESSION['user_id'] ?? $_SESSION['vendedor_id'] ?? 0) ?>">
                     </div>
 
                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -98,6 +94,10 @@ include(__DIR__ . '/header.php');
                     <div style="padding: 15px; background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 10px; margin-top: 5px;">
                         <h4 style="margin-top: 0; color: #1e40af; margin-bottom: 5px;">Especificaciones de la Orden</h4>
                         <textarea name="observaciones_pedido" id="observaciones_pedido" rows="3" style="width:100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; resize: vertical;" placeholder="Ej: Bordados específicos, insignias de colegios, estampados de números..."></textarea>
+                        <div style="margin-top: 14px;">
+                            <label><strong>Fecha de entrega:</strong></label>
+                            <input type="date" name="fecha_entrega" id="fecha_entrega" required value="<?= date('Y-m-d', strtotime('+15 days')) ?>" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        </div>
                     </div>
                 </div>
 
@@ -160,34 +160,33 @@ include(__DIR__ . '/header.php');
 
             <div class="venta-container" style="display: grid; gap: 12px; margin-bottom: 20px;">
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label><strong>Producto:</strong></label>
-                        <input type="text" list="listaProductos" id="productoInput" placeholder="Buscar producto..." style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;" autocomplete="off">
-                        <datalist id="listaProductos">
-                            <?php foreach ($res_productos as $prod): ?>
-                                <option 
-                                    value="<?= htmlspecialchars($prod['nombre'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-id="<?= $prod['id'] ?>"
-                                    data-precio="<?= $prod['precio'] ?>"
-                                    data-stock="<?= $prod['stock'] ?>">
-                                    Precio Base: $<?= number_format($prod['precio'], 2) ?> | Stock: <?= $prod['stock'] ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </datalist>
+                    <div style="flex: 1; min-width: 250px;">
+                        <label><strong>Producto / Prenda:</strong></label>
+                        <input type="text" id="productoInput" placeholder="Nombre del producto o servicio" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;" autocomplete="off">
+                    </div>
+                    <div style="min-width: 160px;">
+                        <label><strong>Precio unitario:</strong></label>
+                        <input type="number" id="productoPrecio" min="0" step="0.01" placeholder="Ej: 45000" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
                     <div id="wrapperProductoColor" style="min-width: 130px;">
                         <label><strong>Color:</strong></label>
-                        <input type="text" id="productoColor" placeholder="Selecciona producto" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+                        <input type="text" id="productoColor" placeholder="Ej: Azul Rey / Negro" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
                     <div id="wrapperProductoTalla" style="min-width: 130px;">
                         <label><strong>Talla:</strong></label>
-                        <input type="text" id="productoTalla" placeholder="Selecciona color" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+                        <input type="text" id="productoTalla" placeholder="Ej: XL o Talla 14" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div style="min-width: 120px;">
+                        <label><strong>Cantidad:</strong></label>
+                        <input type="number" id="productoCantidad" min="1" value="1" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
                     <button type="button" id="btnAgregar" style="padding: 11px 20px; background: #0f766e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor:pointer;">+ Añadir</button>
                 </div>
             </div>
 
             <div class="venta-container" style="margin-bottom: 20px; overflow-x: auto;">
+                <h3 style="margin-bottom: 12px; font-size: 1rem; color: #1e293b;">Productos pedidos en línea de confección</h3>
+                <div id="carritoStatus" style="margin-bottom: 12px; font-size: 0.95rem; color: #475569;">Carrito: 0 productos.</div>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: #1A2B4C; color: white; text-align: left;">
@@ -196,9 +195,7 @@ include(__DIR__ . '/header.php');
                             <th style="padding: 12px;">Talla</th>
                             <th style="padding: 12px;">Precio Base</th>
                             <th style="padding: 12px; width: 80px; text-align: center;">Cant</th>
-                            <th style="padding: 12px; width: 110px;">Descuento</th>
-                            <th style="padding: 12px;">Subtotal</th>
-                            <th style="padding: 12px; text-align: center; width: 70px;">Quitar</th>
+                            <th style="padding: 12px; text-align: center; width: 120px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="carritoBody"></tbody>
@@ -232,6 +229,7 @@ include(__DIR__ . '/header.php');
 
                 <input type="hidden" id="ventaJSON" name="venta_json">
                 <input type="hidden" id="inputTotal" name="total_venta">
+                <input type="hidden" id="pedido_id_hidden" name="pedido_id">
                 <input type="hidden" name="venta_tipo" value="mayorista">
 
                 <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
@@ -240,9 +238,49 @@ include(__DIR__ . '/header.php');
                 </div>
             </div>
         </form>
+        <div id="pedidoBanner" style="position: fixed; right: 20px; bottom: 20px; background: #0ea5a4; color: white; padding: 10px 14px; border-radius: 8px; display: none; box-shadow: 0 6px 18px rgba(0,0,0,0.08);">
+            Orden creada: <span id="pedidoBadge">OP #</span>
+        </div>
+
+        <!-- Modal de edición de ítem del carrito -->
+        <div id="modalEditarItem" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:12px; padding:28px; width:100%; max-width:440px; box-shadow:0 20px 40px rgba(0,0,0,0.18); margin:16px;">
+                <h3 style="margin:0 0 18px; color:#1A2B4C; font-size:1.1rem;">✏️ Editar producto</h3>
+                <div style="display:grid; gap:12px;">
+                    <div>
+                        <label style="font-size:0.85rem; font-weight:600;">Producto / Prenda</label>
+                        <input id="editNombre" type="text" style="width:100%; padding:9px 10px; margin-top:4px; border:1px solid #cbd5e1; border-radius:6px;">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Color</label>
+                            <input id="editColor" type="text" style="width:100%; padding:9px 10px; margin-top:4px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Talla</label>
+                            <input id="editTalla" type="text" style="width:100%; padding:9px 10px; margin-top:4px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Precio unitario ($)</label>
+                            <input id="editPrecio" type="number" min="0" step="0.01" style="width:100%; padding:9px 10px; margin-top:4px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Cantidad</label>
+                            <input id="editCantidad" type="number" min="1" style="width:100%; padding:9px 10px; margin-top:4px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:22px;">
+                    <button type="button" id="btnCancelarEdicion" style="padding:9px 18px; background:#fff; border:1px solid #cbd5e1; border-radius:8px; font-weight:600; cursor:pointer; color:#475569;">Cancelar</button>
+                    <button type="button" id="btnGuardarEdicion" style="padding:9px 18px; background:#1A2B4C; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Guardar cambios</button>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 
-<script src="../public/js/linea_confeccion.js"></script>
+<script src="/unideportes-system/public/js/linea_confeccion.js?v=<?= time() ?>"></script>
 
 <?php include(__DIR__ . '/footer.php'); ?>
