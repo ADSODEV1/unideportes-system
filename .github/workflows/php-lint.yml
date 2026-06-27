@@ -1,0 +1,26 @@
+name: Validación de Código PHP
+
+# El robot se activa cuando hacen push o un Pull Request
+on: [push, pull_request]
+
+jobs:
+  php-lint:
+    name: Revisar Sintaxis PHP
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. El robot descarga tu código
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      # 2. El robot instala PHP 8.2
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      # 3. El robot revisa todos los archivos .php en busca de errores
+      - name: Validar sintaxis
+        run: |
+          echo "Iniciando revisión de archivos PHP..."
+          find . -name "*.php" -not -path "./vendor/*" | xargs -n 1 -P 4 php -l
