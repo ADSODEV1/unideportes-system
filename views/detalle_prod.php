@@ -1,145 +1,392 @@
 <?php
+// views/detalle_prod.php
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../models/ProductoModel.php';
-require_login();
-$conn = app();
+require_login(['vendedor', 'colaborador', 'admin']);
 
+$pdo = app();
+
+// Validar ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: inventario.php?error=id_invalido');
     exit();
 }
 
 $id = intval($_GET['id']);
-$producto = obtenerProductoPorId($conn, $id);
+$producto = obtenerProductoPorId($pdo, $id);
+
 if (!$producto) {
     header('Location: inventario.php?error=producto_no_encontrado');
     exit();
+}
+
+// Determinar estado del stock
+$stock = intval($producto['stock']);
+if ($stock == 0) {
+    $estadoStock = 'agotado';
+    $claseStock = 'badge-danger';
+    $textoStock = 'Agotado';
+} elseif ($stock <= 5) {
+    $estadoStock = 'bajo';
+    $claseStock = 'badge-warning';
+    $textoStock = "Bajo ({$stock})";
+} else {
+    $estadoStock = 'disponible';
+    $claseStock = 'badge-success';
+    $textoStock = "Disponible ({$stock})";
 }
 
 include(__DIR__ . '/header.php');
 ?>
 
 <div class="container admin-layout">
-    <aside class="sidebar-panel">
-        <div class="sidebar-section">
-            <h3>Producto</h3>
-            <p><strong><?= htmlspecialchars($producto['nombre']) ?></strong></p>
-            <p>Ref: <?= htmlspecialchars($producto['referencia']) ?></p>
-        </div>
-    </aside>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
-        <h1>Detalle de Producto</h1>
-        <div class="detalle-producto-card">
-            <div class="detalle-grid">
-                <div>
-                    <p><strong>Nombre:</strong></p>
-                    <p><?= htmlspecialchars($producto['nombre']) ?></p>
-                </div>
-                <div>
-                    <p><strong>Referencia:</strong></p>
-                    <p><?= htmlspecialchars($producto['referencia']) ?></p>
-                </div>
-                <div>
-                    <p><strong>Color:</strong></p>
-                    <p><?= htmlspecialchars($producto['color'] ?: 'N/A') ?></p>
-                </div>
-                <div>
-                    <p><strong>Material:</strong></p>
-                    <p><?= htmlspecialchars($producto['material'] ?: 'N/A') ?></p>
-                </div>
-                <div>
-                    <p><strong>Género:</strong></p>
-                    <p><?= htmlspecialchars($producto['genero'] ?: 'Unisex') ?></p>
-                </div>
-                <div>
-                    <p><strong>Estado:</strong></p>
-                    <p><?= htmlspecialchars($producto['estado'] ?: 'activo') ?></p>
-                </div>
-                <div style="grid-column: span 2;">
-                    <p><strong>Descripción:</strong></p>
-                    <p><?= nl2br(htmlspecialchars($producto['descripcion'] ?: 'Sin descripción')) ?></p>
-                </div>
-                <div>
-                    <p><strong>Talla:</strong></p>
-                    <p><?= htmlspecialchars($producto['talla'] ?: 'N/A') ?></p>
-                </div>
-                <div>
-                    <p><strong>Stock:</strong></p>
-                    <p><?= intval($producto['stock']) ?></p>
-                </div>
-                <div>
-                    <p><strong>Precio:</strong></p>
-                    <p>$<?= number_format($producto['precio'], 2, ',', '.') ?></p>
-                </div>
-                <div>
-                    <p><strong>Creado:</strong></p>
-                    <p><?= htmlspecialchars($producto['created_at']) ?></p>
-                </div>
+        
+        <!-- ENCABEZADO -->
+        <div class="page-header">
+            <div>
+                <h1><?= htmlspecialchars($producto['nombre']) ?></h1>
+                <p>Ref: <strong><?= htmlspecialchars($producto['referencia']) ?></strong></p>
             </div>
-
-            <div class="detalle-actions">
-                <a href="inventario.php" class="btn-cancelar">← Volver al Inventario</a>
+            <div class="header-actions">
+                <a href="inventario.php" class="btn-secondary">← Volver</a>
                 <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <a href="editar_prod.php?id=<?= $producto['id'] ?>" class="btn-finalizar">✎ Editar producto</a>
+                    <a href="editar_prod.php?id=<?= $producto['id'] ?>" class="btn-primary">✏️ Editar</a>
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- TARJETA PRINCIPAL -->
+        <div class="producto-detalle">
+            
+            <!-- RESUMEN RÁPIDO -->
+            <div class="resumen-rapido">
+                <div class="resumen-item">
+                    <span class="resumen-label">Precio</span>
+                    <span class="resumen-valor precio">$<?= number_format($producto['precio'], 0, ',', '.') ?></span>
+                </div>
+                <div class="resumen-item">
+                    <span class="resumen-label">Stock</span>
+                    <span class="badge <?= $claseStock ?>"><?= $textoStock ?></span>
+                </div>
+                <div class="resumen-item">
+                    <span class="resumen-label">Estado</span>
+                    <span class="badge badge-<?= ($producto['estado'] ?? 'activo') === 'activo' ? 'success' : 'danger' ?>">
+                        <?= ucfirst($producto['estado'] ?? 'activo') ?>
+                    </span>
+                </div>
+            </div>
+
+            <!-- INFORMACIÓN DETALLADA -->
+            <div class="info-grid">
+                
+                <div class="info-card">
+                    <h2 class="section-subtitle">📋 Información General</h2>
+                    <div class="info-row">
+                        <span class="info-label">Nombre:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['nombre']) ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Referencia:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['referencia']) ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Categoría:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['categoria'] ?? 'Sin categoría') ?></span>
+                    </div>
+                    <?php if (!empty($producto['created_at'])): ?>
+                    <div class="info-row">
+                        <span class="info-label">Fecha de Registro:</span>
+                        <span class="info-value"><?= date('d/m/Y', strtotime($producto['created_at'])) ?></span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="info-card">
+                    <h2 class="section-subtitle">🎨 Características</h2>
+                    <div class="info-row">
+                        <span class="info-label">Color:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['color'] ?: 'No especificado') ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Material:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['material'] ?: 'No especificado') ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Género:</span>
+                        <span class="info-value"><?= htmlspecialchars($producto['genero'] ?: 'Unisex') ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Talla:</span>
+                        <span class="info-value">
+                            <span class="talla-badge"><?= htmlspecialchars($producto['talla'] ?: 'N/A') ?></span>
+                        </span>
+                    </div>
+                </div>
+
+                <?php if (!empty($producto['descripcion'])): ?>
+                <div class="info-card info-card-full">
+                    <h2 class="section-subtitle">📝 Descripción</h2>
+                    <p class="descripcion-texto"><?= nl2br(htmlspecialchars($producto['descripcion'])) ?></p>
+                </div>
+                <?php endif; ?>
+
+            </div>
+
+        </div>
+
     </main>
 </div>
 
 <style>
-.detalle-producto-card {
-    background: #fff;
-    padding: 24px;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
+/* ============================================
+   DETALLE DE PRODUCTO - ESTILOS SIMPLIFICADOS
+   ============================================ */
 
-.detalle-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 18px;
-    margin-bottom: 24px;
-}
-
-.detalle-grid div {
-    padding: 16px;
+/* Encabezado */
+.page-header {
     background: #f8fafc;
-    border-radius: 12px;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
-.detalle-grid p {
+.page-header h1 {
+    color: #1e293b;
+    font-size: 1.6rem;
+    font-weight: 700;
     margin: 0;
 }
 
-.detalle-grid p:first-child {
-    color: #6b7280;
-    font-size: 0.9rem;
+.page-header p {
+    color: #64748b;
+    margin: 5px 0 0 0;
+    font-size: 0.95rem;
 }
 
-.detalle-actions {
+.header-actions {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.btn-finalizar,
-.btn-cancelar {
-    display: inline-block;
-    padding: 12px 20px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: white;
+/* Tarjeta principal */
+.producto-detalle {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 25px;
+}
+
+/* Resumen rápido */
+.resumen-rapido {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.resumen-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.resumen-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.resumen-valor {
+    font-size: 1.3rem;
     font-weight: 700;
+    color: #1e293b;
 }
 
-.btn-finalizar {
-    background: var(--primary);
+.resumen-valor.precio {
+    color: #059669;
+    font-size: 1.5rem;
 }
 
-.btn-cancelar {
-    background: #6b7280;
+/* Grid de información */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.info-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.info-card-full {
+    grid-column: 1 / -1;
+}
+
+.section-subtitle {
+    color: #475569;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.info-value {
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: right;
+}
+
+.descripcion-texto {
+    color: #334155;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Talla badge */
+.talla-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: white;
+    color: #334155;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Botones */
+.btn-primary {
+    padding: 10px 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-card-full {
+        grid-column: 1;
+    }
+    
+    .resumen-rapido {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .info-value {
+        text-align: left;
+    }
 }
 </style>
 

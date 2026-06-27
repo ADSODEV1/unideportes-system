@@ -1,6 +1,5 @@
 <?php
-// views/mis_pedidos.php
-// Panel para gestionar pedidos de fábrica pendientes de entrega y cobro
+// views/ventas_mayoristas_pendientes.php
 require_once __DIR__ . '/../config/bootstrap.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,25 +12,27 @@ require_login(['admin', 'colaborador', 'vendedor']);
 $busqueda = trim($_GET['buscar'] ?? '');
 
 try {
-    $sql = "SELECT p.id, 
-                   p.detalle,
-                   p.total_pedido,
-                   p.estado,
-                   p.fecha_entrega,
-                   p.cantidad,
+    $sql = "SELECT v.id, 
+                   v.ticket_numero,
+                   v.fecha_entrega,
+                   v.total_venta,
+                   v.abono AS abono_inicial,
+                   v.saldo_pendiente AS saldo_inicial,
+                   v.estado,
                    c.nombre_completo AS cliente_nombre,
                    c.nit_cedula AS cliente_nit,
                    c.telefono AS cliente_telefono,
-                   IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado
-            FROM pedidos p
-            INNER JOIN clientes c ON p.cliente_id = c.id
-            WHERE p.estado != 'Entregado'";
+                   IFNULL((SELECT SUM(pv.monto) FROM pagos_venta pv WHERE pv.venta_id = v.id), 0) AS pagos_adicionales
+            FROM ventas v
+            INNER JOIN clientes c ON v.cliente_id = c.id
+            WHERE v.tipo_venta = 'mayorista' 
+              AND v.estado = 'Pendiente'";
 
     if ($busqueda !== '') {
-        $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda OR p.detalle LIKE :busqueda)";
+        $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda OR v.ticket_numero LIKE :busqueda)";
     }
 
-    $sql .= " ORDER BY p.fecha_entrega ASC";
+    $sql .= " ORDER BY v.fecha_entrega ASC";
     
     $stmt = $pdo->prepare($sql);
     
@@ -40,11 +41,11 @@ try {
     }
     
     $stmt->execute();
-    $pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Exception $e) {
-    $pedidos = [];
-    $error_msg = "Error al cargar la lista de pedidos: " . $e->getMessage();
+    $ventas = [];
+    $error_msg = "Error al cargar ventas mayoristas: " . $e->getMessage();
 }
 
 $status = $_GET['status'] ?? null;
@@ -59,23 +60,19 @@ include(__DIR__ . "/header.php");
         <!-- ENCABEZADO -->
         <div class="page-header">
             <div>
-                <h1>Despacho y Entrega de Pedidos</h1>
-                <p>Gestiona los pedidos en producción, cobra saldos pendientes y efectúa la entrega formal.</p>
+                <h1>Ventas Mayoristas Pendientes</h1>
+                <p>Gestiona las entregas y cobra los saldos pendientes de ventas al por mayor.</p>
             </div>
-            <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'colaborador'): ?>
-                <a href="nuevo_pedido.php" class="btn-primary">
-                    + Nuevo Pedido
-                </a>
-            <?php endif; ?>
+            <a href="venta_mayorista.php" class="btn-primary">
+                + Nueva Venta Mayorista
+            </a>
         </div>
 
         <!-- ALERTAS -->
-        <?php if ($status === 'success'): ?>
-            <div class="alert-success">✅ ¡Pedido entregado con éxito y pago registrado!</div>
-        <?php elseif ($status === 'pago_registrado'): ?>
+        <?php if ($status === 'pago_registrado'): ?>
             <div class="alert-success">✅ Abono registrado exitosamente.</div>
-        <?php elseif ($status === 'error'): ?>
-            <div class="alert-error">⚠️ Hubo un problema al procesar la operación.</div>
+        <?php elseif ($status === 'entregado'): ?>
+            <div class="alert-success">✅ Venta marcada como entregada.</div>
         <?php elseif ($status === 'error_saldo'): ?>
             <div class="alert-error">⚠️ No se puede entregar: aún hay saldo pendiente.</div>
         <?php endif; ?>
@@ -86,115 +83,67 @@ include(__DIR__ . "/header.php");
 
         <!-- BARRA DE BÚSQUEDA -->
         <form method="GET" action="" class="search-form">
-            <div class="search-input-wrapper">
-                <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" 
-                       placeholder="Buscar por cliente, NIT o detalle del pedido..." 
-                       class="search-input">
-                <?php if ($busqueda !== ''): ?>
-                    <a href="mis_pedidos.php" class="search-clear" title="Limpiar filtro">❌</a>
-                <?php endif; ?>
-            </div>
+            <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" 
+                   placeholder="Buscar por cliente, NIT o ticket..." 
+                   class="search-input">
             <button type="submit" class="btn-primary">🔍 Buscar</button>
+            <?php if ($busqueda !== ''): ?>
+                <a href="ventas_mayoristas_pendientes.php" class="btn-secondary">Limpiar</a>
+            <?php endif; ?>
         </form>
 
-        <!-- TABLA DE PEDIDOS -->
+        <!-- TABLA DE VENTAS -->
         <div class="table-container">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Pedido</th>
+                        <th>Ticket</th>
                         <th>Cliente</th>
                         <th>Fecha Entrega</th>
-                        <th>Estado Producción</th>
-                        <th>Total Pedido</th>
+                        <th>Total Venta</th>
                         <th>Estado de Cartera</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($pedidos)): ?>
+                    <?php if (empty($ventas)): ?>
                         <tr>
-                            <td colspan="7" class="no-results">
+                            <td colspan="6" class="no-results">
                                 <span class="empty-icon">📦</span>
-                                <p>No hay pedidos pendientes por entregar.</p>
+                                <p>No hay ventas mayoristas pendientes.</p>
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($pedidos as $pedido): 
-                            $total_pagado = floatval($pedido['total_pagado']);
-                            $saldo_real = $pedido['total_pedido'] - $total_pagado;
-                            
-                            // Determinar clase del estado de producción
-                            $estadoClass = 'estado-default';
-                            $estadoIcono = '⚙️';
-                            switch ($pedido['estado']) {
-                                case 'En Corte':
-                                    $estadoClass = 'estado-corte';
-                                    $estadoIcono = '✂️';
-                                    break;
-                                case 'En Costura':
-                                    $estadoClass = 'estado-costura';
-                                    $estadoIcono = '🧵';
-                                    break;
-                                case 'Terminado':
-                                    $estadoClass = 'estado-terminado';
-                                    $estadoIcono = '✅';
-                                    break;
-                            }
-                            
-                            // Verificar fecha de entrega
-                            $fechaEntrega = strtotime($pedido['fecha_entrega']);
-                            $hoy = strtotime(date('Y-m-d'));
-                            $esVencido = $fechaEntrega < $hoy;
-                            $diasRestantes = ceil(($fechaEntrega - $hoy) / 86400);
+                        <?php foreach ($ventas as $venta): 
+                            $total_abonado = $venta['abono_inicial'] + $venta['pagos_adicionales'];
+                            $saldo_real = $venta['total_venta'] - $total_abonado;
                         ?>
-                            <tr class="<?= $esVencido ? 'fila-vencida' : '' ?>">
+                            <tr>
                                 <td>
-                                    <strong>#<?= $pedido['id'] ?></strong><br>
+                                    <strong><?= htmlspecialchars($venta['ticket_numero']) ?></strong><br>
+                                    <a href="ticket_mayorista.php?id=<?= $venta['id'] ?>" target="_blank" class="link-small">
+                                        Ver Ticket
+                                    </a>
+                                </td>
+                                <td>
+                                    <strong><?= htmlspecialchars($venta['cliente_nombre']) ?></strong><br>
                                     <span class="text-small">
-                                        <?= htmlspecialchars($pedido['cantidad']) ?> unid.<br>
-                                        <a href="ver_ticket_pedido.php?id=<?= $pedido['id'] ?>" target="_blank" class="link-small">
-                                            Ver Ticket
-                                        </a>
+                                        NIT: <?= htmlspecialchars($venta['cliente_nit']) ?><br>
+                                        Tel: <?= htmlspecialchars($venta['cliente_telefono'] ?: 'N/A') ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <strong><?= htmlspecialchars($pedido['cliente_nombre']) ?></strong><br>
-                                    <span class="text-small">
-                                        NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?><br>
-                                        Tel: <?= htmlspecialchars($pedido['cliente_telefono'] ?: 'N/A') ?>
+                                    <span class="fecha-entrega">
+                                        📅 <?= date('d/m/Y', strtotime($venta['fecha_entrega'])) ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($esVencido): ?>
-                                        <span class="fecha-vencida">
-                                            🚨 VENCIDO<br>
-                                            <span class="text-small"><?= date('d/m/Y', $fechaEntrega) ?></span>
-                                        </span>
-                                    <?php elseif ($diasRestantes <= 3): ?>
-                                        <span class="fecha-proxima">
-                                            ⏰ <?= $diasRestantes ?> día(s)<br>
-                                            <span class="text-small"><?= date('d/m/Y', $fechaEntrega) ?></span>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="fecha-normal">
-                                            📅 <?= date('d/m/Y', $fechaEntrega) ?><br>
-                                            <span class="text-small">(<?= $diasRestantes ?> días)</span>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="estado-badge <?= $estadoClass ?>">
-                                        <?= $estadoIcono ?> <?= htmlspecialchars($pedido['estado']) ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <strong>$<?= number_format($pedido['total_pedido'], 0, ',', '.') ?></strong>
+                                    <strong>$<?= number_format($venta['total_venta'], 0, ',', '.') ?></strong>
                                 </td>
                                 <td>
                                     <?php if ($saldo_real > 0): ?>
                                         <span class="badge badge-warning">
-                                            Abonó: $<?= number_format($total_pagado, 0, ',', '.') ?>
+                                            Abonó: $<?= number_format($total_abonado, 0, ',', '.') ?>
                                         </span>
                                         <span class="badge badge-danger">
                                             Debe: $<?= number_format($saldo_real, 0, ',', '.') ?>
@@ -206,16 +155,16 @@ include(__DIR__ . "/header.php");
                                 <td class="text-center">
                                     <div class="actions-vertical">
                                         <?php if ($saldo_real > 0): ?>
-                                            <button onclick="abrirModalPago(<?= $pedido['id'] ?>, <?= $saldo_real ?>)" 
+                                            <button onclick="abrirModalPago(<?= $venta['id'] ?>, <?= $saldo_real ?>)" 
                                                     class="btn-success btn-small">
                                                 💰 Cobrar Abono
                                             </button>
                                         <?php endif; ?>
                                         
-                                        <a href="/unideportes-system/controllers/procesar_entrega_controller.php?id=<?= $pedido['id'] ?>" 
+                                        <a href="../controllers/marcar_venta_mayorista_entregada.php?id=<?= $venta['id'] ?>" 
                                            class="btn-primary btn-small"
-                                           onclick="return confirm('¿Confirmas que deseas registrar el recaudo final y marcar este pedido como ENTREGADO?');">
-                                            📦 Entregar y Liquidar
+                                           onclick="return confirm('¿Confirmas que el cliente recibió su pedido?');">
+                                            📦 Marcar Entregado
                                         </a>
                                     </div>
                                 </td>
@@ -231,9 +180,9 @@ include(__DIR__ . "/header.php");
 <!-- MODAL PARA REGISTRAR ABONO -->
 <div id="modalPago" class="modal-overlay">
     <div class="modal-content">
-        <h3 class="modal-title">💰 Registrar Abono de Pedido</h3>
-        <form id="formPago" method="POST" action="../controllers/registrar_pago_pedido.php">
-            <input type="hidden" name="pedido_id" id="pago_pedido_id">
+        <h3 class="modal-title">💰 Registrar Abono Adicional</h3>
+        <form id="formPago" method="POST" action="../controllers/registrar_pago_venta_mayorista.php">
+            <input type="hidden" name="venta_id" id="pago_venta_id">
             
             <div class="form-group">
                 <label for="pago_monto">Monto a abonar:</label>
@@ -264,7 +213,7 @@ include(__DIR__ . "/header.php");
 
 <style>
 /* ============================================
-   MIS PEDIDOS - ESTILOS SIMPLIFICADOS
+   VENTAS MAYORISTAS PENDIENTES - ESTILOS
    ============================================ */
 
 /* Encabezado */
@@ -320,47 +269,20 @@ include(__DIR__ . "/header.php");
     display: flex;
     gap: 10px;
     margin-bottom: 25px;
-    background: #f8fafc;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.search-input-wrapper {
-    position: relative;
-    flex-grow: 1;
 }
 
 .search-input {
-    width: 100%;
-    padding: 14px 45px 14px 18px;
+    flex: 1;
+    padding: 12px;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     font-size: 1rem;
-    box-sizing: border-box;
-    transition: all 0.2s;
 }
 
 .search-input:focus {
     outline: none;
     border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-}
-
-.search-clear {
-    position: absolute;
-    right: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    text-decoration: none;
-    color: #94a3b8;
-    font-weight: bold;
-    font-size: 1.2rem;
-    transition: color 0.2s;
-}
-
-.search-clear:hover {
-    color: #64748b;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* Tabla */
@@ -404,6 +326,7 @@ include(__DIR__ . "/header.php");
     text-align: center;
 }
 
+/* Texto pequeño */
 .text-small {
     font-size: 0.85rem;
     color: #64748b;
@@ -419,47 +342,12 @@ include(__DIR__ . "/header.php");
     text-decoration: underline;
 }
 
-/* Fila vencida (fondo rojo suave) */
-.fila-vencida {
-    background: #fef2f2 !important;
-}
-
-.fila-vencida:hover {
-    background: #fee2e2 !important;
-}
-
-/* Estados de fecha */
-.fecha-vencida {
+/* Fecha de entrega */
+.fecha-entrega {
     color: #dc2626;
     font-weight: bold;
     font-size: 0.95rem;
 }
-
-.fecha-proxima {
-    color: #f59e0b;
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-.fecha-normal {
-    color: #059669;
-    font-size: 0.95rem;
-}
-
-/* Estados de producción */
-.estado-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: white;
-}
-
-.estado-default { background: #64748b; }
-.estado-corte { background: #f59e0b; }
-.estado-costura { background: #3b82f6; }
-.estado-terminado { background: #10b981; }
 
 /* Badges */
 .badge {
@@ -471,11 +359,6 @@ include(__DIR__ . "/header.php");
     margin-bottom: 4px;
 }
 
-.badge-success {
-    background: #d1fae5;
-    color: #065f46;
-}
-
 .badge-warning {
     background: #fef3c7;
     color: #92400e;
@@ -484,6 +367,11 @@ include(__DIR__ . "/header.php");
 .badge-danger {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
 }
 
 /* Acciones verticales */
@@ -673,8 +561,8 @@ include(__DIR__ . "/header.php");
 </style>
 
 <script>
-function abrirModalPago(pedidoId, saldo) {
-    document.getElementById('pago_pedido_id').value = pedidoId;
+function abrirModalPago(ventaId, saldo) {
+    document.getElementById('pago_venta_id').value = ventaId;
     document.getElementById('pago_monto').value = saldo;
     document.getElementById('pago_monto').max = saldo;
     document.getElementById('modalPago').style.display = 'flex';

@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Restricción estricta: Solo producción y administración
-require_login(['admin', 'colaborador']);
+require_login(['admin']);
 
 $pdo = app();
 $error = $_GET['error'] ?? null;

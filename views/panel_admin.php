@@ -7,29 +7,22 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $pdo = app();
-
-// Seguridad: Solo el rol admin puede ingresar
 require_login(['admin']);
 
 // Consultas dinámicas optimizadas
 try {
-    // 1. Total Colaboradores activos (Vendedores + Administradores)
-    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE estado = 'Activo'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE role IN ('admin', 'vendedor', 'colaborador')");
     $total_colab = $stmt->fetchColumn() ?: 0;
 
-    // 2. Total Productos en el catálogo
-    $stmtProd = $pdo->query("SELECT COUNT(*) FROM productos");
+    $stmtProd = $pdo->query("SELECT COUNT(*) FROM productos WHERE estado = 'activo'");
     $total_productos = $stmtProd->fetchColumn() ?: 0;
 
-    // 3. Cantidad de ventas realizadas el día de HOY
     $stmtVentas = $pdo->query("SELECT COUNT(*) FROM ventas WHERE DATE(fecha_venta) = CURRENT_DATE");
     $ventas_hoy = $stmtVentas->fetchColumn() ?: 0;
 
-    // 4. Productos con existencias críticas en bodega
-    $stmtBajoStock = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5");
+    $stmtBajoStock = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0");
     $productos_bajo_stock = $stmtBajoStock->fetchColumn() ?: 0;
 
-    // 5. Órdenes activas en taller que requieren seguimiento
     $stmtPedidos = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE estado != 'Entregado'");
     $ordenes_taller = $stmtPedidos->fetchColumn() ?: 0;
 
@@ -37,127 +30,112 @@ try {
     $total_colab = $total_productos = $ventas_hoy = $productos_bajo_stock = $ordenes_taller = 0;
 }
 
-// Header del sistema
 include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
-
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
-
-        <div class="page-header header-dashboard">
+        
+        <!-- ENCABEZADO -->
+        <div class="page-header">
             <div>
-                <h1>📊 Panel de Administración</h1>
-                <p>
-                    Centro de control global de Unideportes.
-                    <span class="badge azul">👥 <?= htmlspecialchars($total_colab); ?> Personal</span>
-                    <span class="badge azul">🏷️ <?= htmlspecialchars($total_productos); ?> Items Catálogo</span>
-                </p>
+                <h1>Panel de Administración</h1>
+                <p>Centro de control global de Unideportes.</p>
+            </div>
+            <div class="header-stats">
+                <span class="stat-item"><?= htmlspecialchars($total_colab) ?> Personal</span>
+                <span class="stat-item"><?= htmlspecialchars($total_productos) ?> Productos</span>
             </div>
         </div>
 
+        <!-- ALERTAS -->
         <div class="alert-grid">
-            
-            <div class="alert-card success">
+            <div class="alert-card alert-success">
                 <div class="alert-icon">📈</div>
-                <div class="alert-text">
+                <div class="alert-content">
                     <strong>Actividad Comercial Hoy</strong>
                     <p>Se procesaron <strong><?= htmlspecialchars($ventas_hoy) ?></strong> ventas. Hay <strong><?= htmlspecialchars($ordenes_taller) ?></strong> prendas en taller.</p>
                 </div>
             </div>
 
-            <div class="alert-card <?= $productos_bajo_stock > 0 ? 'danger' : 'neutral' ?>">
+            <div class="alert-card <?= $productos_bajo_stock > 0 ? 'alert-danger' : 'alert-neutral' ?>">
                 <div class="alert-icon">⚠️</div>
-                <div class="alert-text">
-                    <strong>Alertas de Stock de Fábrica</strong>
+                <div class="alert-content">
+                    <strong>Alertas de Stock</strong>
                     <p>
                         <?= $productos_bajo_stock > 0 
-                            ? "¡Atención! Hay <strong>".htmlspecialchars($productos_bajo_stock)."</strong> item(s) con existencias bajas." 
+                            ? "Hay <strong>".htmlspecialchars($productos_bajo_stock)."</strong> producto(s) con existencias bajas." 
                             : "Todos los productos cuentan con stock estable." ?>
                     </p>
                 </div>
                 <?php if ($productos_bajo_stock > 0): ?>
-                    <a href="/unideportes-system/views/inventario.php" class="btn-alert-action">Ver</a>
+                    <a href="/unideportes-system/views/inventario.php" class="btn-alert">Ver Inventario</a>
                 <?php endif; ?>
             </div>
-
         </div>
 
-        <h3 class="section-title">Acciones de Administración</h3>
+        <!-- MENÚ DE ACCIONES -->
+        <h2 class="section-title">Acciones de Administración</h2>
 
-        <div class="menu-maestro">
+        <div class="menu-grid">
             
-            <div class="dashboard-card border-green">
-                <a href="/unideportes-system/views/linea_confeccion.php" class="card-link">
-                    <div class="card-icon">🏭</div>
-                    <div class="card-body">
-                        <h3>Línea de Confección</h3>
-                        <p>Monitorea y cambia las fases de fabricación en taller (Corte, Costura, Terminado).</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/linea_confeccion.php" class="card">
+                <div class="card-icon">🏭</div>
+                <div class="card-body">
+                    <h3>Línea de Confección</h3>
+                    <p>Monitorea y cambia las fases de fabricación en taller.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-emerald">
-                <a href="/unideportes-system/views/mis_pedidos.php" class="card-link">
-                    <div class="card-icon">📦</div>
-                    <div class="card-body">
-                        <h3>Despacho / Entregas</h3>
-                        <p>Busca pedidos por cliente, controla saldos monetarios y gestiona entregas.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/mis_pedidos.php" class="card">
+                <div class="card-icon">📦</div>
+                <div class="card-body">
+                    <h3>Despacho / Entregas</h3>
+                    <p>Controla saldos y gestiona entregas de pedidos.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-red">
-                <a href="/unideportes-system/views/nueva_venta.php" class="card-link">
-                    <div class="card-icon">🛒</div>
-                    <div class="card-body">
-                        <h3>Realizar Venta</h3>
-                        <p>Abre el POS de mostrador para facturar uniformes listos de stock común.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/nueva_venta.php" class="card">
+                <div class="card-icon">🛒</div>
+                <div class="card-body">
+                    <h3>Realizar Venta</h3>
+                    <p>Abre el POS para facturar productos de stock.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-slate">
-                <a href="/unideportes-system/views/inventario.php" class="card-link">
-                    <div class="card-icon">🎽</div>
-                    <div class="card-body">
-                        <h3>Control de Productos</h3>
-                        <p>Edita precios bases, añade nuevas referencias y gestiona tallajes de fábrica.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/inventario.php" class="card">
+                <div class="card-icon">🎽</div>
+                <div class="card-body">
+                    <h3>Control de Productos</h3>
+                    <p>Edita precios, añade referencias y gestiona stock.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-blue">
-                <a href="/unideportes-system/views/clientes.php" class="card-link">
-                    <div class="card-icon">👥</div>
-                    <div class="card-body">
-                        <h3>Base de Clientes</h3>
-                        <p>Administración de historiales, NITs, bases de datos comerciales y estados.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/clientes.php" class="card">
+                <div class="card-icon">👥</div>
+                <div class="card-body">
+                    <h3>Base de Clientes</h3>
+                    <p>Administra historiales y datos comerciales.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-indigo">
-                <a href="/unideportes-system/views/admin_usuarios.php" class="card-link">
-                    <div class="card-icon">👤</div>
-                    <div class="card-body">
-                        <h3>Gestionar Personal</h3>
-                        <p>Alta de cuentas de trabajadores, asignación de roles y reseteo de claves.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/admin_usuarios.php" class="card">
+                <div class="card-icon">👤</div>
+                <div class="card-body">
+                    <h3>Gestionar Personal</h3>
+                    <p>Crea cuentas, asigna roles y resetea claves.</p>
+                </div>
+            </a>
 
-            <div class="dashboard-card border-amber full-width-card">
-                <a href="/unideportes-system/views/reportes_ventas.php" class="card-link link-wide">
-                    <div class="card-icon icon-small">📜</div>
-                    <div class="card-body">
-                        <h3>Reportes Financieros y Auditoría Global</h3>
-                        <p>Inspecciona ingresos brutos diarios, históricos y rendimiento comercial individual por vendedor.</p>
-                    </div>
-                </a>
-            </div>
+            <a href="/unideportes-system/views/reportes_ventas.php" class="card">
+                <div class="card-icon">📜</div>
+                <div class="card-body">
+                    <h3>Reportes Financieros</h3>
+                    <p>Inspecciona ingresos y rendimiento comercial.</p>
+                </div>
+            </a>
 
         </div>
 
@@ -165,77 +143,201 @@ include(__DIR__ . "/header.php");
 </div>
 
 <style>
-/* Estilos Semánticos y Limpios para el Dashboard */
-.header-dashboard {
-    background: var(--card);
+/* ============================================
+   PANEL ADMIN - ESTILOS SIMPLIFICADOS
+   ============================================ */
+
+/* Encabezado */
+.page-header {
+    background: #f8fafc;
     padding: 20px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    margin-bottom: 30px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
+
+.page-header h1 {
+    color: #1e293b;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.page-header p {
+    color: #64748b;
+    margin: 5px 0 0 0;
+    font-size: 0.95rem;
+}
+
+.header-stats {
+    display: flex;
+    gap: 15px;
+}
+
+.stat-item {
+    background: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+/* Grid de alertas */
 .alert-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
-    margin-bottom: 35px;
+    margin-bottom: 30px;
 }
+
 .alert-card {
-    border: 1px solid var(--border);
-    padding: 15px;
-    border-radius: 10px;
+    padding: 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     gap: 15px;
+    position: relative;
 }
-.alert-card.success { background: #f0fdf4; border-left: 4px solid var(--success); color: #166534; }
-.alert-card.danger { background: #fef2f2; border-left: 4px solid var(--danger); color: #991b1b; }
-.alert-card.neutral { background: #f8fafc; border-left: 4px solid var(--text-light); color: var(--text); }
-.alert-icon { font-size: 1.6rem; }
-.alert-text p { font-size: 0.85rem; margin: 2px 0 0 0; opacity: 0.9; }
 
-.btn-alert-action {
-    background: var(--danger);
+.alert-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-content strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+.alert-content p {
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    border-left: 4px solid #10b981;
+    color: #065f46;
+}
+
+.alert-danger {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+}
+
+.alert-neutral {
+    background: #f8fafc;
+    border-left: 4px solid #94a3b8;
+    color: #475569;
+}
+
+.btn-alert {
+    background: #ef4444;
     color: white;
     text-decoration: none;
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 600;
-    margin-left: auto;
+    white-space: nowrap;
+    transition: background 0.2s;
 }
-.section-title { color: var(--text-light); font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
 
-.menu-maestro {
+.btn-alert:hover {
+    background: #dc2626;
+}
+
+/* Título de sección */
+.section-title {
+    color: #475569;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Grid de tarjetas */
+.menu-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
 }
-.dashboard-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.dashboard-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-}
-.border-green  { border-top: 4px solid #16a34a; }
-.border-emerald{ border-top: 4px solid var(--success); }
-.border-red    { border-top: 4px solid var(--primary); }
-.border-slate  { border-top: 4px solid var(--text-light); }
-.border-blue   { border-top: 4px solid #0284c7; }
-.border-indigo { border-top: 4px solid #4f46e5; }
-.border-amber  { border-top: 4px solid var(--warning); }
 
-.card-link { display: flex; align-items: flex-start; padding: 24px 20px; text-decoration: none; gap: 15px; }
-.card-icon { font-size: 2rem; line-height: 1; }
-.card-body h3 { margin: 0; font-size: 1.05rem; color: var(--navy); font-weight: 600; }
-.card-body p { margin: 6px 0 0 0; font-size: 0.85rem; color: var(--text-light); line-height: 1.4; }
+/* Tarjetas */
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
 
-.full-width-card { grid-column: 1 / -1; }
-.link-wide { padding: 15px 22px; }
-.icon-small { font-size: 1.5rem; }
+.card:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+    transform: translateY(-2px);
+}
+
+.card-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.card-body h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.card-body p {
+    margin: 6px 0 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-stats {
+        justify-content: center;
+    }
+    
+    .alert-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .menu-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <?php include(__DIR__ . "/footer.php"); ?>

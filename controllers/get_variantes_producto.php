@@ -1,12 +1,23 @@
 <?php
+// Agrega esto al inicio para debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 require_once __DIR__ . '/../config/bootstrap.php';
-
 header('Content-Type: application/json; charset=UTF-8');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Método no permitido.']);
+// Verificar conexión a BD
+try {
+    $pdo = app();
+    // Test de conexión
+    $pdo->query('SELECT 1');
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Error de conexión a base de datos',
+        'details' => $e->getMessage()
+    ]);
     exit();
 }
 

@@ -1,16 +1,12 @@
 <?php
-// 1. Inicializar entorno global y protección
+// views/mis_ventas.php
 require_once __DIR__ . '/../config/bootstrap.php';
 require_login(['vendedor', 'colaborador', 'admin']);
 
 $pdo = app();
-$pagina_actual = basename($_SERVER['PHP_SELF']);
-$base = "/unideportes-system";
+$vendedor_id = $_SESSION['user_id'] ?? 0;
 
-// Obtener el ID del vendedor desde la sesión activa
-$vendedor_id = $_SESSION['user_id'] ?? 0; 
-
-// 2. Consulta para las tarjetas de resumen del vendedor logueado
+// 1. CONSULTA PARA TARJETAS DE RESUMEN
 try {
     $sqlResumen = "SELECT 
                     COUNT(*) as total_ventas, 
@@ -25,7 +21,7 @@ try {
     $resumen = ['total_ventas' => 0, 'total_ingresos' => 0, 'promedio_venta' => 0];
 }
 
-// 3. Consulta para la tabla histórica de transacciones del vendedor
+// 2. CONSULTA PARA HISTORIAL DE VENTAS
 try {
     $sqlVentas = "SELECT v.*, c.nombre_completo as cliente_nombre 
                   FROM ventas v
@@ -46,74 +42,80 @@ include(__DIR__ . "/header.php");
     <?php include(__DIR__ . "/sidebar_control.php"); ?>
 
     <main class="main-content-panel">
-        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        
+        <!-- ENCABEZADO -->
+        <div class="page-header">
             <div>
                 <h1>Mis Ventas</h1>
-                <p style="color: #64748b;">Historial completo de transacciones realizadas por ti.</p>
+                <p>Historial completo de transacciones realizadas por ti.</p>
             </div>
-            <a href="panel_vendedor.php" class="btn-secondary">Volver al Panel</a>
+            <a href="panel_vendedor.php" class="btn-secondary">← Volver al Panel</a>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #3b82f6;">
-                <h3 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #64748b;">Total Ventas</h3>
-                <p style="font-size: 1.8rem; font-weight: bold; margin: 0;"><?= $resumen['total_ventas'] ?></p>
+        <!-- TARJETAS DE RESUMEN -->
+        <div class="stats-grid">
+            <div class="stat-card stat-blue">
+                <h3>Total Ventas</h3>
+                <p><?= $resumen['total_ventas'] ?></p>
             </div>
-            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #10b981;">
-                <h3 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #64748b;">Total Ingresos</h3>
-                <p style="font-size: 1.8rem; font-weight: bold; margin: 0;">$<?= number_format($resumen['total_ingresos'], 0, ',', '.') ?></p>
+            <div class="stat-card stat-green">
+                <h3>Total Ingresos</h3>
+                <p>$<?= number_format($resumen['total_ingresos'], 0, ',', '.') ?></p>
             </div>
-            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #f59e0b;">
-                <h3 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #64748b;">Promedio Venta</h3>
-                <p style="font-size: 1.5rem; font-weight: bold; margin: 0;">$<?= number_format($resumen['promedio_venta'], 0, ',', '.') ?></p>
+            <div class="stat-card stat-amber">
+                <h3>Promedio Venta</h3>
+                <p>$<?= number_format($resumen['promedio_venta'], 0, ',', '.') ?></p>
             </div>
         </div>
 
-        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <table class="data-table" style="width: 100%; border-collapse: collapse;">
-                <thead style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+        <!-- TABLA DE HISTORIAL -->
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th style="padding: 15px; text-align: left;">Ticket</th>
-                        <th style="padding: 15px; text-align: left;">Fecha/Hora</th>
-                        <th style="padding: 15px; text-align: left;">Cliente</th>
-                        <th style="padding: 15px; text-align: left;">Método</th>
-                        <th style="padding: 15px; text-align: right;">Total</th>
-                        <th style="padding: 15px; text-align: center;">Acción</th>
+                        <th>Ticket</th>
+                        <th>Fecha/Hora</th>
+                        <th>Cliente</th>
+                        <th>Método</th>
+                        <th class="text-right">Total</th>
+                        <th class="text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (!empty($ventas)): ?>
                         <?php foreach ($ventas as $venta): ?>
-                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="padding: 15px; font-weight: 600; color: #1e293b;">
-                                    <?= htmlspecialchars($venta['ticket_numero'] ?? 'S/N') ?>
+                            <tr>
+                                <td>
+                                    <strong><?= htmlspecialchars($venta['ticket_numero'] ?? 'S/N') ?></strong>
                                 </td>
-                                <td style="padding: 15px; color: #64748b;">
-                                    <?= date('d/m/Y H:i', strtotime($venta['fecha_venta'])) ?>
+                                <td>
+                                    <span class="text-small">
+                                        <?= date('d/m/Y H:i', strtotime($venta['fecha_venta'])) ?>
+                                    </span>
                                 </td>
-                                <td style="padding: 15px;">
+                                <td>
                                     <?= htmlspecialchars($venta['cliente_nombre']) ?>
                                 </td>
-                                <td style="padding: 15px;">
-                                    <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+                                <td>
+                                    <span class="badge badge-info">
                                         <?= htmlspecialchars($venta['metodo_pago']) ?>
                                     </span>
                                 </td>
-                                <td style="padding: 15px; text-align: right; font-weight: bold; color: #1e293b;">
-                                    $<?= number_format($venta['total_venta'], 0, ',', '.') ?>
+                                <td class="text-right">
+                                    <strong>$<?= number_format($venta['total_venta'], 0, ',', '.') ?></strong>
                                 </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <a href="ticket_actual.php?id=<?= $venta['id'] ?>" 
-                                       style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
-                                       Ver Ticket
+                                <td class="text-center">
+                                    <a href="ticket_actual.php?id=<?= $venta['id'] ?>" class="link-action">
+                                        🔎 Ver Ticket
                                     </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" style="padding: 40px; text-align: center; color: #94a3b8;">
-                                No has realizado ventas aún.
+                            <td colspan="6" class="no-results">
+                                <span class="empty-icon">📊</span>
+                                <p>No has realizado ventas aún.</p>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -122,5 +124,103 @@ include(__DIR__ . "/header.php");
         </div>
     </main>
 </div>
+
+<style>
+/* ============================================
+   MIS VENTAS - ESTILOS SIMPLIFICADOS
+   ============================================ */
+
+/* Grid de estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-left: 4px solid;
+}
+
+.stat-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #1e293b;
+}
+
+.stat-blue {
+    border-left-color: #2563eb;
+}
+
+.stat-green {
+    border-left-color: #10b981;
+}
+
+.stat-amber {
+    border-left-color: #f59e0b;
+}
+
+/* Utilidades de texto */
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-small {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* Enlaces de acción */
+.link-action {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.link-action:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card p {
+        font-size: 1.5rem;
+    }
+    
+    .data-table {
+        font-size: 0.85rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 10px 8px;
+    }
+}
+</style>
 
 <?php include(__DIR__ . "/footer.php"); ?>

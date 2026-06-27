@@ -1,5 +1,5 @@
 <?php
-// index.php
+// public/index.php - Página de inicio de sesión
 session_start();
 require_once __DIR__ . '/../config/connection.php';
 ?>
@@ -12,39 +12,37 @@ require_once __DIR__ . '/../config/connection.php';
     <link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=1">
     
     <style>
-        .logo-img {
-            max-width: 150px;
-            height: auto;
-            margin-bottom: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
+        /* ============================================
+           PÁGINA DE LOGIN - ESTILOS SIMPLIFICADOS
+           ============================================ */
         
         body {
-            background: #f0f2f5; 
+            background: #f8fafc;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; 
+            justify-content: space-between;
             align-items: center;
             font-family: Arial, sans-serif;
             margin: 0;
         }
 
+        /* Contenedor principal */
         .login-container {
             background: white;
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             max-width: 900px;
             width: 100%;
             display: flex;
             flex-wrap: wrap;
             gap: 30px;
-            margin: auto; /* Centra el contenedor verticalmente */
+            margin: auto;
+            border: 1px solid #e2e8f0;
         }
 
+        /* Columna izquierda: Logo */
         .hero-card {
             flex: 1;
             min-width: 250px;
@@ -55,81 +53,210 @@ require_once __DIR__ . '/../config/connection.php';
             align-items: center;
         }
 
+        .logo-img {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .hero-card h1 {
+            margin: 10px 0 5px;
+            font-size: 1.8rem;
+            color: #1e293b;
+        }
+
+        .hero-card h1 span {
+            color: #E8310E;
+        }
+
+        .subtitulo {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Columna derecha: Formulario */
         .login-wrapper {
             flex: 1;
             min-width: 250px;
         }
 
-        .login-box, .welcome-box {
-            background: #f9fafb;
+        .login-box,
+        .welcome-box {
+            background: #f8fafc;
             padding: 25px;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e2e8f0;
         }
 
-        h1 { margin: 10px 0 5px; font-size: 1.8rem; }
-        .subtitulo { color: #666; font-size: 0.9rem; margin-top: 0; }
-        
-        button.btn-login, a.btn-panel {
-            background: #2563eb; 
+        .login-box h3,
+        .welcome-box h3 {
+            margin: 0 0 15px 0;
+            color: #1e293b;
+            font-size: 1.2rem;
+        }
+
+        /* Formulario */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Botones */
+        .btn-login,
+        .btn-panel {
+            background: #2563eb;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
             text-decoration: none;
             display: block;
             width: 100%;
             text-align: center;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1rem;
             box-sizing: border-box;
+            transition: background 0.2s;
         }
-        
-        button.btn-login:hover, a.btn-panel:hover {
+
+        .btn-login:hover,
+        .btn-panel:hover {
             background: #1d4ed8;
         }
 
-        .error-msg {
+        /* Mensajes */
+        .alert-error {
             background: #fee2e2;
-            color: #b91c1c;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 0.85rem;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #ef4444;
         }
 
-        /* --- ESTILOS DEL FOOTER COMPLETO --- */
-        footer.main-footer {
-            margin-top: auto; 
-            padding: 20px 0; 
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
             text-align: center;
-            color: #666;
-            font-size: 0.85rem;
-            width: 100%; 
-            background-color: #ffffff; 
-            border-top: 1px solid #e5e7eb;
+            margin-top: 15px;
+            border-left: 4px solid #10b981;
         }
 
+        /* Enlaces */
+        .link-recovery {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .link-recovery:hover {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        .link-logout {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .link-logout:hover {
+            color: #dc2626;
+        }
+
+        /* Welcome box */
+        .welcome-info {
+            margin: 10px 0;
+            color: #475569;
+        }
+
+        .welcome-info strong {
+            color: #1e293b;
+        }
+
+        /* Footer */
+        .main-footer {
+            margin-top: auto;
+            padding: 20px 0;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+            width: 100%;
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .main-footer p {
+            margin: 0;
+        }
+
+        .main-footer .version {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        /* Responsive */
         @media (max-width: 700px) {
-            .login-container { 
-                flex-direction: column; 
+            .login-container {
+                flex-direction: column;
                 padding: 20px;
                 gap: 15px;
                 margin: 20px 10px;
-                width: 95%; 
+                width: 95%;
             }
-            
-            .hero-card, .login-wrapper { 
-                width: 100%; 
+
+            .hero-card,
+            .login-wrapper {
+                width: 100%;
                 min-width: 100%;
             }
-            
-            .login-box, .welcome-box {
+
+            .login-box,
+            .welcome-box {
                 padding: 15px;
             }
 
-            h1 {
+            .hero-card h1 {
                 font-size: 1.5rem;
             }
         }
@@ -137,74 +264,78 @@ require_once __DIR__ . '/../config/connection.php';
 </head>
 <body>
 
-<div class="login-container">
-    <div class="hero-card">
-        <img src="/unideportes-system/public/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
+    <div class="login-container">
         
-        <h1>UNI<span style="color: #E8310E;">DEPORTES</span></h1>
-        <p class="subtitulo">Sistema de gestión de inventarios</p>
-    </div>
+        <!-- COLUMNA IZQUIERDA: LOGO -->
+        <div class="hero-card">
+            <img src="/unideportes-system/public/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
+            <h1>UNI<span>DEPORTES</span></h1>
+            <p class="subtitulo">Sistema de gestión interno</p>
+        </div>
 
-    <?php if (!isset($_SESSION['username'])): ?>
-        <div class="login-wrapper">
-            <div class="login-box">
-                <h3 style="margin-top: 0; color: #333;">Ingreso al Sistema</h3>
-                <form action="/unideportes-system/controllers/auth.php" method="POST">
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;">Usuario:</label>
-                        <input type="text" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                    </div>
+        <!-- COLUMNA DERECHA: FORMULARIO O BIENVENIDA -->
+        <?php if (!isset($_SESSION['username'])): ?>
+            <!-- USUARIO NO LOGUEADO: Mostrar formulario -->
+            <div class="login-wrapper">
+                <div class="login-box">
+                    <h3>Ingresar con usuario y contraseña</h3>
+                    <form action="/unideportes-system/controllers/auth.php" method="POST">
+                        <div class="form-group">
+                            <label for="username">Usuario:</label>
+                            <input type="text" name="username" id="username" required class="form-input">
+                        </div>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;">Contraseña:</label>
-                        <input type="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                    </div>
+                        <div class="form-group">
+                            <label for="password">Contraseña:</label>
+                            <input type="password" name="password" id="password" required class="form-input">
+                        </div>
 
-                    <button type="submit" name="accion" value="login" class="btn-login">ENTRAR</button>
-                </form>
+                        <button type="submit" name="accion" value="login" class="btn-login">ENTRAR</button>
+                    </form>
 
-                <?php if (isset($_GET['error'])): ?>
-                    <div class="error-msg">⚠️ Datos incorrectos. Intente de nuevo.</div>
-                <?php endif; ?>
-                
-                <?php if (isset($_GET['success']) && $_GET['success'] === 'reset_completado'): ?>
-                    <div class="error-msg" style="background: #d1fae5; color: #065f46; border: 1px solid #10b981;">
-                        ✅ Contraseña restablecida correctamente. Ingresa con tu nueva contraseña.
-                    </div>
-                <?php endif; ?>
+                    <?php if (isset($_GET['error'])): ?>
+                        <div class="alert-error">⚠️ Datos incorrectos. Intente de nuevo.</div>
+                    <?php endif; ?>
 
-                <div style="margin-top: 15px; text-align: center;">
-                    <a href="/unideportes-system/views/recuperar_password.php" style="color: #666; font-size: 0.9rem; text-decoration: none;">
+                    <?php if (isset($_GET['success']) && $_GET['success'] === 'reset_completado'): ?>
+                        <div class="alert-success">
+                            ✅ Contraseña restablecida correctamente. Ingresa con tu nueva contraseña.
+                        </div>
+                    <?php endif; ?>
+
+                    <a href="/unideportes-system/views/recuperar_password.php" class="link-recovery">
                         ¿Olvidaste tu contraseña?
                     </a>
                 </div>
             </div>
-        </div>
 
-    <?php else: ?>
-        <div class="login-wrapper">
-            <div class="welcome-box">
-                <h3 style="margin-top: 0; color: #333;">¡Hola de nuevo!</h3>
-                <p style="margin: 10px 0;">Sesión activa: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></p>
-                
-                <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">
-                    IR AL PANEL
-                </a>
-                
-                <p style="margin-top: 15px; text-align: center;">
-                    <a href="/unideportes-system/controllers/auth.php?logout=1" style="color: #666; text-decoration: none; font-size: 0.9rem;">Cerrar sesión</a>
-                </p>
+        <?php else: ?>
+            <!-- USUARIO LOGUEADO: Mostrar bienvenida -->
+            <div class="login-wrapper">
+                <div class="welcome-box">
+                    <h3>¡Hola de nuevo!</h3>
+                    <p class="welcome-info">
+                        Sesión activa: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
+                    </p>
+
+                    <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">
+                        IR AL PANEL
+                    </a>
+
+                    <a href="/unideportes-system/controllers/auth.php?logout=1" class="link-logout">
+                        Cerrar sesión
+                    </a>
+                </div>
             </div>
-        </div>
-    <?php endif; ?>
-</div>
-
-<footer class="main-footer">
-    <div class="footer-content">
-        <p>&copy; <?php echo date("Y"); ?> <strong>Unideportes</strong>. Todos los derechos reservados.</p>
-        <p style="font-size: 0.75rem; color: #999; margin-top: 5px;">Sistema de Control de Inventario y Ventas v1.2</p>
+        <?php endif; ?>
+        
     </div>
-</footer>
+
+    <!-- FOOTER -->
+    <footer class="main-footer">
+        <p>&copy; <?php echo date("Y"); ?> <strong>Unideportes</strong>. Todos los derechos reservados.</p>
+        <p class="version">Sistema de Control de Inventario y Ventas v1.2</p>
+    </footer>
 
 </body>
 </html>

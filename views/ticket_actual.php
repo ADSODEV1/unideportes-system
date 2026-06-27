@@ -1,227 +1,367 @@
 <?php
 // views/ticket_actual.php
-session_start();
 require_once __DIR__ . '/../config/bootstrap.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_login(['admin', 'colaborador', 'vendedor']);
+
 $pdo = app();
+$venta_id = intval($_GET['id'] ?? 0);
 
-// Asegurar que el usuario tiene permisos para ver tickets
-require_login(['vendedor', 'colaborador', 'admin']);
+$stmt = $pdo->prepare("SELECT v.*, c.nombre_completo, c.nit_cedula, c.telefono,
+IFNULL(NULLIF(CONCAT(u.name, ' ', u.lastname), ' '), u.username) AS vendedor
+FROM ventas v
+INNER JOIN clientes c ON v.cliente_id = c.id
+INNER JOIN usuarios u ON v.vendedor_id = u.id
+WHERE v.id = ?");
+$stmt->execute([$venta_id]);
+$venta = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// 1. OBTENER Y VALIDAR EL ID DE LA VENTA DESDE LA URL
-$venta_id = !empty($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($venta_id <= 0) {
-    header("Location: /unideportes-system/views/nueva_venta.php?error=" . urlencode("ID de ticket inválido o no especificado."));
-    exit();
+if (!$venta) {
+    die("El ticket solicitado no existe.");
 }
 
-try {
-    // 2. CONSULTAR LOS DATOS MAESTROS DE LA VENTA
-    $sqlVenta = "SELECT v.*, 
-                        c.nombre_completo AS cliente, 
-                        c.nit_cedula AS cliente_documento, 
-                        c.telefono AS cliente_telefono,
-                        IFNULL(NULLIF(CONCAT(u.name, ' ', u.lastname), ' '), u.username) AS vendedor
-                 FROM ventas v
-                 INNER JOIN clientes c ON v.cliente_id = c.id
-                 INNER JOIN usuarios u ON v.vendedor_id = u.id
-                 WHERE v.id = ?";
-                 
-    $stmtVenta = $pdo->prepare($sqlVenta);
-    $stmtVenta->execute([$venta_id]);
-    $venta = $stmtVenta->fetch(PDO::FETCH_ASSOC);
+$stmtDetalles = $pdo->prepare("SELECT dv.*, p.nombre, p.referencia
+FROM detalle_venta dv
+INNER JOIN productos p ON dv.producto_id = p.id
+WHERE dv.venta_id = ?");
+$stmtDetalles->execute([$venta_id]);
+$detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
 
-    // Si la venta no existe en la BD, detenemos el proceso de forma segura
-    if (!$venta) {
-        throw new Exception("El ticket solicitado no existe en el sistema.");
-    }
+$rol = $_SESSION['role'] ?? 'vendedor';
+$panel_volver = ($rol === 'admin') ? 'panel_admin.php' : 'panel_vendedor.php';
 
-    // 3. CONSULTAR EL DETALLE DE LOS PRODUCTOS COMPRADOS
-    $sqlDetalles = "SELECT dv.*, p.nombre, p.referencia 
-                    FROM detalle_venta dv
-                    INNER JOIN productos p ON dv.producto_id = p.id
-                    WHERE dv.venta_id = ?";
-                    
-    $stmtDetalles = $pdo->prepare($sqlDetalles);
-    $stmtDetalles->execute([$venta_id]);
-    $detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (Exception $e) {
-    header("Location: /unideportes-system/views/nueva_venta.php?error=" . urlencode($e->getMessage()));
-    exit();
-}
-
-// 4. CONFIGURACIÓN DEL ENTORNO VISUAL
-$pagina_actual = basename($_SERVER['PHP_SELF']);
-$base = "/unideportes-system";
 include(__DIR__ . "/header.php");
 ?>
 
 <style>
+/* Ticket simplificado - Proyecto SENA */
+.ticket-container {
+    max-width: 800px;
+    margin: 20px auto;
+    background: white;
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.ticket-header {
+    text-align: center;
+    padding: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 25px;
+}
+
+.ticket-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #1e293b;
+    letter-spacing: 2px;
+}
+
+.ticket-header p {
+    margin: 5px 0 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.info-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.info-section div {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-section strong {
+    color: #475569;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.info-section span {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.9rem;
+}
+
+.products-table thead tr {
+    background: #1e293b;
+    color: white;
+    text-align: left;
+}
+
+.products-table th {
+    padding: 10px 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.products-table td {
+    padding: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.products-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.totals-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.total-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 0.95rem;
+}
+
+.total-line.final {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2563eb;
+    border-top: 2px solid #e2e8f0;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.delivery-info {
+    background: #eff6ff;
+    border-left: 3px solid #3b82f6;
+    padding: 12px;
+    margin: 15px 0;
+    font-size: 0.9rem;
+}
+
+.footer-legal {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.ticket-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-ticket {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-print {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-print:hover {
+    background: #1d4ed8;
+}
+
+.btn-back {
+    background: #64748b;
+    color: white;
+}
+
+.btn-back:hover {
+    background: #475569;
+}
+
+.btn-new {
+    background: #10b981;
+    color: white;
+}
+
+.btn-new:hover {
+    background: #059669;
+}
+
 @media print {
-    /* Ocultar elementos globales innecesarios para el soporte físico */
-    header, 
-    .sidebar-container, 
-    #sidebar,
-    .sidebar,
-    .alert,
-    .action-footer,
-    footer,
-    nav {
+    .ticket-actions, header, .sidebar-panel, footer, nav {
         display: none !important;
     }
-    
-    /* Reajustar contenedores para ocupar el 100% de la hoja */
-    .container, 
-    .admin-layout, 
-    .main-content-panel {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        box-shadow: none !important;
-        background: transparent !important;
+    .ticket-container {
+        border: none;
+        padding: 0;
+        max-width: 100%;
+        margin: 0;
     }
+    @page {
+        size: letter;
+        margin: 10mm;
+    }
+}
 
-    .page-header h1 {
-        font-size: 1.6rem !important;
-        margin-top: 10px !important;
+@media (max-width: 768px) {
+    .info-section {
+        grid-template-columns: 1fr;
     }
-
-    /* Forzar fondo blanco y bordes limpios en la tabla */
-    .table-responsive {
-        border: none !important;
-        padding: 0 !important;
-        background: #fff !important;
+    .ticket-actions {
+        flex-direction: column;
     }
-
-    /* Mantener legibilidad cromática en navegadores basados en Webkit/Blink */
-    body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        font-size: 11pt !important;
-    }
-    
-    .data-table th {
-        background-color: #f1f5f9 !important;
-        color: #000000 !important;
+    .btn-ticket {
+        width: 100%;
+        text-align: center;
     }
 }
 </style>
 
 <div class="container admin-layout">
     <?php include(__DIR__ . "/sidebar_control.php"); ?>
-
+    
     <main class="main-content-panel">
-        <div class="page-header" style="margin-bottom: 20px;">
-            <h1>Ticket de Venta</h1>
-            <p>Confirmación detallada de la transacción registrada.</p>
+        
+        <div class="ticket-actions">
+            <button onclick="window.print()" class="btn-ticket btn-print">🖨️ Imprimir</button>
+            <a href="<?= $panel_volver ?>" class="btn-ticket btn-back">← Volver</a>
+            <a href="/unideportes-system/views/nueva_venta.php" class="btn-ticket btn-new">+ Nueva Venta</a>
         </div>
 
-        <div class="alert alert-success" style="margin-bottom: 20px;">
-            Venta registrada exitosamente. Este es tu comprobante.
-        </div>
-
-        <div class="table-responsive" style="margin-bottom: 25px; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;">
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between;">
-                
-                <div style="min-width: 220px; flex: 1;">
-                    <h3 style="color: #1e293b; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 2px solid #c91a25; padding-bottom: 4px;">Datos de la Venta</h3>
-                    <p><strong>Ticket:</strong> <?= htmlspecialchars($venta['ticket_numero'] ?? 'T' . str_pad($venta['id'], 6, '0', STR_PAD_LEFT)) ?></p>
-                    <p><strong>Fecha:</strong> <?= date('d/m/Y H:i', strtotime($venta['fecha_venta'])) ?></p>
-                    <p><strong>Vendedor:</strong> <?= htmlspecialchars($venta['vendedor']) ?></p>
-                </div>
-                
-                <div style="min-width: 220px; flex: 1;">
-                    <h3 style="color: #1e293b; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 2px solid #c91a25; padding-bottom: 4px;">Cliente</h3>
-                    <p><strong><?= htmlspecialchars($venta['cliente']) ?></strong></p>
-                    <p><strong>NIT/Cédula:</strong> <?= htmlspecialchars($venta['cliente_documento']) ?></p>
-                    <p><strong>Teléfono:</strong> <?= htmlspecialchars($venta['cliente_telefono'] ?: '-') ?></p>
-                </div>
-
-                <div style="min-width: 220px; flex: 1;">
-                    <h3 style="color: #1e293b; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 2px solid #c91a25; padding-bottom: 4px;">Modalidad de Entrega</h3>
-                    <p><strong>Tipo:</strong> <?= htmlspecialchars($venta['tipo_entrega'] ?? 'Tienda') ?></p>
-                    <?php if (($venta['tipo_entrega'] ?? 'Tienda') === 'Domicilio'): ?>
-                        <p style="margin-bottom: 2px;"><strong>Dirección:</strong> <?= htmlspecialchars($venta['direccion_entrega'] ?? '-') ?></p>
-                        <p style="margin-bottom: 2px;"><strong>Barrio:</strong> <?= htmlspecialchars($venta['barrio_entrega'] ?? '-') ?></p>
-                        <p style="margin-bottom: 2px;"><strong>Ciudad:</strong> <?= htmlspecialchars($venta['ciudad_entrega'] ?? 'Sogamoso') ?></p>
-                        <?php if (!empty($venta['observaciones_entrega'])): ?>
-                            <p style="margin-top: 5px; font-size: 0.9rem; color: #64748b;"><em>Obs: <?= htmlspecialchars($venta['observaciones_entrega']) ?></em></p>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <p style="color: #64748b; font-size: 0.9rem; margin-top: 5px;"><em>Retiro físico en la tienda de Unideportes.</em></p>
-                    <?php endif; ?>
-                </div>
-                
-                <div style="min-width: 220px; flex: 1;">
-                    <h3 style="color: #1e293b; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 2px solid #c91a25; padding-bottom: 4px;">Pago</h3>
-                    <p><strong>Método:</strong> <?= htmlspecialchars($venta['metodo_pago']) ?></p>
-                    <?php if (!empty($venta['tipo_transferencia'])): ?>
-                        <p><strong>Plataforma:</strong> <?= htmlspecialchars($venta['tipo_transferencia']) ?></p>
-                    <?php endif; ?>
-                    <p><strong>Cambio Entregado:</strong> $<?= number_format($venta['cambio'], 2, ',', '.') ?></p>
-                </div>
+        <div class="ticket-container">
+            
+            <!-- HEADER -->
+            <div class="ticket-header">
+                <h1>UNIDEPORTES</h1>
+                <p>Sogamoso, Boyacá | Tel: 3185509709</p>
+                <p style="margin-top: 10px; font-weight: 600; color: #1e293b;">COMPROBANTE DE VENTA</p>
             </div>
-        </div>
 
-        <div class="table-responsive">
-            <table class="data-table">
+            <!-- INFORMACIÓN DE VENTA Y CLIENTE -->
+            <div class="info-section">
+                <div>
+                    <strong>Venta</strong>
+                    <span><?= htmlspecialchars($venta['codigo_descriptivo'] ?? 'VEN-' . str_pad($venta['id'], 6, '0', STR_PAD_LEFT)) ?></span>
+                </div>
+                <div>
+                    <strong>Fecha</strong>
+                    <span><?= date('d/m/Y H:i', strtotime($venta['fecha_venta'])) ?></span>
+                </div>
+                <div>
+                    <strong>Cliente</strong>
+                    <span><?= htmlspecialchars($venta['nombre_completo']) ?></span>
+                </div>
+                <div>
+                    <strong>Documento</strong>
+                    <span><?= htmlspecialchars($venta['nit_cedula']) ?></span>
+                </div>
+                <div>
+                    <strong>Vendedor</strong>
+                    <span><?= htmlspecialchars($venta['vendedor']) ?></span>
+                </div>
+                <div>
+                    <strong>Pago</strong>
+                    <span><?= htmlspecialchars($venta['metodo_pago']) ?></span>
+                </div>
+                <?php if (!empty($venta['ticket_numero'])): ?>
+                <div>
+                    <strong>Ticket</strong>
+                    <span style="font-size: 0.85rem; color: #64748b;"><?= htmlspecialchars($venta['ticket_numero']) ?></span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- TABLA DE PRODUCTOS -->
+            <table class="products-table">
                 <thead>
                     <tr>
                         <th>Producto</th>
-                        <th>Referencia</th>
-                        <th>Color</th>
-                        <th>Talla</th>
-                        <th>Comentario</th>
-                        <th>Cantidad</th>
-                        <th>Precio unitario</th>
-                        <th>Subtotal</th>
+                        <th>Ref.</th>
+                        <th style="text-align: center;">Cant.</th>
+                        <th style="text-align: right;">P. Unit.</th>
+                        <th style="text-align: right;">Subtotal</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (is_array($detalles) && count($detalles) > 0): ?>
-                        <?php foreach ($detalles as $item): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($item['nombre']) ?></td>
-                                <td><?= htmlspecialchars($item['referencia']) ?></td>
-                                <td><?= htmlspecialchars($item['color'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($item['talla'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($item['comentario_vendedor'] ?? '-') ?></td>
-                                <td><?= intval($item['cantidad']) ?></td>
-                                <td>$<?= number_format($item['precio_unitario'], 2, ',', '.') ?></td>
-                                <td>$<?= number_format($item['subtotal'], 2, ',', '.') ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="5" style="text-align:center; padding: 20px; color: #888;">No hay productos registrados en esta venta.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-                <tfoot>
-                    <?php if (floatval($venta['costo_envio'] ?? 0) > 0): ?>
-                        <tr>
-                            <td colspan="4" style="text-align: right; color: #64748b; padding: 8px 15px;">Recargo Domicilio</td>
-                            <td style="color: #64748b;">$<?= number_format($venta['costo_envio'], 2, ',', '.') ?></td>
-                        </tr>
-                    <?php endif; ?>
+                    <?php foreach($detalles as $item): ?>
                     <tr>
-                        <td colspan="4" style="text-align: right; font-weight: bold; padding: 15px; font-size: 1.1rem;">Total Venta</td>
-                        <td style="font-weight: bold; color: #1e3a8a; font-size: 1.1rem;">$<?= number_format($venta['total_venta'], 2, ',', '.') ?></td>
+                        <td><?= htmlspecialchars($item['nombre']) ?></td>
+                        <td><?= htmlspecialchars($item['referencia']) ?></td>
+                        <td style="text-align: center;"><?= intval($item['cantidad']) ?></td>
+                        <td style="text-align: right;">$<?= number_format($item['precio_unitario'], 0, ',', '.') ?></td>
+                        <td style="text-align: right; font-weight: 600;">$<?= number_format($item['subtotal'], 0, ',', '.') ?></td>
                     </tr>
-                </tfoot>
+                    <?php endforeach; ?>
+                </tbody>
             </table>
-        </div>
 
-        <div class="action-footer" style="margin-top: 25px; gap: 10px; display: flex;">
-            <button onclick="window.print();" class="btn-print" style="background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
-                🖨️ Imprimir Ticket
-            </button>
-            <a href="/unideportes-system/views/nueva_venta.php" class="btn-primary" style="text-decoration: none; background: #c91a25; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600;">Nueva venta</a>
-            <a href="/unideportes-system/views/panel_vendedor.php" class="btn-secondary" style="text-decoration: none; background: #64748b; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600;">Volver al panel</a>
+            <!-- TOTALES -->
+            <div class="totals-box">
+                <?php if (floatval($venta['costo_envio'] ?? 0) > 0): ?>
+                <div class="total-line">
+                    <span>Envío:</span>
+                    <span>$<?= number_format($venta['costo_envio'], 0, ',', '.') ?></span>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (floatval($venta['descuento_monto'] ?? 0) > 0): ?>
+                <div class="total-line">
+                    <span>Descuento:</span>
+                    <span>-$<?= number_format($venta['descuento_monto'], 0, ',', '.') ?></span>
+                </div>
+                <?php endif; ?>
+                
+                <div class="total-line final">
+                    <span>TOTAL:</span>
+                    <span>$<?= number_format($venta['total_venta'], 0, ',', '.') ?></span>
+                </div>
+                
+                <?php if (floatval($venta['cambio'] ?? 0) > 0): ?>
+                <div class="total-line" style="margin-top: 8px;">
+                    <span>Cambio:</span>
+                    <span style="color: #10b981;">$<?= number_format($venta['cambio'], 0, ',', '.') ?></span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- INFORMACIÓN DE ENTREGA -->
+            <?php if ($venta['tipo_entrega'] === 'Domicilio'): ?>
+            <div class="delivery-info">
+                <strong style="display: block; margin-bottom: 5px;">📍 Entrega a domicilio:</strong>
+                <?= htmlspecialchars($venta['direccion_entrega']) ?>, <?= htmlspecialchars($venta['barrio_entrega']) ?>
+                <?php if (!empty($venta['observaciones_entrega'])): ?>
+                <br><em style="color: #64748b;"><?= htmlspecialchars($venta['observaciones_entrega']) ?></em>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- FOOTER LEGAL -->
+            <div class="footer-legal">
+                <p style="margin: 0 0 5px 0; font-weight: 600;">Gracias por su compra</p>
+                <p style="margin: 0; font-size: 0.75rem;">Proyecto ADSO - SENA 2026</p>
+            </div>
+            
         </div>
     </main>
 </div>
