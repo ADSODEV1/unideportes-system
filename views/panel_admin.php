@@ -81,7 +81,7 @@ include(__DIR__ . "/header.php");
 
         <div class="menu-grid">
             
-            <a href="/unideportes-system/views/linea_confeccion.php" class="card">
+            <a href="/unideportes-system/views/panel_produccion.php" class="card">
                 <div class="card-icon">🏭</div>
                 <div class="card-body">
                     <h3>Línea de Confección</h3>

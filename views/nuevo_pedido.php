@@ -1,13 +1,10 @@
 <?php
 // views/nuevo_pedido.php
 require_once __DIR__ . '/../config/bootstrap.php';
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 require_login(['admin', 'colaborador', 'vendedor']);
-
 $pdo = app();
 $error = null;
 $vendedor_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
@@ -15,7 +12,6 @@ $vendedor_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
 // 1. PROCESAR CREACIÓN RÁPIDA DE CLIENTE VÍA AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_crear_cliente'])) {
     header('Content-Type: application/json');
-    
     $nombre = trim($_POST['nombre_completo'] ?? '');
     $nit = trim($_POST['nit_cedula'] ?? '');
     $telefono = trim($_POST['telefono'] ?? '');
@@ -56,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_crear_cliente'])
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
     $cliente_id = intval($_POST['cliente_id'] ?? 0);
     $detalle = trim($_POST['detalle'] ?? '');
+    $descripcion = trim($_POST['descripcion'] ?? ''); // ✅ AHORA SÍ SE USA
     $ajuste_precio = floatval($_POST['ajuste_precio'] ?? 0);
     $abono = floatval($_POST['abono'] ?? 0);
     $fecha_entrega = $_POST['fecha_entrega'] ?? date('Y-m-d', strtotime('+15 days'));
@@ -68,11 +65,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
     $carrito_json = $_POST['carrito_json'] ?? '[]';
     $carrito = json_decode($carrito_json, true);
     
+    // ✅ VALIDACIONES MEJORADAS
     if (!$carrito || count($carrito) === 0) {
         $error = "Debes agregar al menos un producto al carrito.";
-    } elseif ($cliente_id <= 0 || empty($detalle)) {
-        $error = "Por favor, complete todos los campos obligatorios.";
+    } elseif ($cliente_id <= 0) {
+        $error = "Debes seleccionar un cliente válido.";
+    } elseif (empty($detalle)) {
+        $error = "El título del pedido es obligatorio.";
     } else {
+        // ✅ VALIDAR QUE EL CLIENTE EXISTA
+        $stmtCliente = $pdo->prepare("SELECT id FROM clientes WHERE id = ? AND estado = 'activo'");
+        $stmtCliente->execute([$cliente_id]);
+        if (!$stmtCliente->fetch()) {
+            $error = "El cliente seleccionado no existe o está inactivo.";
+        }
+    }
+    
+    if (!$error) {
         try {
             $pdo->beginTransaction();
 
@@ -102,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
                 $cliente_id, 
                 $vendedor_id,
                 $detalle, 
-                '',
+                $descripcion, // ✅ AHORA GUARDA LA DESCRIPCIÓN REAL
                 $cantidad_total, 
                 $total_pedido,
                 $abono,
@@ -111,16 +120,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
             ]);
             $pedido_id = $pdo->lastInsertId();
 
-            // Guardar cada item del carrito en detalle_pedido
+            // Guardar cada item del carrito usando 'tipo_prenda_id'
             foreach ($carrito as $item) {
                 $stmtDet = $pdo->prepare("
                     INSERT INTO detalle_pedido 
-                    (pedido_id, producto_id, cantidad, precio_unitario, comentario) 
+                    (pedido_id, tipo_prenda_id, cantidad, precio_unitario, comentario_vendedor) 
                     VALUES (?, ?, ?, ?, ?)
                 ");
                 $stmtDet->execute([
                     $pedido_id,
-                    $item['tipo_prenda_id'],
+                    $item['tipo_prenda_id'], 
                     $item['cantidad'],
                     $item['precio'],
                     $item['comentario'] ?? ''
@@ -143,7 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
             }
 
             $pdo->commit();
-            
             header("Location: ver_ticket_pedido.php?id=" . $pedido_id);
             exit();
         } catch (Exception $e) {
@@ -153,10 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
     }
 }
 
-// Cargar clientes
+// Cargar clientes y precios base
 $clientes = $pdo->query("SELECT id, nombre_completo, nit_cedula FROM clientes WHERE estado = 'activo' ORDER BY nombre_completo ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-// Cargar precios base de confección
 $precios_base = $pdo->query("SELECT id, tipo_prenda, precio_base, descripcion FROM precios_base_confeccion WHERE activo = 1 ORDER BY tipo_prenda ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 include(__DIR__ . "/header.php");
@@ -171,9 +177,7 @@ include(__DIR__ . "/header.php");
                 <h1>📝 Nueva Orden de Fabricación Mayorista</h1>
                 <p>Genera la orden de taller y emite el ticket físico de abono para el cliente.</p>
             </div>
-            <a href="pedidos_admin.php" class="btn-secondary">
-                ← Volver
-            </a>
+            <a href="pedidos_admin.php" class="btn-secondary">← Volver</a>
         </div>
 
         <?php if ($error): ?>
@@ -186,7 +190,6 @@ include(__DIR__ . "/header.php");
             <!-- SECCIÓN 1: CLIENTE Y TÍTULO -->
             <div class="pedido-card">
                 <h2 class="section-subtitle">👤 Datos del Cliente y Pedido</h2>
-                
                 <div class="form-grid-2">
                     <div>
                         <label class="form-label">Seleccionar Cliente *</label>
@@ -200,18 +203,23 @@ include(__DIR__ . "/header.php");
                             <button type="button" class="btn-secondary" onclick="abrirModalCliente()" style="white-space: nowrap; padding: 0 15px;">➕ Nuevo</button>
                         </div>
                     </div>
-                    
                     <div>
                         <label class="form-label">Título del Pedido / Referencia *</label>
                         <input type="text" name="detalle" placeholder="Ej: Uniformes Combo Inter - Microfútbol" required class="form-input">
                     </div>
+                </div>
+                
+                <!-- ✅ NUEVO: ESPECIFICACIONES GENERALES DEL PEDIDO -->
+                <div style="margin-top: 15px;">
+                    <label class="form-label">📋 Especificaciones Generales del Pedido</label>
+                    <textarea name="descripcion" rows="3" class="form-input" placeholder="Ej: Pedido para el torneo intercolegiados. Todos los uniformes deben llevar escudo bordado en el pecho izquierdo. Entregar empacados individualmente..."></textarea>
+                    <small style="color: #64748b; font-size: 0.8rem;">Observaciones generales que aplican a todo el pedido</small>
                 </div>
             </div>
 
             <!-- SECCIÓN 2: AGREGAR PRODUCTOS AL CARRITO -->
             <div class="pedido-card">
                 <h2 class="section-subtitle">🛒 Agregar Prendas al Pedido</h2>
-                
                 <div class="form-grid-3">
                     <div>
                         <label class="form-label">Tipo de Prenda *</label>
@@ -224,27 +232,21 @@ include(__DIR__ . "/header.php");
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    
                     <div>
                         <label class="form-label">Cantidad *</label>
                         <input type="number" id="inputCantidad" min="1" value="1" class="form-input">
                     </div>
-                    
                     <div>
                         <label class="form-label">Comentario (Opcional)</label>
                         <input type="text" id="inputComentario" placeholder="Ej: Tallas M y L, color azul" class="form-input">
                     </div>
                 </div>
-                
-                <button type="button" id="btnAgregarCarrito" class="btn-success" style="margin-top: 15px; width: 100%;">
-                    ➕ Agregar al Carrito
-                </button>
+                <button type="button" id="btnAgregarCarrito" class="btn-success" style="margin-top: 15px; width: 100%;">➕ Agregar al Carrito</button>
             </div>
 
             <!-- SECCIÓN 3: CARRITO DE PRODUCTOS -->
             <div class="pedido-card">
                 <h2 class="section-subtitle">📦 Prendas del Pedido</h2>
-                
                 <div class="tabla-wrapper">
                     <table class="data-table">
                         <thead>
@@ -271,7 +273,6 @@ include(__DIR__ . "/header.php");
             <!-- SECCIÓN 4: CÁLCULO AUTOMÁTICO -->
             <div class="pedido-card" style="background: #f0fdf4; border-color: #10b981;">
                 <h2 class="section-subtitle">💰 Cálculo del Total</h2>
-                
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
                         <strong>Subtotal:</strong>
@@ -286,14 +287,12 @@ include(__DIR__ . "/header.php");
                         <span id="display_total" style="font-size: 1.3rem; color: #065f46;">$0</span>
                     </div>
                 </div>
-                
                 <small style="color: #64748b;">💡 Usa el ajuste manual para incrementos por tela especial, bordados extras, etc.</small>
             </div>
 
             <!-- SECCIÓN 5: MÉTODO DE PAGO Y ABONO -->
             <div class="pedido-card" style="background: #eff6ff; border-color: #3b82f6;">
                 <h2 class="section-subtitle">💳 Método de Pago del Abono</h2>
-                
                 <div class="form-grid-2">
                     <div>
                         <label class="form-label">¿Cómo paga el cliente? *</label>
@@ -304,7 +303,6 @@ include(__DIR__ . "/header.php");
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
-                    
                     <div>
                         <label class="form-label">Monto de Abono Inicial ($) *</label>
                         <input type="number" name="abono" id="abono" min="0" value="0" step="1000" required class="form-input">
@@ -333,9 +331,7 @@ include(__DIR__ . "/header.php");
                 <h2 class="section-subtitle">📅 Fecha de Entrega</h2>
                 <label class="form-label">Fecha Comprometida de Entrega *</label>
                 <input type="date" name="fecha_entrega" required value="<?= date('Y-m-d', strtotime('+15 days')) ?>" class="form-input">
-                <small style="color: #64748b; font-size: 0.75rem; margin-top: 4px; display: block;">
-                    ⏰ Tiempo estándar de confección: 12-15 días hábiles
-                </small>
+                <small style="color: #64748b; font-size: 0.75rem; margin-top: 4px; display: block;">⏰ Tiempo estándar de confección: 12-15 días hábiles</small>
             </div>
 
             <!-- BOTONES FINALES -->
@@ -353,9 +349,7 @@ include(__DIR__ . "/header.php");
     <div class="modal-box">
         <h3>👤 Registrar Nuevo Cliente</h3>
         <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">Agrega los datos del cliente sin perder el progreso del pedido actual.</p>
-        
         <div id="modalError" class="alert-danger" style="display: none; margin-bottom: 12px; padding: 8px; font-size: 0.85rem;"></div>
-        
         <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
                 <label class="form-label">Nombre Completo o Razón Social *</label>
@@ -363,14 +357,13 @@ include(__DIR__ . "/header.php");
             </div>
             <div>
                 <label class="form-label">NIT o Cédula *</label>
-                <input type="text" id="m_nit" class="form-input" placeholder="Ej: 901234567-1">
+                <input type="text" id="m_nit" class="form-input" placeholder="Ej: 900123456-7">
             </div>
             <div>
                 <label class="form-label">Teléfono de Contacto</label>
                 <input type="text" id="m_telefono" class="form-input" placeholder="Ej: 3123456789">
             </div>
         </div>
-
         <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
             <button type="button" class="btn-cancel" onclick="cerrarModalCliente()" style="margin: 0;">Cancelar</button>
             <button type="button" class="btn-submit" onclick="guardarClienteAjax()" style="max-width: 150px; margin: 0;">Guardar</button>
@@ -379,10 +372,6 @@ include(__DIR__ . "/header.php");
 </div>
 
 <style>
-/* ============================================
-   NUEVO PEDIDO CON CARRITO - ESTILOS
-   ============================================ */
-
 .page-header {
     background: #f8fafc;
     padding: 20px;
@@ -395,20 +384,17 @@ include(__DIR__ . "/header.php");
     flex-wrap: wrap;
     gap: 15px;
 }
-
 .page-header h1 {
     color: #1e293b;
     font-size: 1.6rem;
     font-weight: 700;
     margin: 0;
 }
-
 .page-header p {
     color: #64748b;
     margin: 5px 0 0 0;
     font-size: 0.95rem;
 }
-
 .section-subtitle {
     color: #475569;
     font-size: 1.05rem;
@@ -417,7 +403,6 @@ include(__DIR__ . "/header.php");
     padding-bottom: 8px;
     border-bottom: 2px solid #e2e8f0;
 }
-
 .pedido-card {
     background: white;
     border: 1px solid #e2e8f0;
@@ -425,19 +410,16 @@ include(__DIR__ . "/header.php");
     padding: 20px;
     margin-bottom: 20px;
 }
-
 .form-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
 }
-
 .form-grid-3 {
     display: grid;
     grid-template-columns: 2fr 1fr 2fr;
     gap: 15px;
 }
-
 .form-label {
     display: block;
     font-weight: 600;
@@ -445,8 +427,7 @@ include(__DIR__ . "/header.php");
     color: #334155;
     font-size: 0.9rem;
 }
-
-.form-input, .form-select, .form-textarea {
+.form-input, .form-select {
     width: 100%;
     padding: 10px;
     border: 1px solid #cbd5e1;
@@ -454,43 +435,32 @@ include(__DIR__ . "/header.php");
     font-size: 0.9rem;
     box-sizing: border-box;
 }
-
 .form-input:focus, .form-select:focus {
     outline: none;
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
-
 .tabla-wrapper {
     overflow-x: auto;
 }
-
 .data-table {
     width: 100%;
     border-collapse: collapse;
 }
-
 .data-table thead {
     background: #1e293b;
     color: white;
 }
-
 .data-table th {
     padding: 12px;
     text-align: left;
     font-weight: 600;
     font-size: 0.9rem;
 }
-
 .data-table td {
     padding: 12px;
     border-bottom: 1px solid #e2e8f0;
 }
-
-.data-table tbody tr:hover {
-    background: #f8fafc;
-}
-
 .btn-submit {
     flex: 1;
     background: #1e293b;
@@ -503,11 +473,9 @@ include(__DIR__ . "/header.php");
     text-align: center;
     font-size: 1rem;
 }
-
 .btn-submit:hover {
     background: #0f172a;
 }
-
 .btn-secondary {
     background: #f1f5f9;
     color: #334155;
@@ -517,11 +485,6 @@ include(__DIR__ . "/header.php");
     cursor: pointer;
     padding: 10px 15px;
 }
-
-.btn-secondary:hover {
-    background: #e2e8f0;
-}
-
 .btn-success {
     background: #10b981;
     color: white;
@@ -531,11 +494,6 @@ include(__DIR__ . "/header.php");
     font-weight: 600;
     cursor: pointer;
 }
-
-.btn-success:hover {
-    background: #059669;
-}
-
 .btn-cancel {
     background: #e2e8f0;
     color: #334155;
@@ -545,11 +503,6 @@ include(__DIR__ . "/header.php");
     font-weight: 600;
     text-align: center;
 }
-
-.btn-cancel:hover {
-    background: #cbd5e1;
-}
-
 .btn-quitar {
     background: #ef4444;
     color: white;
@@ -559,11 +512,6 @@ include(__DIR__ . "/header.php");
     cursor: pointer;
     font-size: 0.9rem;
 }
-
-.btn-quitar:hover {
-    background: #dc2626;
-}
-
 .alert-danger {
     padding: 12px;
     background: #fee2e2;
@@ -574,7 +522,6 @@ include(__DIR__ . "/header.php");
     font-size: 0.9rem;
     font-weight: 500;
 }
-
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -587,7 +534,6 @@ include(__DIR__ . "/header.php");
     justify-content: center;
     z-index: 1000;
 }
-
 .modal-box {
     background: white;
     padding: 25px;
@@ -596,18 +542,15 @@ include(__DIR__ . "/header.php");
     width: 90%;
     box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
 }
-
 .modal-box h3 {
     margin: 0 0 5px 0;
     color: #1e293b;
     font-size: 1.2rem;
 }
-
 @media (max-width: 768px) {
     .form-grid-2, .form-grid-3 {
         grid-template-columns: 1fr;
     }
-    
     .page-header {
         flex-direction: column;
         text-align: center;
@@ -615,7 +558,5 @@ include(__DIR__ . "/header.php");
 }
 </style>
 
-<!-- ✅ JAVASCRIPT EXTERNO -->
 <script src="../public/js/pedidos.js"></script>
-
 <?php include(__DIR__ . "/footer.php"); ?>

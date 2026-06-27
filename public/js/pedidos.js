@@ -30,6 +30,12 @@ function configurarEventListeners() {
     if (formPedido) {
         formPedido.addEventListener('submit', validarYEnviarPedido);
     }
+    
+    // Cambio en método de pago
+    const metodoPago = document.getElementById('metodo_pago_abono');
+    if (metodoPago) {
+        metodoPago.addEventListener('change', toggleCamposPago);
+    }
 }
 
 // ========================================
@@ -258,6 +264,15 @@ function guardarClienteAjax() {
 // VALIDACIÓN Y ENVÍO DEL FORMULARIO
 // ========================================
 function validarYEnviarPedido(e) {
+    // Validar cliente seleccionado
+    const clienteSelect = document.getElementById('cliente_id');
+    if (!clienteSelect.value) {
+        e.preventDefault();
+        alert('⚠️ Debes seleccionar un cliente.');
+        clienteSelect.focus();
+        return false;
+    }
+    
     // Validar carrito vacío
     if (carrito.length === 0) {
         e.preventDefault();
@@ -280,7 +295,6 @@ function validarYEnviarPedido(e) {
     }
     
     // Confirmación
-    const clienteSelect = document.getElementById('cliente_id');
     const clienteNombre = clienteSelect.options[clienteSelect.selectedIndex].text;
     
     const confirmar = confirm(
@@ -340,7 +354,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     }, 3000);
 }
 
-// Animaciones CSS
+// Animaciones CSS (inyectadas dinámicamente)
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
