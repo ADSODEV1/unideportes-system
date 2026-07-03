@@ -46,3 +46,7 @@ package-lock.json
 # Tests
 coverage/
 .phpunit.result.cache
+
+# NUNCA subir la carpeta de datos físicos de MySQL
+mysql/data/
+xampp/mysql/data/
