@@ -159,6 +159,16 @@ include(__DIR__ . "/header.php");
                 </a>
             </div>
 
+            <div class="dashboard-card border-blue">
+                <a href="/unideportes-system/views/soporte_tecnico.php" class="card-link">
+                    <div class="card-icon">🛠️</div>
+                    <div class="card-body">
+                        <h3>Soporte Técnico</h3>
+                        <p>Gestiona tickets/incidencias, prioridades y respuestas de solución.</p>
+                    </div>
+                </a>
+            </div>
+
             <div class="dashboard-card border-amber full-width-card">
                 <a href="/unideportes-system/views/reportes_ventas.php" class="card-link link-wide">
                     <div class="card-icon icon-small">📜</div>

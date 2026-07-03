@@ -49,6 +49,7 @@ $menuConfig = [
             'inventario.php' => '🎽 Control de Productos',
             'clientes.php' => '👥 Base de Clientes',
             'admin_usuarios.php' => '👤 Gestionar Personal',
+            'soporte_tecnico.php' => '🛠️ Soporte Técnico',
             'reportes_ventas.php' => '📜 Reportes Globales'
         ]
     ]

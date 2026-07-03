@@ -31,34 +31,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastname = trim($_POST['lastname'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
-    $role = trim($_POST['role'] ?? 'vendedor'); // Guardamos el rol (admin, vendedor, colaborador)
+    $role = trim($_POST['role'] ?? 'vendedor'); // Guardamos el rol (admin o vendedor)
     $password = $_POST['password'] ?? '';
 
+    $rolesValidos = ['vendedor', 'admin'];
+    if (!in_array($role, $rolesValidos, true)) {
+        $error = "Datos inválidos.";
+    }
+
     // Validar que el nuevo nombre de usuario no lo tenga OTRA persona
-    $checkStmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ? AND id != ?");
-    $checkStmt->execute([$username, $id]);
+    if (!$error) {
+        $checkStmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ? AND id != ?");
+        $checkStmt->execute([$username, $id]);
 
-    if ($checkStmt->fetch()) {
-        $error = "El nombre de usuario ya está registrado por otra persona.";
-    } else {
-        // Contraseña inteligente: Si la dejan en blanco, conservamos la antigua
-        if (!empty($password)) {
-            $password_hash = password_hash($password, PASSWORD_BCRYPT);
-            $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ?, password = ? WHERE id = ?";
-            $params = [$name, $lastname, $username, $email, $role, $password_hash, $id];
+        if ($checkStmt->fetch()) {
+            $error = "El nombre de usuario ya está registrado por otra persona.";
         } else {
-            $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ? WHERE id = ?";
-            $params = [$name, $lastname, $username, $email, $role, $id];
-        }
+        // Contraseña inteligente: Si la dejan en blanco, conservamos la antigua
+            if (!empty($password)) {
+                $password_hash = password_hash($password, PASSWORD_BCRYPT);
+                $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ?, password = ? WHERE id = ?";
+                $params = [$name, $lastname, $username, $email, $role, $password_hash, $id];
+            } else {
+                $updateSql = "UPDATE usuarios SET name = ?, lastname = ?, username = ?, email = ?, role = ? WHERE id = ?";
+                $params = [$name, $lastname, $username, $email, $role, $id];
+            }
 
-        $updateStmt = $pdo->prepare($updateSql);
-        if ($updateStmt->execute($params)) {
-            // Si todo sale bien, volvemos a la lista de usuarios con mensaje de éxito
-            header("Location: admin_user.php?success=usuario_actualizado");
-            exit();
-        }
+            $updateStmt = $pdo->prepare($updateSql);
+            if ($updateStmt->execute($params)) {
+                // Si todo sale bien, volvemos a la lista de usuarios con mensaje de éxito
+                header("Location: admin_user.php?success=usuario_actualizado");
+                exit();
+            }
 
-        $error = "Ocurrió un error inesperado al actualizar en la base de datos.";
+            $error = "Ocurrió un error inesperado al actualizar en la base de datos.";
+        }
     }
 }
 
@@ -107,7 +114,6 @@ include(__DIR__ . "/header.php");
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #475569;">Rol del Usuario:</label>
                         <select name="role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; background: white;" required>
                             <option value="vendedor" <?= ($row['role'] ?? '') === 'vendedor' ? 'selected' : '' ?>>Vendedor (Punto de Venta)</option>
-                            <option value="colaborador" <?= ($row['role'] ?? '') === 'colaborador' ? 'selected' : '' ?>>Colaborador (Producción)</option>
                             <option value="admin" <?= ($row['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Administrador</option>
                         </select>
                     </div>

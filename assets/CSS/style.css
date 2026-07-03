@@ -72,6 +72,7 @@ body {
     list-style: none;
     gap: 25px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .nav-list a {
@@ -449,13 +450,32 @@ footer.main-footer {
    7. RESPONSIVE
    ========================================= */
 @media (max-width: 960px) {
+    .nav-container {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
     .admin-layout { flex-direction: column; padding: 15px; }
     .sidebar-panel {
         width: 100%;
         position: static;
         margin-bottom: 15px;
     }
-    .main-nav, .user-info { display: none; }
+    .main-nav {
+        order: 3;
+        width: 100%;
+        margin: 0;
+        display: flex;
+    }
+    .nav-list {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+    .user-info {
+        order: 2;
+        width: 100%;
+        justify-content: flex-start;
+    }
 }
 
 @media (max-width: 600px) {

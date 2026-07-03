@@ -37,6 +37,8 @@ if (!empty($_GET['success']) && $_GET['success'] === 'producto_registrado') {
     $success = 'Producto registrado exitosamente.';
 } elseif (!empty($_GET['success']) && $_GET['success'] === 'producto_actualizado') {
     $success = 'Producto actualizado correctamente.';
+} elseif (!empty($_GET['success']) && $_GET['success'] === 'venta_registrada') {
+    $success = 'Nuevo pedido registrado por venta. Dashboard de inventario actualizado.';
 }
 
 include(__DIR__ . "/../views/header.php");
@@ -73,6 +75,13 @@ include(__DIR__ . "/../views/header.php");
             </form>
         </div>
 
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
+            <span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🔴 Stock Crítico: Cantidad &lt; Stock Mínimo</span>
+            <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🟡 Stock Bajo: Cantidad cerca del mínimo</span>
+            <span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🟢 Stock Óptimo: Cantidad &gt; Stock Mínimo</span>
+            <span style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🔵 Nuevo Pedido: Registro de venta / Dashboard</span>
+        </div>
+
         <table class="tabla-maestra">
             <thead>
                 <tr>
@@ -107,10 +116,22 @@ include(__DIR__ . "/../views/header.php");
                             <td><span class="talla-badge"><?= htmlspecialchars($row['talla']) ?></span></td>
                             <td>
                                 <?php 
-                                    $s = (int)$row['stock'];
-                                    if ($s <= 0) echo "<span class='badge rojo'>AGOTADO ($s)</span>";
-                                    elseif ($s <= 5) echo "<span class='badge naranja'>BAJO ($s)</span>";
-                                    else echo "<span class='badge verde'>STOCK ($s)</span>";
+                                    $stockActual = (int)($row['stock'] ?? 0);
+                                    $stockMinimo = max(1, (int)($row['stock_minimo'] ?? 5));
+                                    $margenPreventivo = max(1, (int)ceil($stockMinimo * 0.3));
+                                    $limiteBajo = $stockMinimo + $margenPreventivo;
+
+                                    if ($stockActual < $stockMinimo) {
+                                        echo "<span class='badge rojo'>🔴 CRITICO ({$stockActual}/Min {$stockMinimo})</span>";
+                                    } elseif ($stockActual <= $limiteBajo) {
+                                        echo "<span class='badge naranja'>🟡 BAJO ({$stockActual}/Min {$stockMinimo})</span>";
+                                    } else {
+                                        echo "<span class='badge verde'>🟢 OPTIMO ({$stockActual}/Min {$stockMinimo})</span>";
+                                    }
+
+                                    if (!empty($_GET['success']) && $_GET['success'] === 'venta_registrada') {
+                                        echo " <span style='display:inline-block; margin-left: 4px; background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:4px 8px; border-radius:999px; font-size:0.78rem; font-weight:700;'>🔵 NUEVO PEDIDO</span>";
+                                    }
                                 ?>
                             </td>
                             <td>$<?= number_format($row['precio'], 0, ',', '.') ?></td>

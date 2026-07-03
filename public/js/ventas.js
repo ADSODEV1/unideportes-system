@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNCIÓN DE FORMATO MONEDA COLOMBIA (COP) ---
     const formatoCOP = (numero) => {
         return new Intl.NumberFormat('es-CO', {
-            minimumFractionDigits: 0, 
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(numero);
     };
@@ -166,10 +166,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return productoInput ? productoInput.value.trim() : '';
     }
 
+    function normalizeComparableText(value) {
+        return (value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    function getSelectedProductOption() {
+        const productList = document.getElementById('listaProductos');
+        if (!productList || !productoInput) return null;
+
+        const inputNormalized = normalizeComparableText(getSelectedProductName());
+        if (!inputNormalized) return null;
+
+        return Array.from(productList.options).find(opt => normalizeComparableText(opt.value) === inputNormalized) || null;
+    }
+
     function isSelectedProductValid() {
-        if (!productoInput) return false;
-        const value = getSelectedProductName();
-        return Array.from(document.getElementById('listaProductos').options).some(opt => opt.value === value);
+        return !!getSelectedProductOption();
     }
 
     async function fetchProductColors(productName) {
@@ -234,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (productoInput) {
         productoInput.addEventListener('input', function() {
-            const current = getSelectedProductName();
-            if (isSelectedProductValid()) {
-                fetchProductColors(current);
+            const selectedOption = getSelectedProductOption();
+            if (selectedOption) {
+                fetchProductColors(selectedOption.value);
             } else {
                 clearWrapper(wrapperProductoColor, 'Color:', 'Selecciona primero un producto', true);
                 clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
@@ -244,24 +261,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (btnAgregar && productoInput && carritoBody) {
-        btnAgregar.addEventListener('click', async function() {
-            const productName = getSelectedProductName();
-            if (!productName) return alert('Por favor, selecciona un producto válido de la lista.');
-            if (!isSelectedProductValid()) return alert('Por favor, selecciona un producto válido de la lista.');
+    async function agregarProductoAlCarrito() {
+            const selectedOption = getSelectedProductOption();
+            if (!selectedOption) return alert('Por favor, selecciona un producto válido de la lista.');
+            const productName = selectedOption.value;
 
-            const colorValue = productoColor ? productoColor.value.trim() : '';
-            const tallaValue = productoTalla ? productoTalla.value.trim() : '';
-            if (!colorValue) return alert('Por favor, selecciona un color válido.');
-            if (!tallaValue) return alert('Por favor, selecciona una talla válida.');
+            const colorValue = productoColor ? (productoColor.value.trim() || 'Sin color') : 'Sin color';
+            const tallaValue = productoTalla ? (productoTalla.value.trim() || 'Sin talla') : 'Sin talla';
 
-            const cantidad = parseInt(productoCantidad.value) || 1;
-            if (cantidad < 1) return alert('La cantidad debe ser al menos 1.');
+            const cantidadSolicitada = parseInt(productoCantidad.value) || 1;
+            if (cantidadSolicitada < 1) return alert('La cantidad debe ser al menos 1.');
 
             let variant;
             try {
                 const res = await fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}&talla=${encodeURIComponent(tallaValue)}`);
                 const data = await res.json();
+                if (data && data.error) {
+                    return alert(data.error);
+                }
                 variant = data.variant;
             } catch (error) {
                 console.error(error);
@@ -276,7 +293,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return alert('La variante seleccionada no tiene stock disponible.');
             }
 
-            if (cantidad > variant.stock) return alert(`Stock insuficiente. Disponibles: ${variant.stock}`);
+            let cantidadFinal = cantidadSolicitada;
+            if (cantidadSolicitada > variant.stock) {
+                const deseaAjustar = confirm(`Stock insuficiente. Disponibles: ${variant.stock}. ¿Deseas agregar solo la cantidad disponible?`);
+                if (!deseaAjustar) {
+                    return;
+                }
+                cantidadFinal = parseInt(variant.stock, 10);
+            }
             if (document.querySelector(`input[data-id="${variant.id}"]`)) return alert('El producto ya se encuentra en el pedido.');
 
             const colorText = colorValue === 'Sin color' ? '' : colorValue;
@@ -286,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #dee2e6';
-            const subtotal = cantidad * parseFloat(variant.precio);
+            const subtotal = cantidadFinal * parseFloat(variant.precio);
             tr.innerHTML = `
                 <td style="padding: 10px;">${productName}</td>
                 <td style="padding: 10px;">${colorText || 'N/D'}</td>
@@ -294,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td style="padding: 10px;">${comentarioSafe || '-'}</td>
                 <td style="padding: 10px;">$${formatoCOP(parseFloat(variant.precio))}</td>
                 <td style="padding: 10px;">
-                    <input type="number" class="cant-input" value="${cantidad}" min="1" max="${variant.stock}"
+                    <input type="number" class="cant-input" value="${cantidadFinal}" min="1" max="${variant.stock}"
                         data-id="${variant.id}"
                         data-precio="${parseFloat(variant.precio)}"
                         data-stock="${variant.stock}"
@@ -316,6 +340,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (productoComentario) productoComentario.value = '';
             productoCantidad.value = '1';
             calcularTotales();
+    }
+
+    window.agregarProductoAlCarrito = agregarProductoAlCarrito;
+
+    if (btnAgregar && productoInput && carritoBody) {
+        btnAgregar.addEventListener('click', function() {
+            agregarProductoAlCarrito();
+        });
+
+        productoInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                agregarProductoAlCarrito();
+            }
         });
     }
 

@@ -161,7 +161,7 @@ include(__DIR__ . "/header.php");
                                         <option value="En Corte">Mover a Corte ✂️</option>
                                         <option value="En Confección">Mover a Costura 🪡</option>
                                         <option value="En Acabado">Mover a Acabado ✨</option>
-                                        <option value="Terminado">¡Ir a Tienda! 📦</option>
+                                        <option value="Terminado">Ir a Despacho / Entregar 📦</option>
                                     </select>
                                 </form>
                             </td>

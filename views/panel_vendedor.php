@@ -35,6 +35,12 @@ $success = request('success');
 $venta_id = intval(request('id'));
 $ticketLink = ($success === 'venta_registrada' && $venta_id > 0) ? "/unideportes-system/views/ticket_actual.php?id=$venta_id" : '';
 
+$soporte_success = '';
+if (!empty($_GET['success']) && $_GET['success'] === 'ticket_creado') {
+    $soporte_success = 'Ticket enviado correctamente al área de soporte.';
+}
+$soporte_error = trim($_GET['error'] ?? '');
+
 // Captura de mensajes de éxito del módulo de entregas de mercancía
 $entrega_success = $_GET['success'] ?? '';
 if ($entrega_success === 'pedido_entregado') {

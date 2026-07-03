@@ -233,6 +233,6 @@ include(__DIR__ . "/header.php");
     </main>
 </div>
 
-<script src="../public/js/ventas.js"></script>
+<script src="../public/js/ventas.js?v=<?= filemtime(__DIR__ . '/../public/js/ventas.js') ?>"></script>
 
 <?php include(__DIR__ . "/footer.php"); ?>

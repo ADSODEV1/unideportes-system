@@ -110,6 +110,60 @@ function sincronizarAbonoEnPagos(mysqli $db, int $pedido_id, float $abono): void
     mysqli_stmt_close($stmtInsertPago);
 }
 
+function sincronizarDetallePedidoCartera(mysqli $db, int $pedido_id): void {
+    if ($pedido_id <= 0) {
+        return;
+    }
+
+    $sqlSync = "UPDATE detalle_pedido dp
+                INNER JOIN pedidos p ON p.id = dp.pedido_id
+                LEFT JOIN (
+                    SELECT id_pg_pedido, SUM(monto) AS total_pagado
+                    FROM pagos
+                    GROUP BY id_pg_pedido
+                ) pg ON pg.id_pg_pedido = dp.pedido_id
+                SET
+                    dp.total_pedido = COALESCE(
+                        (SELECT SUM(dp2.cantidad * dp2.precio_unitario) FROM detalle_pedido dp2 WHERE dp2.pedido_id = dp.pedido_id),
+                        p.total_pedido,
+                        0
+                    ),
+                    dp.abono_pedido = COALESCE(p.abono, 0),
+                    dp.pagos_registrados = COALESCE(pg.total_pagado, 0),
+                    dp.saldo_pendiente = GREATEST(
+                        COALESCE(p.saldo_pendiente, 0),
+                        COALESCE(
+                            (SELECT SUM(dp2.cantidad * dp2.precio_unitario) FROM detalle_pedido dp2 WHERE dp2.pedido_id = dp.pedido_id),
+                            p.total_pedido,
+                            0
+                        ) - (COALESCE(p.abono, 0) + COALESCE(pg.total_pagado, 0))
+                    ),
+                    dp.estado_cartera = CASE
+                        WHEN GREATEST(
+                            COALESCE(p.saldo_pendiente, 0),
+                            COALESCE(
+                                (SELECT SUM(dp2.cantidad * dp2.precio_unitario) FROM detalle_pedido dp2 WHERE dp2.pedido_id = dp.pedido_id),
+                                p.total_pedido,
+                                0
+                            ) - (COALESCE(p.abono, 0) + COALESCE(pg.total_pagado, 0))
+                        ) <= 0 THEN 'Pagado'
+                        ELSE 'Por Pagar'
+                    END
+                WHERE dp.pedido_id = ?";
+
+    $stmtSync = mysqli_prepare($db, $sqlSync);
+    if (!$stmtSync) {
+        throw new Exception('Error preparando sincronización de cartera en detalle_pedido: ' . mysqli_error($db));
+    }
+
+    mysqli_stmt_bind_param($stmtSync, 'i', $pedido_id);
+    if (!mysqli_stmt_execute($stmtSync)) {
+        throw new Exception('Error sincronizando cartera en detalle_pedido: ' . mysqli_stmt_error($stmtSync));
+    }
+
+    mysqli_stmt_close($stmtSync);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (session_status() === PHP_SESSION_NONE) {
@@ -413,6 +467,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Si todo salió bien, guardamos definitivamente en la base de datos
         // Sincronizar el abono inicial del pedido en la tabla pagos.
         sincronizarAbonoEnPagos($db, $pedido_id, $abono);
+        sincronizarDetallePedidoCartera($db, $pedido_id);
 
         mysqli_commit($db);
         

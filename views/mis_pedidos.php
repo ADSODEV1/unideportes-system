@@ -62,8 +62,7 @@ try {
                    ) AS saldo_pendiente_real
             FROM pedidos p
             INNER JOIN clientes c ON p.cliente_id = c.id
-                        WHERE COALESCE(p.saldo_pendiente, 0) > 0
-                            AND p.estado != 'Entregado'"; 
+            WHERE p.estado != 'Entregado'";
 
     if ($busqueda !== '') {
         $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda)";
