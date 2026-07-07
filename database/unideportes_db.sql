@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 03, 2026 at 01:51 AM
+-- Generation Time: Jul 07, 2026 at 09:45 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -184,7 +184,9 @@ INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `preci
 (79, 89, 22, 15, 75000.00, 1125000.00, 'Negro', 'M', NULL),
 (80, 90, 11, 9, 120000.00, 1080000.00, 'Amarilla', 'L', NULL),
 (81, 91, 23, 20, 45000.00, 900000.00, 'Roja', 'S', NULL),
-(82, 92, 20, 11, 35000.00, 385000.00, 'Negro', 'M', NULL);
+(82, 92, 20, 11, 35000.00, 385000.00, 'Negro', 'M', NULL),
+(83, 93, 9, 1, 480000.00, 480000.00, NULL, NULL, NULL),
+(84, 94, 1, 1, 20000.00, 20000.00, 'Azul', NULL, NULL);
 
 --
 -- Triggers `detalle_venta`
@@ -424,7 +426,7 @@ CREATE TABLE `productos` (
 --
 
 INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `categoria`, `color`, `material`, `genero`, `estado`, `descripcion`, `talla`, `stock`, `unidad`, `precio`, `created_at`) VALUES
-(1, 'PROD-0001', 'Camiseta Polo V', 'REF-001', 'Camisetas', 'Azul', 'Nylon', 'Unisex', 'activo', '', 'S', 21, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
+(1, 'PROD-0001', 'Camiseta Polo V', 'REF-001', 'Camisetas', 'Azul', 'Nylon', 'Unisex', 'activo', '', 'S', 20, 'Unidad', 20000.00, '2026-05-12 00:39:13'),
 (2, 'PROD-0002', 'Pantaloneta ', 'REF-002', 'Pantalonetas', 'Roja', 'Algodon', 'Hombre', 'activo', NULL, 'S', 10, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
 (3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', 'Verde', 'Algodon', 'Unisex', 'activo', NULL, 'M', 0, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Seleccion Col', 'azul', 'Nylon', 'unisex', 'activo', 'Camiseta Selección Colombia Visitante', 'L', 0, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
@@ -432,9 +434,9 @@ INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `ca
 (6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '40', 20, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
 (7, 'PROD-0007', 'Sudadera Entrenamiento ', 'SUD-TR-05', 'Sudaderas', 'negra', 'algodon', 'unisex', 'activo', 'Sudadera Entrenamiento unisex', 'S', 17, 'Unidad', 145000.00, '2026-05-12 00:39:13'),
 (8, 'PROD-0008', 'Gorra Unideportes Classic', 'ACC-CAP-01', 'Accesorios', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 10, 'Unidad', 45000.00, '2026-05-12 00:39:13'),
-(9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '41', 19, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
+(9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '41', 18, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
 (10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'M', 27, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
-(11, 'PROD-0011', 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', 'Chaqueta', 'Amarilla', 'Corta Viento', 'Hombre', 'activo', 'Corta vientos hombre', 'L', -9, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
+(11, 'PROD-0011', 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', 'Chaqueta', 'Amarilla', 'Corta Viento', 'Hombre', 'activo', 'Corta vientos hombre', 'L', 0, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
 (12, 'PROD-0012', 'Medias Ciclismo ', 'MED-CIC-02', 'Medias', 'azul', 'algodon', 'unisex', 'activo', 'Medias ciclismo', 'Única', 7, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
 (13, 'PROD-0013', 'Maletín Deportivo Gym', 'MAL-GYM-05', 'General', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 8, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
 (14, 'PROD-0014', 'Tula Deportiva Impermeable', 'TUL-IMP-09', 'General', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
@@ -443,12 +445,69 @@ INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `ca
 (17, 'PROD-0017', 'Buso', 'BUSOXX-XL-374', 'Sudaderas', 'Azul', 'Nylon', 'Unisex', 'activo', 'Buso marca Unideportes diseño sport', 'XL', 15, 'Unidad', 55000.00, '2026-06-13 16:35:20'),
 (18, 'PROD-0018', 'Buso', 'BUSOXX-M-792', 'Sudaderas', 'Azul', 'Nylon', 'Unisex', 'activo', 'Buso Unideportes Sport', 'M', 8, 'Unidad', 55000.00, '2026-06-13 16:39:14'),
 (19, 'PROD-0019', 'Camiseta Micro', 'CAMMIC-M-568', 'Camisetas', 'Negra', 'Poliester', 'Unisex', 'activo', 'Camiseta diseñada para los amantes del futsal o futbol de salon con diseño personalizado', 'M', 30, 'Unidad', 40000.00, '2026-06-14 19:02:59'),
-(20, 'PROD-0020', 'Short Deportivo Negro', 'SHO-DEP-01', 'Shorts', 'Negro', 'Poliester', 'Unisex', 'activo', 'Short deportivo para entrenamiento', 'M', -11, 'Unidad', 35000.00, '2026-06-18 20:52:53'),
+(20, 'PROD-0020', 'Short Deportivo Negro', 'SHO-DEP-01', 'Shorts', 'Negro', 'Poliester', 'Unisex', 'activo', 'Short deportivo para entrenamiento', 'M', 0, 'Unidad', 35000.00, '2026-06-18 20:52:53'),
 (21, 'PROD-0021', 'Camiseta Futsal', 'camiseta', 'Camiseta unisex para deporte futsal', 'negra', 'Nylon', 'Unisex', 'activo', '', 'Única', 10, 'Unidad', 50000.00, '2026-06-18 21:35:21'),
-(22, 'PROD-0022', 'Pantalon Deportivo Negro', 'PAN-DEP-01', 'Pantalones', 'Negro', 'Poliester', 'Unisex', 'activo', 'Pantalon deportivo para entrenamiento', 'M', -13, 'Unidad', 75000.00, '2026-06-19 18:00:05'),
+(22, 'PROD-0022', 'Pantalon Deportivo Negro', 'PAN-DEP-01', 'Pantalones', 'Negro', 'Poliester', 'Unisex', 'activo', 'Pantalon deportivo para entrenamiento', 'M', 0, 'Unidad', 75000.00, '2026-06-19 18:00:05'),
 (23, NULL, 'Camiseta Deportiva', 'CAM-DAM-001', 'Camisetas', 'Roja', 'Poliéster', 'Dama', 'activo', 'Camiseta deportiva de alto rendimiento', 'S', 7, 'Unidad', 45000.00, '2026-06-26 04:15:48'),
 (24, NULL, 'Camiseta Deportiva', 'CAM-NI-001', 'Camisetas', 'Verde', 'Poliéster', 'Niños', 'activo', 'Camiseta deportiva de alto rendimiento', '12', 50, 'Unidad', 45000.00, '2026-06-26 04:17:31'),
-(25, NULL, 'Camiseta Deportiva', 'CAM-NIN-001', 'Camisetas', 'Verde', 'Poliéster', 'Niños', 'activo', 'Camiseta deportiva de alto rendimiento', '16', 50, 'Unidad', 45000.00, '2026-06-26 04:18:34');
+(25, NULL, 'Camiseta Deportiva', 'CAM-NIN-001', 'Camisetas', 'Verde', 'Poliéster', 'Niños', 'activo', 'Camiseta deportiva de alto rendimiento', '16', 50, 'Unidad', 45000.00, '2026-06-26 04:18:34'),
+(26, NULL, 'Camiseta Micro Hombre', 'CAMMIC-UNICA-983', 'Camisetas', 'Verde', 'Poliester', 'Unisex', 'activo', 'Camiseta Micro Hombre', 'Unica', 20, 'Unidad', 25000.00, '2026-07-07 18:05:20');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `soporte_comentarios`
+--
+
+CREATE TABLE `soporte_comentarios` (
+  `id_comentario` int(10) UNSIGNED NOT NULL,
+  `id_ticket` int(10) UNSIGNED NOT NULL,
+  `autor` varchar(120) NOT NULL,
+  `mensaje` text NOT NULL,
+  `fecha` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `soporte_comentarios`
+--
+
+INSERT INTO `soporte_comentarios` (`id_comentario`, `id_ticket`, `autor`, `mensaje`, `fecha`) VALUES
+(1, 5, 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-06 23:59:36'),
+(2, 5, 'admin', 'reporte exitoso de prueba lo vemos desde el admin', '2026-07-07 00:00:27'),
+(3, 1, 'admin', 'Se verificara estados de alerta de Stok', '2026-07-07 09:58:07'),
+(4, 6, 'Pablo', 'Corregir impresión de facturas', '2026-07-07 09:58:44'),
+(5, 6, 'admin', 'Se verificará la impresión en el sistema', '2026-07-07 09:59:46'),
+(6, 7, 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `soporte_tickets`
+--
+
+CREATE TABLE `soporte_tickets` (
+  `id_ticket` int(10) UNSIGNED NOT NULL,
+  `asunto` varchar(180) NOT NULL,
+  `prioridad` enum('Crítica','Alta','Media','Baja') NOT NULL DEFAULT 'Media',
+  `estado` enum('Abierto','En Proceso','Resuelto','Cerrado') NOT NULL DEFAULT 'Abierto',
+  `fecha` datetime NOT NULL DEFAULT current_timestamp(),
+  `vendedor` varchar(120) NOT NULL,
+  `comentario_solucion` text DEFAULT NULL,
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `soporte_tickets`
+--
+
+INSERT INTO `soporte_tickets` (`id_ticket`, `asunto`, `prioridad`, `estado`, `fecha`, `vendedor`, `comentario_solucion`, `updated_at`) VALUES
+(1, 'Error en panel pedidos', 'Crítica', 'En Proceso', '2026-06-26 11:16:38', 'admin', 'Corregir espacios de llenado', '2026-07-07 09:58:07'),
+(2, 'No puedo imprimir facturas', 'Media', 'En Proceso', '2026-06-26 11:26:54', 'Pablo', 'Corregir impresión de facturas', '2026-06-26 11:27:27'),
+(3, 'Error al calcular precios', 'Alta', 'Cerrado', '2026-06-26 16:11:01', 'admin', NULL, '2026-07-06 23:42:15'),
+(4, 'Prueba de funcion de ticket desde el vendedor', 'Crítica', 'Cerrado', '2026-07-06 22:56:38', 'Pablo', NULL, '2026-07-06 23:41:59'),
+(5, 'Prueba de funcion de ticket desde el area vendedor', 'Baja', 'Abierto', '2026-07-06 23:59:36', 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 00:00:27'),
+(6, 'No puedo imprimir facturas', 'Baja', 'En Proceso', '2026-07-07 09:58:44', 'Pablo', 'Corregir impresión de facturas', '2026-07-07 09:59:46'),
+(7, 'Prueba de funcion de ticket desde el vendedor', 'Media', 'Abierto', '2026-07-07 11:23:04', 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04');
 
 -- --------------------------------------------------------
 
@@ -599,7 +658,9 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 (89, 'VEN-000089', 'M-20260627081943-646', 2, 3, 1073750.00, 56250.00, 'mayorista', 'Efectivo', 'Domicilio', 5000.00, NULL, NULL, 'Sogamoso', NULL, NULL, 0.00, 600000.00, 473750.00, 'Entregado', NULL, '2026-06-27 01:19:43', '2026-07-04'),
 (90, 'VEN-000090', 'T-20260627215622-776', 20, 3, 1080000.00, 0.00, 'directa', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 20000.00, 1080000.00, 0.00, 'Entregado', NULL, '2026-06-27 14:56:22', '2026-07-04'),
 (91, 'VEN-000091', 'M-20260627222122-345', 20, 3, 810000.00, 90000.00, 'mayorista', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 450000.00, 360000.00, 'Pendiente', NULL, '2026-06-27 15:21:22', '2026-07-04'),
-(92, 'VEN-000092', 'M-20260627222415-412', 2, 3, 365750.00, 19250.00, 'mayorista', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 370000.00, -4250.00, 'Entregado', NULL, '2026-06-27 15:24:15', '2026-07-04');
+(92, 'VEN-000092', 'M-20260627222415-412', 2, 3, 365750.00, 19250.00, 'mayorista', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 370000.00, -4250.00, 'Entregado', NULL, '2026-06-27 15:24:15', '2026-07-04'),
+(93, NULL, 'T-20260707193002-933', 20, 3, 480000.00, 0.00, 'directa', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 0.00, 0.00, 'Pendiente', NULL, '2026-07-07 12:30:02', NULL),
+(94, NULL, 'T-20260707200714-344', 17, 1, 20000.00, 0.00, 'directa', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 0.00, 0.00, 'Pendiente', NULL, '2026-07-07 13:07:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -695,6 +756,23 @@ ALTER TABLE `productos`
   ADD UNIQUE KEY `referencia` (`referencia`);
 
 --
+-- Indexes for table `soporte_comentarios`
+--
+ALTER TABLE `soporte_comentarios`
+  ADD PRIMARY KEY (`id_comentario`),
+  ADD KEY `idx_ticket` (`id_ticket`),
+  ADD KEY `idx_fecha` (`fecha`);
+
+--
+-- Indexes for table `soporte_tickets`
+--
+ALTER TABLE `soporte_tickets`
+  ADD PRIMARY KEY (`id_ticket`),
+  ADD KEY `idx_prioridad` (`prioridad`),
+  ADD KEY `idx_estado` (`estado`),
+  ADD KEY `idx_fecha` (`fecha`);
+
+--
 -- Indexes for table `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -730,7 +808,7 @@ ALTER TABLE `detalle_pedido`
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=83;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `pagos`
@@ -766,7 +844,19 @@ ALTER TABLE `precios_base_confeccion`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+
+--
+-- AUTO_INCREMENT for table `soporte_comentarios`
+--
+ALTER TABLE `soporte_comentarios`
+  MODIFY `id_comentario` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `soporte_tickets`
+--
+ALTER TABLE `soporte_tickets`
+  MODIFY `id_ticket` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
@@ -778,7 +868,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- Constraints for dumped tables
@@ -815,6 +905,12 @@ ALTER TABLE `pagos_venta`
 --
 ALTER TABLE `pedidos`
   ADD CONSTRAINT `fk_pedidos_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `soporte_comentarios`
+--
+ALTER TABLE `soporte_comentarios`
+  ADD CONSTRAINT `soporte_comentarios_ibfk_1` FOREIGN KEY (`id_ticket`) REFERENCES `soporte_tickets` (`id_ticket`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `ventas`
