@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNCIÓN DE FORMATO MONEDA COLOMBIA (COP) ---
     const formatoCOP = (numero) => {
         return new Intl.NumberFormat('es-CO', {
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(numero);
     };
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const val = this.value.trim();
             const opts = listaClientes.options;
             clienteIdHidden.value = '';
-
+            
             for (let i = 0; i < opts.length; i++) {
                 if (opts[i].value === val) {
                     clienteIdHidden.value = opts[i].dataset.id;
@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         direccionEntregaInput.value = opts[i].dataset.direccion || '';
                         barrioEntregaInput.value = opts[i].dataset.barrio || '';
                         ciudadEntregaInput.value = opts[i].dataset.ciudad || 'Sogamoso';
+                        // SE CORRIGIÓ: Sincronización exacta con el data-attribute 'data-referencia' de la vista
                         observacionesEntregaInput.value = opts[i].dataset.referencia || '';
                     }
                     break;
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         direccionEntregaInput.value = opts[i].dataset.direccion || '';
                         barrioEntregaInput.value = opts[i].dataset.barrio || '';
                         ciudadEntregaInput.value = opts[i].dataset.ciudad || 'Sogamoso';
+                        // SE CORRIGIÓ: Sincronización exacta con 'data-referencia'
                         observacionesEntregaInput.value = opts[i].dataset.referencia || '';
                         break;
                     }
@@ -114,9 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearWrapper(wrapper, labelText, placeholder, disabled = true) {
         wrapper.innerHTML = `
             <label><strong>${labelText}</strong></label>
-            <input type="text" id="${wrapper.id === 'wrapperProductoColor' ? 'productoColor' : 'productoTalla'}" 
-                   placeholder="${placeholder}" ${disabled ? 'disabled' : ''} 
-                   style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: ${disabled ? '#f8fafc' : 'white'};">`;
+            <input type="text" id="${wrapper.id === 'wrapperProductoColor' ? 'productoColor' : 'productoTalla'}" placeholder="${placeholder}" ${disabled ? 'disabled' : ''} style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: ${disabled ? '#f8fafc' : 'white'};">`;
         if (wrapper.id === 'wrapperProductoColor') {
             productoColor = document.getElementById('productoColor');
         } else {
@@ -166,10 +166,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return productoInput ? productoInput.value.trim() : '';
     }
 
+    function normalizeComparableText(value) {
+        return (value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    function getSelectedProductOption() {
+        const productList = document.getElementById('listaProductos');
+        if (!productList || !productoInput) return null;
+
+        const inputNormalized = normalizeComparableText(getSelectedProductName());
+        if (!inputNormalized) return null;
+
+        return Array.from(productList.options).find(opt => normalizeComparableText(opt.value) === inputNormalized) || null;
+    }
+
     function isSelectedProductValid() {
-        if (!productoInput) return false;
-        const value = getSelectedProductName();
-        return Array.from(document.getElementById('listaProductos').options).some(opt => opt.value === value);
+        return !!getSelectedProductOption();
     }
 
     async function fetchProductColors(productName) {
@@ -182,15 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}`;
         try {
             const res = await fetch(url);
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-            const contentType = res.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const text = await res.text();
-                console.error('Respuesta no es JSON:', text);
-                throw new Error('El servidor no devolvió JSON válido');
-            }
             const data = await res.json();
             if (data.colors && data.colors.length > 0) {
                 renderField(wrapperProductoColor, data.colors, 'Color:', 'Selecciona color', 'productoColor');
@@ -200,10 +208,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
             }
         } catch (error) {
-            console.error('Error en fetchProductColors:', error);
-            alert('Error al cargar los colores. Verifica la consola para más detalles.');
-            clearWrapper(wrapperProductoColor, 'Color:', 'Error al cargar', true);
-            clearWrapper(wrapperProductoTalla, 'Talla:', 'Error al cargar', true);
+            console.error(error);
+            clearWrapper(wrapperProductoColor, 'Color:', 'No hay colores disponibles', true);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
         }
     }
 
@@ -212,18 +219,10 @@ document.addEventListener('DOMContentLoaded', function() {
             clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
             return;
         }
+
         const url = `../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}`;
         try {
             const res = await fetch(url);
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-            const contentType = res.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const text = await res.text();
-                console.error('Respuesta no es JSON:', text);
-                throw new Error('El servidor no devolvió JSON válido');
-            }
             const data = await res.json();
             if (data.tallas && data.tallas.length > 0) {
                 renderField(wrapperProductoTalla, data.tallas, 'Talla:', 'Selecciona talla', 'productoTalla');
@@ -231,9 +230,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
             }
         } catch (error) {
-            console.error('Error en fetchProductTallas:', error);
-            alert('Error al cargar las tallas. Verifica la consola para más detalles.');
-            clearWrapper(wrapperProductoTalla, 'Talla:', 'Error al cargar', true);
+            console.error(error);
+            clearWrapper(wrapperProductoTalla, 'Talla:', 'No hay tallas disponibles', true);
         }
     }
 
@@ -253,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (productoInput) {
         productoInput.addEventListener('input', function() {
-            const current = getSelectedProductName();
-            if (isSelectedProductValid()) {
-                fetchProductColors(current);
+            const selectedOption = getSelectedProductOption();
+            if (selectedOption) {
+                fetchProductColors(selectedOption.value);
             } else {
                 clearWrapper(wrapperProductoColor, 'Color:', 'Selecciona primero un producto', true);
                 clearWrapper(wrapperProductoTalla, 'Talla:', 'Selecciona primero un color', true);
@@ -263,24 +261,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (btnAgregar && productoInput && carritoBody) {
-        btnAgregar.addEventListener('click', async function() {
-            const productName = getSelectedProductName();
-            if (!productName) return alert('Por favor, selecciona un producto válido de la lista.');
-            if (!isSelectedProductValid()) return alert('Por favor, selecciona un producto válido de la lista.');
+    async function agregarProductoAlCarrito() {
+            const selectedOption = getSelectedProductOption();
+            if (!selectedOption) return alert('Por favor, selecciona un producto válido de la lista.');
+            const productName = selectedOption.value;
 
-            const colorValue = productoColor ? productoColor.value.trim() : '';
-            const tallaValue = productoTalla ? productoTalla.value.trim() : '';
-            if (!colorValue) return alert('Por favor, selecciona un color válido.');
-            if (!tallaValue) return alert('Por favor, selecciona una talla válida.');
+            const colorValue = productoColor ? (productoColor.value.trim() || 'Sin color') : 'Sin color';
+            const tallaValue = productoTalla ? (productoTalla.value.trim() || 'Sin talla') : 'Sin talla';
 
-            const cantidad = parseInt(productoCantidad.value) || 1;
-            if (cantidad < 1) return alert('La cantidad debe ser al menos 1.');
+            const cantidadSolicitada = parseInt(productoCantidad.value) || 1;
+            if (cantidadSolicitada < 1) return alert('La cantidad debe ser al menos 1.');
 
             let variant;
             try {
                 const res = await fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}&talla=${encodeURIComponent(tallaValue)}`);
                 const data = await res.json();
+                if (data && data.error) {
+                    return alert(data.error);
+                }
                 variant = data.variant;
             } catch (error) {
                 console.error(error);
@@ -295,7 +293,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return alert('La variante seleccionada no tiene stock disponible.');
             }
 
-            if (cantidad > variant.stock) return alert(`Stock insuficiente. Disponibles: ${variant.stock}`);
+            let cantidadFinal = cantidadSolicitada;
+            if (cantidadSolicitada > variant.stock) {
+                const deseaAjustar = confirm(`Stock insuficiente. Disponibles: ${variant.stock}. ¿Deseas agregar solo la cantidad disponible?`);
+                if (!deseaAjustar) {
+                    return;
+                }
+                cantidadFinal = parseInt(variant.stock, 10);
+            }
             if (document.querySelector(`input[data-id="${variant.id}"]`)) return alert('El producto ya se encuentra en el pedido.');
 
             const colorText = colorValue === 'Sin color' ? '' : colorValue;
@@ -305,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #dee2e6';
-            const subtotal = cantidad * parseFloat(variant.precio);
+            const subtotal = cantidadFinal * parseFloat(variant.precio);
             tr.innerHTML = `
                 <td style="padding: 10px;">${productName}</td>
                 <td style="padding: 10px;">${colorText || 'N/D'}</td>
@@ -313,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td style="padding: 10px;">${comentarioSafe || '-'}</td>
                 <td style="padding: 10px;">$${formatoCOP(parseFloat(variant.precio))}</td>
                 <td style="padding: 10px;">
-                    <input type="number" class="cant-input" value="${cantidad}" min="1" max="${variant.stock}"
+                    <input type="number" class="cant-input" value="${cantidadFinal}" min="1" max="${variant.stock}"
                         data-id="${variant.id}"
                         data-precio="${parseFloat(variant.precio)}"
                         data-stock="${variant.stock}"
@@ -335,6 +340,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (productoComentario) productoComentario.value = '';
             productoCantidad.value = '1';
             calcularTotales();
+    }
+
+    window.agregarProductoAlCarrito = agregarProductoAlCarrito;
+
+    if (btnAgregar && productoInput && carritoBody) {
+        btnAgregar.addEventListener('click', function() {
+            agregarProductoAlCarrito();
+        });
+
+        productoInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                agregarProductoAlCarrito();
+            }
         });
     }
 
@@ -380,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.validarYCalcular = function(input) {
         const cant = parseInt(input.value) || 0;
         const maxStock = parseInt(input.dataset.stock);
-
+        
         if (cant > maxStock) {
             alert(`Stock insuficiente. El inventario actual de este artículo es de ${maxStock} unidades.`);
             input.value = maxStock;
@@ -446,11 +465,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ventaForm && ventaJSONInput && inputTotal) {
         ventaForm.addEventListener('submit', function(e) {
             const inputs = document.querySelectorAll('.cant-input');
-            if (inputs.length === 0) {
-                e.preventDefault();
-                return alert('El carrito de compras está vacío.');
+            if (inputs.length === 0) { 
+                e.preventDefault(); 
+                return alert('El carrito de compras está vacío.'); 
             }
 
+            // Validar que se asigne un cliente o se marque la creación de uno nuevo
             if (!clienteIdHidden.value && (!nuevoClienteSection || nuevoClienteSection.style.display !== 'block')) {
                 e.preventDefault();
                 clienteInput.focus();
@@ -462,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!barrioEntregaInput.value.trim()) { e.preventDefault(); barrioEntregaInput.focus(); return alert('Por favor, digite el barrio de entrega para el domicilio.'); }
             }
 
-            // Bloqueo de envío si el dinero en efectivo es insuficiente
+            // SE AÑADIÓ: Bloqueo de envío si el dinero en efectivo es insuficiente
             if (metodoPagoSelect && metodoPagoSelect.value === 'Efectivo') {
                 const pagaConValue = parseFloat(inputPagaCon.value) || 0;
                 const totalVentaValue = parseFloat(inputTotal.value) || 0;
@@ -485,51 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             ventaJSONInput.value = JSON.stringify(datos);
-        });
-    }
-
-    // --- RECARGAR LISTA DE CLIENTES VÍA AJAX ---
-    if (document.getElementById('btnRecargarClientes')) {
-        document.getElementById('btnRecargarClientes').addEventListener('click', async function() {
-            const btn = this;
-            const textoOriginal = btn.innerHTML;
-            btn.innerHTML = '⏳ Cargando...';
-            btn.disabled = true;
-            try {
-                const res = await fetch('../controllers/get_clientes_ajax.php');
-                const data = await res.json();
-
-                if (data.success && data.clientes) {
-                    const datalist = document.getElementById('listaClientes');
-                    datalist.innerHTML = '';
-
-                    data.clientes.forEach(cli => {
-                        const option = document.createElement('option');
-                        option.value = cli.nombre_completo;
-                        option.dataset.id = cli.id;
-                        option.dataset.direccion = cli.direccion || '';
-                        option.dataset.barrio = cli.barrio || '';
-                        option.dataset.ciudad = cli.ciudad || 'Sogamoso';
-                        option.dataset.referencia = cli.referencia_entrega || '';
-                        datalist.appendChild(option);
-                    });
-
-                    btn.innerHTML = '✅ Actualizado';
-                    setTimeout(() => {
-                        btn.innerHTML = textoOriginal;
-                        btn.disabled = false;
-                    }, 1500);
-                } else {
-                    throw new Error('Respuesta inválida');
-                }
-            } catch (error) {
-                console.error('Error recargando clientes:', error);
-                btn.innerHTML = '❌ Error';
-                setTimeout(() => {
-                    btn.innerHTML = textoOriginal;
-                    btn.disabled = false;
-                }, 2000);
-            }
         });
     }
 });

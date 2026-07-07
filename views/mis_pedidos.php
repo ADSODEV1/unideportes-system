@@ -1,6 +1,5 @@
 <?php
 // views/mis_pedidos.php
-// Panel para gestionar pedidos de fábrica pendientes de entrega y cobro
 require_once __DIR__ . '/../config/bootstrap.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -8,30 +7,68 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $pdo = app();
-require_login(['admin', 'colaborador', 'vendedor']);
 
-$busqueda = trim($_GET['buscar'] ?? '');
+// Seguridad: Ajustado para los roles de tu sistema (Admin o Vendedor)
+require_login(['admin' , 'colaborador', 'vendedor']);
 
+// Capturar filtro de búsqueda si existe
+$busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+
+// Construir consulta dinámica alineada a unideportes-bd.sql con cálculo matemático corregido
 try {
     $sql = "SELECT p.id, 
-                   p.detalle,
-                   p.total_pedido,
-                   p.estado,
-                   p.fecha_entrega,
-                   p.cantidad,
-                   c.nombre_completo AS cliente_nombre,
+                   c.nombre_completo AS cliente_nombre, 
                    c.nit_cedula AS cliente_nit,
-                   c.telefono AS cliente_telefono,
-                   IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado
+                   COALESCE(
+                       NULLIF(
+                           (SELECT GROUP_CONCAT(
+                               CONCAT(
+                                   COALESCE(NULLIF(prod.nombre, ''), NULLIF(p.detalle, ''), 'Producto personalizado'),
+                                   ' x',
+                                   dp.cantidad
+                               )
+                               ORDER BY dp.id ASC
+                               SEPARATOR ', '
+                           )
+                           FROM detalle_pedido dp
+                           LEFT JOIN productos prod ON prod.id = dp.producto_id
+                           WHERE dp.pedido_id = p.id),
+                           ''
+                       ),
+                       p.detalle,
+                       'Pedido sin detalle'
+                   ) AS detalle_resumen,
+                   COALESCE(
+                       (SELECT SUM(dp.cantidad * dp.precio_unitario)
+                        FROM detalle_pedido dp
+                        WHERE dp.pedido_id = p.id),
+                       p.total_pedido,
+                       0
+                   ) AS total_pedido_real,
+                   p.estado,
+                   IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado,
+                   COALESCE(
+                       p.saldo_pendiente,
+                       GREATEST(
+                           COALESCE(
+                               (SELECT SUM(dp.cantidad * dp.precio_unitario)
+                                FROM detalle_pedido dp
+                                WHERE dp.pedido_id = p.id),
+                               p.total_pedido,
+                               0
+                           ) - IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0),
+                           0
+                       )
+                   ) AS saldo_pendiente_real
             FROM pedidos p
             INNER JOIN clientes c ON p.cliente_id = c.id
             WHERE p.estado != 'Entregado'";
 
     if ($busqueda !== '') {
-        $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda OR p.detalle LIKE :busqueda)";
+        $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda)";
     }
 
-    $sql .= " ORDER BY p.fecha_entrega ASC";
+    $sql .= " ORDER BY p.id DESC";
     
     $stmt = $pdo->prepare($sql);
     
@@ -47,177 +84,163 @@ try {
     $error_msg = "Error al cargar la lista de pedidos: " . $e->getMessage();
 }
 
+// Mensajes de estado
 $status = $_GET['status'] ?? null;
+$monto_pagado_msg = isset($_GET['monto']) ? floatval($_GET['monto']) : null;
+$saldo_anterior_msg = isset($_GET['saldo_anterior']) ? floatval($_GET['saldo_anterior']) : null;
+$saldo_actual_msg = isset($_GET['saldo_actual']) ? floatval($_GET['saldo_actual']) : null;
+
+// Incluir Header del sistema original de la marca
 include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
+
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
-    
+
     <main class="main-content-panel">
         
-        <!-- ENCABEZADO -->
-        <div class="page-header">
-            <div>
-                <h1>Despacho y Entrega de Pedidos</h1>
-                <p>Gestiona los pedidos en producción, cobra saldos pendientes y efectúa la entrega formal.</p>
-            </div>
-            <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'colaborador'): ?>
-                <a href="nuevo_pedido.php" class="btn-primary">
-                    + Nuevo Pedido
-                </a>
-            <?php endif; ?>
+        <div class="page-header" style="margin-bottom: 25px;">
+            <h1>🎁 Despacho y Entrega de Pedidos</h1>
+            <p>Busca los pedidos listos de clientes, recauda saldos pendientes y efectúa la entrega formal.</p>
         </div>
 
-        <!-- ALERTAS -->
         <?php if ($status === 'success'): ?>
-            <div class="alert-success">✅ ¡Pedido entregado con éxito y pago registrado!</div>
-        <?php elseif ($status === 'pago_registrado'): ?>
-            <div class="alert-success">✅ Abono registrado exitosamente.</div>
+            <div class="alert-success" style="margin-bottom: 20px;">
+                ¡Pedido entregado con éxito y pago registrado en el histórico!
+            </div>
+        <?php elseif ($status === 'pago_success'): ?>
+            <div class="alert-success" style="margin-bottom: 20px;">
+                ¡Pago registrado correctamente!
+                <?php if ($monto_pagado_msg !== null && $saldo_actual_msg !== null): ?>
+                    <br><small>
+                        Se registró un pago de <strong>$<?= number_format($monto_pagado_msg, 0, ',', '.') ?></strong>
+                        <?php if ($saldo_anterior_msg !== null): ?>
+                            y el saldo bajó de <strong>$<?= number_format($saldo_anterior_msg, 0, ',', '.') ?></strong>
+                        <?php endif; ?>
+                        a <strong>$<?= number_format($saldo_actual_msg, 0, ',', '.') ?></strong>.
+                    </small>
+                <?php endif; ?>
+            </div>
         <?php elseif ($status === 'error'): ?>
-            <div class="alert-error">⚠️ Hubo un problema al procesar la operación.</div>
-        <?php elseif ($status === 'error_saldo'): ?>
-            <div class="alert-error">⚠️ No se puede entregar: aún hay saldo pendiente.</div>
+            <div class="alert-error" style="margin-bottom: 20px;">
+                Hubo un problema al procesar la operacion del pedido. Por favor, intente nuevamente.
+                <?php if (!empty($_GET['msg'])): ?>
+                    <br><small><?= htmlspecialchars($_GET['msg']) ?></small>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
 
         <?php if (isset($error_msg)): ?>
-            <div class="alert-error"><?= htmlspecialchars($error_msg) ?></div>
+            <div class="alert-error" style="margin-bottom: 20px;">
+                <?= htmlspecialchars($error_msg) ?>
+            </div>
         <?php endif; ?>
 
-        <!-- BARRA DE BÚSQUEDA -->
-        <form method="GET" action="" class="search-form">
-            <div class="search-input-wrapper">
-                <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" 
-                       placeholder="Buscar por cliente, NIT o detalle del pedido..." 
-                       class="search-input">
-                <?php if ($busqueda !== ''): ?>
-                    <a href="mis_pedidos.php" class="search-clear" title="Limpiar filtro">❌</a>
-                <?php endif; ?>
-            </div>
+        <form method="GET" action="" class="search-bar">
+            <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" placeholder="Buscar por nombre de cliente o NIT/Cédula...">
             <button type="submit" class="btn-primary">🔍 Buscar</button>
+            <?php if ($busqueda !== ''): ?>
+                <a href="mis_pedidos.php" class="btn-secondary" style="display: inline-flex; align-items: center; text-decoration: none;">Limpiar</a>
+            <?php endif; ?>
         </form>
 
-        <!-- TABLA DE PEDIDOS -->
-        <div class="table-container">
-            <table class="data-table">
+        <div class="table-responsive">
+            <table class="tabla-maestra">
                 <thead>
                     <tr>
-                        <th>Pedido</th>
                         <th>Cliente</th>
-                        <th>Fecha Entrega</th>
-                        <th>Estado Producción</th>
+                        <th>Detalle / Prendas</th>
                         <th>Total Pedido</th>
+                        <th>Estado del Pedido</th>
                         <th>Estado de Cartera</th>
-                        <th class="text-center">Acciones</th>
+                        <th style="text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($pedidos)): ?>
                         <tr>
-                            <td colspan="7" class="no-results">
-                                <span class="empty-icon">📦</span>
-                                <p>No hay pedidos pendientes por entregar.</p>
+                            <td colspan="5" style="text-align: center; color: var(--text-light); padding: 30px;">
+                                No se encontraron pedidos pendientes por entregar.
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($pedidos as $pedido): 
-                            $total_pagado = floatval($pedido['total_pagado']);
-                            $saldo_real = $pedido['total_pedido'] - $total_pagado;
-                            
-                            // Determinar clase del estado de producción
-                            $estadoClass = 'estado-default';
-                            $estadoIcono = '⚙️';
-                            switch ($pedido['estado']) {
-                                case 'En Corte':
-                                    $estadoClass = 'estado-corte';
-                                    $estadoIcono = '✂️';
-                                    break;
-                                case 'En Costura':
-                                    $estadoClass = 'estado-costura';
-                                    $estadoIcono = '🧵';
-                                    break;
-                                case 'Terminado':
-                                    $estadoClass = 'estado-terminado';
-                                    $estadoIcono = '✅';
-                                    break;
-                            }
-                            
-                            // Verificar fecha de entrega
-                            $fechaEntrega = strtotime($pedido['fecha_entrega']);
-                            $hoy = strtotime(date('Y-m-d'));
-                            $esVencido = $fechaEntrega < $hoy;
-                            $diasRestantes = ceil(($fechaEntrega - $hoy) / 86400);
+                            $saldo_pendiente = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0)); 
                         ?>
-                            <tr class="<?= $esVencido ? 'fila-vencida' : '' ?>">
-                                <td>
-                                    <strong>#<?= $pedido['id'] ?></strong><br>
-                                    <span class="text-small">
-                                        <?= htmlspecialchars($pedido['cantidad']) ?> unid.<br>
-                                        <a href="ver_ticket_pedido.php?id=<?= $pedido['id'] ?>" target="_blank" class="link-small">
-                                            Ver Ticket
-                                        </a>
-                                    </span>
-                                </td>
+                            <tr>
                                 <td>
                                     <strong><?= htmlspecialchars($pedido['cliente_nombre']) ?></strong><br>
-                                    <span class="text-small">
-                                        NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?><br>
-                                        Tel: <?= htmlspecialchars($pedido['cliente_telefono'] ?: 'N/A') ?>
+                                    <small style="color: var(--text-light);">NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?></small>
+                                </td>
+                                <td><?= htmlspecialchars($pedido['detalle_resumen']) ?></td>
+                                <td><strong>$<?= number_format($pedido['total_pedido_real'], 0, ',', '.') ?></strong></td>
+                                <td>
+                                    <?php
+                                        $estadoBadgeStyle = match($pedido['estado']) {
+                                            'En Corte'      => 'background:#fef3c7; color:#92400e; border:1px solid #fde68a;',
+                                            'En Costura',
+                                            'En Confección' => 'background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe;',
+                                            'Terminado'     => 'background:#d1fae5; color:#065f46; border:1px solid #6ee7b7;',
+                                            default         => 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;',
+                                        };
+                                    ?>
+                                    <span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.82rem; font-weight:700; white-space:nowrap; <?= $estadoBadgeStyle ?>">
+                                        <?= htmlspecialchars($pedido['estado']) ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($esVencido): ?>
-                                        <span class="fecha-vencida">
-                                            🚨 VENCIDO<br>
-                                            <span class="text-small"><?= date('d/m/Y', $fechaEntrega) ?></span>
-                                        </span>
-                                    <?php elseif ($diasRestantes <= 3): ?>
-                                        <span class="fecha-proxima">
-                                            ⏰ <?= $diasRestantes ?> día(s)<br>
-                                            <span class="text-small"><?= date('d/m/Y', $fechaEntrega) ?></span>
-                                        </span>
+                                    <?php if ($saldo_pendiente > 0): ?>
+                                        <span class="badge naranja">Por Pagar: $<?= number_format($saldo_pendiente, 0, ',', '.') ?></span>
                                     <?php else: ?>
-                                        <span class="fecha-normal">
-                                            📅 <?= date('d/m/Y', $fechaEntrega) ?><br>
-                                            <span class="text-small">(<?= $diasRestantes ?> días)</span>
-                                        </span>
+                                        <span class="badge verde">Pagado Totalmente ✅</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <span class="estado-badge <?= $estadoClass ?>">
-                                        <?= $estadoIcono ?> <?= htmlspecialchars($pedido['estado']) ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <strong>$<?= number_format($pedido['total_pedido'], 0, ',', '.') ?></strong>
-                                </td>
-                                <td>
-                                    <?php if ($saldo_real > 0): ?>
-                                        <span class="badge badge-warning">
-                                            Abonó: $<?= number_format($total_pagado, 0, ',', '.') ?>
-                                        </span>
-                                        <span class="badge badge-danger">
-                                            Debe: $<?= number_format($saldo_real, 0, ',', '.') ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge badge-success">✅ Pagado Totalmente</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <div class="actions-vertical">
-                                        <?php if ($saldo_real > 0): ?>
-                                            <button onclick="abrirModalPago(<?= $pedido['id'] ?>, <?= $saldo_real ?>)" 
-                                                    class="btn-success btn-small">
-                                                💰 Cobrar Abono
+                                <td style="text-align: center; min-width: 260px;">
+                                    <?php if ($saldo_pendiente > 0): ?>
+                                        <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
+                                              onsubmit="return confirm('¿Registrar este pago/abono?');"
+                                              style="display:flex; flex-direction:column; gap:6px; align-items:stretch; margin-bottom:8px;">
+                                            <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
+                                            <input type="hidden" name="accion" value="abonar">
+
+                                            <div style="display:flex; gap:6px; align-items:center;">
+                                                <label style="font-size:0.8rem; white-space:nowrap; color:var(--text-light);">Monto ($):</label>
+                                                <input type="number" name="pago_recibido" min="0.01" step="0.01"
+                                                       max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                       value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                       required
+                                                       style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
+                                            </div>
+
+                                            <select name="metodo_pago" style="padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; background:#fff;">
+                                                <option value="Efectivo">💵 Efectivo</option>
+                                                <option value="Transferencia">📲 Transferencia</option>
+                                                <option value="Tarjeta">💳 Tarjeta</option>
+                                            </select>
+
+                                            <button type="submit" class="btn-action btn-active"
+                                                    style="font-size:0.88rem; font-weight:600; padding:8px 10px; border:none; cursor:pointer;">
+                                                💰 Registrar Pago
                                             </button>
-                                        <?php endif; ?>
-                                        
-                                        <a href="/unideportes-system/controllers/procesar_entrega_controller.php?id=<?= $pedido['id'] ?>" 
-                                           class="btn-primary btn-small"
-                                           onclick="return confirm('¿Confirmas que deseas registrar el recaudo final y marcar este pedido como ENTREGADO?');">
-                                            📦 Entregar y Liquidar
-                                        </a>
-                                    </div>
+                                        </form>
+
+                                        <button type="button" class="btn-action" disabled
+                                                style="font-size:0.84rem; padding:7px 10px; border:none; cursor:not-allowed; opacity:0.6;"
+                                                title="Primero registra el pago completo para entregar">
+                                            📦 Entregar (bloqueado por saldo)
+                                        </button>
+                                    <?php else: ?>
+                                        <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
+                                              onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
+                                            <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
+                                            <input type="hidden" name="accion" value="entregar">
+                                            <button type="submit" class="btn-action btn-active"
+                                                    style="font-size:0.88rem; font-weight:600; padding:8px 14px; border:none; cursor:pointer;">
+                                                📦 Confirmar Entrega
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -225,471 +248,11 @@ include(__DIR__ . "/header.php");
                 </tbody>
             </table>
         </div>
+
     </main>
 </div>
 
-<!-- MODAL PARA REGISTRAR ABONO -->
-<div id="modalPago" class="modal-overlay">
-    <div class="modal-content">
-        <h3 class="modal-title">💰 Registrar Abono de Pedido</h3>
-        <form id="formPago" method="POST" action="../controllers/registrar_pago_pedido.php">
-            <input type="hidden" name="pedido_id" id="pago_pedido_id">
-            
-            <div class="form-group">
-                <label for="pago_monto">Monto a abonar:</label>
-                <input type="number" name="monto" id="pago_monto" step="0.01" min="0" required 
-                       class="form-input">
-            </div>
-            
-            <div class="form-group">
-                <label for="pago_metodo">Método de pago:</label>
-                <select name="metodo_pago" id="pago_metodo" class="form-input">
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Transferencia">Transferencia</option>
-                </select>
-            </div>
-            
-            <div class="modal-actions">
-                <button type="button" onclick="cerrarModalPago()" class="btn-secondary">
-                    Cancelar
-                </button>
-                <button type="submit" class="btn-success">
-                    Registrar Pago
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<style>
-/* ============================================
-   MIS PEDIDOS - ESTILOS SIMPLIFICADOS
-   ============================================ */
-
-/* Encabezado */
-.page-header {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.page-header h1 {
-    color: #1e293b;
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0;
-}
-
-.page-header p {
-    color: #64748b;
-    margin: 5px 0 0 0;
-    font-size: 0.95rem;
-}
-
-/* Alertas */
-.alert-success {
-    padding: 12px 16px;
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 4px solid #10b981;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-weight: 500;
-}
-
-.alert-error {
-    padding: 12px 16px;
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 4px solid #ef4444;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-weight: 500;
-}
-
-/* Barra de búsqueda */
-.search-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 25px;
-    background: #f8fafc;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.search-input-wrapper {
-    position: relative;
-    flex-grow: 1;
-}
-
-.search-input {
-    width: 100%;
-    padding: 14px 45px 14px 18px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: all 0.2s;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-}
-
-.search-clear {
-    position: absolute;
-    right: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    text-decoration: none;
-    color: #94a3b8;
-    font-weight: bold;
-    font-size: 1.2rem;
-    transition: color 0.2s;
-}
-
-.search-clear:hover {
-    color: #64748b;
-}
-
-/* Tabla */
-.table-container {
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    overflow-x: auto;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table thead {
-    background: #f1f5f9;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.data-table th {
-    padding: 14px;
-    text-align: left;
-    color: #475569;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.data-table td {
-    padding: 14px;
-    border-bottom: 1px solid #e2e8f0;
-    color: #334155;
-    vertical-align: top;
-}
-
-.data-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.text-small {
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-.link-small {
-    font-size: 0.85rem;
-    color: #2563eb;
-    text-decoration: none;
-}
-
-.link-small:hover {
-    text-decoration: underline;
-}
-
-/* Fila vencida (fondo rojo suave) */
-.fila-vencida {
-    background: #fef2f2 !important;
-}
-
-.fila-vencida:hover {
-    background: #fee2e2 !important;
-}
-
-/* Estados de fecha */
-.fecha-vencida {
-    color: #dc2626;
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-.fecha-proxima {
-    color: #f59e0b;
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-.fecha-normal {
-    color: #059669;
-    font-size: 0.95rem;
-}
-
-/* Estados de producción */
-.estado-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: white;
-}
-
-.estado-default { background: #64748b; }
-.estado-corte { background: #f59e0b; }
-.estado-costura { background: #3b82f6; }
-.estado-terminado { background: #10b981; }
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.badge-success {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.badge-warning {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.badge-danger {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-/* Acciones verticales */
-.actions-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-}
-
-/* Botones */
-.btn-primary {
-    padding: 9px 18px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background: #1d4ed8;
-}
-
-.btn-secondary {
-    padding: 9px 18px;
-    background: white;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-}
-
-.btn-success {
-    padding: 9px 18px;
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s;
-}
-
-.btn-success:hover {
-    background: #059669;
-}
-
-.btn-small {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-}
-
-/* Sin resultados */
-.no-results {
-    text-align: center;
-    padding: 40px !important;
-    color: #94a3b8;
-}
-
-.no-results .empty-icon {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    display: block;
-}
-
-.no-results p {
-    margin: 10px 0;
-}
-
-/* ============================================
-   MODAL
-   ============================================ */
-
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-title {
-    margin: 0 0 20px 0;
-    color: #1e293b;
-    font-size: 1.2rem;
-    font-weight: 700;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #334155;
-    font-size: 0.9rem;
-}
-
-.form-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.modal-actions button {
-    flex: 1;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .search-form {
-        flex-direction: column;
-    }
-    
-    .data-table {
-        font-size: 0.85rem;
-    }
-    
-    .data-table th,
-    .data-table td {
-        padding: 8px;
-    }
-    
-    .actions-vertical {
-        flex-direction: column;
-    }
-    
-    .actions-vertical > * {
-        width: 100%;
-    }
-}
-</style>
-
-<script>
-function abrirModalPago(pedidoId, saldo) {
-    document.getElementById('pago_pedido_id').value = pedidoId;
-    document.getElementById('pago_monto').value = saldo;
-    document.getElementById('pago_monto').max = saldo;
-    document.getElementById('modalPago').style.display = 'flex';
-}
-
-function cerrarModalPago() {
-    document.getElementById('modalPago').style.display = 'none';
-}
-
-// Cerrar modal al hacer clic fuera
-document.getElementById('modalPago').addEventListener('click', function(e) {
-    if (e.target === this) {
-        cerrarModalPago();
-    }
-});
-</script>
-
-<?php include(__DIR__ . "/footer.php"); ?>
+<?php 
+// Incluir Footer del sistema
+include(__DIR__ . "/footer.php"); 
+?>

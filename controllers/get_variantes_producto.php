@@ -105,6 +105,20 @@ try {
         $stmt->execute($params);
         $variant = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        // Fallback resiliente: si no existe coincidencia exacta de color/talla,
+        // devuelve la primera variante disponible del producto para no bloquear la venta.
+        if (!$variant) {
+            $stmtFallback = $pdo->prepare(
+                "SELECT id, nombre, referencia, precio, stock, talla, color, categoria, descripcion
+                 FROM productos
+                 WHERE nombre = ? AND stock > 0
+                 ORDER BY id ASC
+                 LIMIT 1"
+            );
+            $stmtFallback->execute([$nombre]);
+            $variant = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+        }
+
         if ($variant) {
             $variant['color'] = $variant['color'] === null || trim($variant['color']) === '' ? 'Sin color' : $variant['color'];
             $variant['talla'] = $variant['talla'] === null || trim($variant['talla']) === '' ? 'Sin talla' : $variant['talla'];

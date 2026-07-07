@@ -1,30 +1,29 @@
 <?php
 // views/pedido_exitoso.php
-// Página de confirmación de pedido registrado exitosamente
 require_once __DIR__ . '/../config/bootstrap.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_login(['vendedor', 'colaborador', 'admin']);
 
 $pdo = app();
+$conn = connection();
 
 // Validar que llegue el ID del pedido
 $pedido_id = !empty($_GET['id']) ? intval($_GET['id']) : 0;
 if ($pedido_id === 0) {
-    header("Location: panel_produccion.php");
+    header("Location: venta_mayorista.php");
     exit();
 }
 
 // 1. Obtener datos del pedido y del cliente
 try {
-    $stmt = $pdo->prepare("
-        SELECT p.*, 
-               c.nombre_completo as cliente_nombre, 
-               c.telefono, 
-               c.email,
-               (p.abono + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)) AS total_abonado
-        FROM pedidos p 
-        LEFT JOIN clientes c ON p.cliente_id = c.id 
-        WHERE p.id = ?
-    ");
+    $stmt = $conn->prepare("SELECT p.*, c.nombre_completo AS cliente_nombre, c.telefono
+                            FROM pedidos p
+                            LEFT JOIN clientes c ON p.cliente_id = c.id
+                            WHERE p.id = ?");
     $stmt->execute([$pedido_id]);
     $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -32,473 +31,133 @@ try {
         die("El pedido solicitado no existe.");
     }
 
-    // Calcular saldo real
-    $total_abonado = floatval($pedido['total_abonado'] ?? 0);
-    $saldo_real = floatval($pedido['total_pedido']) - $total_abonado;
-
-    // 2. Obtener el detalle de los productos del taller
-    $stmtD = $pdo->prepare("
-        SELECT dp.*, prod.nombre as producto_nombre 
-        FROM detalle_pedido dp
-        LEFT JOIN productos prod ON dp.producto_id = prod.id
-        WHERE dp.pedido_id = ?
-    ");
+    // 2. Detalle de prendas
+    $stmtD = $conn->prepare("SELECT dp.cantidad, dp.precio_unitario, dp.color, dp.talla,
+                                     dp.comentario_vendedor,
+                                     COALESCE(prod.nombre, p2.detalle, 'Producto personalizado') AS producto_nombre
+                              FROM detalle_pedido dp
+                              LEFT JOIN productos prod ON prod.id = dp.producto_id
+                              LEFT JOIN pedidos p2 ON p2.id = dp.pedido_id
+                              WHERE dp.pedido_id = ?");
     $stmtD->execute([$pedido_id]);
     $detalles = $stmtD->fetchAll(PDO::FETCH_ASSOC);
+
+    $total_real = array_sum(array_map(fn($d) => $d['cantidad'] * $d['precio_unitario'], $detalles));
+    if ($total_real <= 0) {
+        $total_real = floatval($pedido['total_pedido'] ?? 0);
+    }
+    $abono_real   = floatval($pedido['abono'] ?? 0);
+    $saldo_real   = max(0, $total_real - $abono_real);
+
 } catch (Exception $e) {
     die("Error al consultar la base de datos: " . $e->getMessage());
 }
 
-include(__DIR__ . "/header.php");
+include(__DIR__ . '/header.php');
 ?>
 
 <div class="container admin-layout">
-    <?php include(__DIR__ . "/sidebar_control.php"); ?>
+    <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
-        
-        <!-- ENCABEZADO DE ÉXITO -->
-        <div class="success-header">
-            <div class="success-icon">✅</div>
-            <h1>¡Pedido Registrado con Éxito!</h1>
-            <p>La orden ha sido enviada a la Línea de Confección</p>
-        </div>
 
-        <!-- RESUMEN FINANCIERO -->
-        <div class="stats-grid">
-            <div class="stat-card stat-blue">
-                <h3>Total Pedido</h3>
-                <p>$<?= number_format($pedido['total_pedido'], 0, ',', '.') ?></p>
+        <div class="page-header header-dashboard" style="margin-bottom: 28px;">
+            <div>
+                <h1 style="color: #047857;">¡Pedido #<?= $pedido_id ?> Registrado con Éxito! ✅</h1>
+                <p style="color: var(--text-light);">La orden fue enviada a la línea de confección.</p>
             </div>
-            <div class="stat-card stat-green">
-                <h3>Abono Inicial</h3>
-                <p>$<?= number_format($total_abonado, 0, ',', '.') ?></p>
-            </div>
-            <div class="stat-card stat-red">
-                <h3>Saldo Pendiente</h3>
-                <p>$<?= number_format($saldo_real, 0, ',', '.') ?></p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="window.print();" class="btn-secondary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid var(--border);">🖨️ Imprimir Ticket</button>
+                <a href="venta_mayorista.php" class="btn-primary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; background: var(--navy); color: #fff;">➕ Nueva Orden</a>
             </div>
         </div>
 
-        <!-- DATOS DEL CLIENTE Y ENTREGA -->
-        <div class="info-grid">
-            <div class="info-card">
-                <h2 class="section-subtitle">👤 Datos del Cliente</h2>
-                <div class="info-row">
-                    <span class="info-label">Nombre:</span>
-                    <span class="info-value"><?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General') ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Teléfono:</span>
-                    <span class="info-value"><?= htmlspecialchars($pedido['telefono'] ?? 'N/A') ?></span>
-                </div>
-                <?php if (!empty($pedido['email'])): ?>
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value"><?= htmlspecialchars($pedido['email']) ?></span>
-                </div>
+        <!-- Resumen financiero -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px;">
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Total Pedido</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy);">$<?= number_format($total_real, 0, ',', '.') ?></div>
+            </div>
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Abono</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #047857;">$<?= number_format($abono_real, 0, ',', '.') ?></div>
+            </div>
+            <div class="venta-container" style="text-align: center; padding: 20px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px;">Saldo Pendiente</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">$<?= number_format($saldo_real, 0, ',', '.') ?></div>
+            </div>
+        </div>
+
+        <!-- Datos del pedido -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; flex-wrap: wrap;">
+            <div class="venta-container" style="padding: 20px;">
+                <h3 style="margin: 0 0 14px; font-size: 1rem; color: var(--navy);">Cliente</h3>
+                <p style="margin: 0 0 6px;"><strong>Nombre:</strong> <?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General') ?></p>
+                <p style="margin: 0;"><strong>Teléfono:</strong> <?= htmlspecialchars($pedido['telefono'] ?? 'N/A') ?></p>
+            </div>
+            <div class="venta-container" style="padding: 20px;">
+                <h3 style="margin: 0 0 14px; font-size: 1rem; color: var(--navy);">Entrega</h3>
+                <p style="margin: 0 0 6px;"><strong>Tipo:</strong> <?= htmlspecialchars($pedido['tipo_entrega'] ?? 'Tienda') ?></p>
+                <p style="margin: 0;"><strong>Fecha estimada:</strong> <?= date('d/m/Y', strtotime($pedido['fecha_entrega'])) ?></p>
+                <?php if (!empty($pedido['descripcion'])): ?>
+                    <p style="margin: 8px 0 0; font-size: 0.88rem; color: var(--text-light);">📝 <?= htmlspecialchars($pedido['descripcion']) ?></p>
                 <?php endif; ?>
             </div>
-
-            <div class="info-card">
-                <h2 class="section-subtitle">📦 Datos de Entrega</h2>
-                <div class="info-row">
-                    <span class="info-label">Tipo:</span>
-                    <span class="info-value"><?= htmlspecialchars($pedido['tipo_entrega']) ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Fecha Estimada:</span>
-                    <span class="info-value fecha-entrega">
-                        📅 <?= date('d/m/Y', strtotime($pedido['fecha_entrega'])) ?>
-                    </span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Estado:</span>
-                    <span class="badge badge-info"><?= htmlspecialchars($pedido['estado']) ?></span>
-                </div>
-            </div>
         </div>
 
-        <!-- DETALLE DE FABRICACIÓN -->
-        <div class="card-section">
-            <h2 class="section-subtitle">🧵 Detalle de Fabricación (Taller)</h2>
-            
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th class="text-center">Talla</th>
-                            <th class="text-center">Color</th>
-                            <th class="text-center">Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($detalles as $row): ?>
-                            <tr>
-                                <td>
-                                    <strong><?= htmlspecialchars($row['producto_nombre']) ?></strong>
-                                    <?php if(!empty($row['comentario_vendedor'])): ?>
-                                        <br><span class="text-small">
-                                            * Nota: <?= htmlspecialchars($row['comentario_vendedor']) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <span class="talla-badge"><?= htmlspecialchars($row['talla']) ?></span>
-                                </td>
-                                <td class="text-center">
-                                    <?= htmlspecialchars($row['color']) ?>
-                                </td>
-                                <td class="text-center">
-                                    <strong><?= intval($row['cantidad']) ?></strong>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+        <!-- Tabla de prendas -->
+        <div class="venta-container" style="margin-bottom: 28px; overflow-x: auto;">
+            <h3 style="margin: 0 0 16px; font-size: 1rem; color: var(--navy);">🧵 Detalle de Fabricación</h3>
+            <?php if (!empty($detalles)): ?>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--navy); color: #fff; text-align: left;">
+                        <th style="padding: 12px;">Producto / Prenda</th>
+                        <th style="padding: 12px; text-align: center;">Talla</th>
+                        <th style="padding: 12px; text-align: center;">Color</th>
+                        <th style="padding: 12px; text-align: right;">Precio u.</th>
+                        <th style="padding: 12px; text-align: center;">Cant.</th>
+                        <th style="padding: 12px; text-align: right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($detalles as $det): ?>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;">
+                            <strong><?= htmlspecialchars($det['producto_nombre']) ?></strong>
+                            <?php if (!empty($det['comentario_vendedor'])): ?>
+                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?></span>
+                        </td>
+                        <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($det['color'] ?: '—') ?></td>
+                        <td style="padding: 12px; text-align: right;">$<?= number_format($det['precio_unitario'], 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: center; font-weight: 700;"><?= intval($det['cantidad']) ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f8fafc;">
+                        <td colspan="5" style="padding: 12px; text-align: right; font-weight: 700;">Total:</td>
+                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <?php else: ?>
+                <p style="color: var(--text-light); padding: 20px 0;">No hay prendas registradas en este pedido.</p>
+            <?php endif; ?>
         </div>
 
-        <!-- BOTONES DE ACCIÓN -->
-        <div class="form-actions">
-            <button onclick="window.print();" class="btn-secondary">
-                🖨️ Imprimir Ticket
-            </button>
-            <a href="ver_ticket_pedido.php?id=<?= $pedido_id ?>" class="btn-primary">
-                🔎 Ver Ticket Completo
-            </a>
-            <a href="panel_produccion.php" class="btn-success">
-                ➕ Nueva Orden
-            </a>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+            <button onclick="window.print();" style="padding: 10px 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text);">🖨️ Imprimir Ticket</button>
+            <a href="venta_mayorista.php" style="padding: 10px 20px; background: var(--navy); color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">➕ Nueva Orden Mayorista</a>
+            <a href="pedidos_admin.php" style="padding: 10px 20px; background: #047857; color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">🏭 Ver en Producción</a>
         </div>
 
     </main>
 </div>
 
-<style>
-/* ============================================
-   PEDIDO EXITOSO - ESTILOS SIMPLIFICADOS
-   ============================================ */
-
-/* Encabezado de éxito */
-.success-header {
-    text-align: center;
-    padding: 30px 20px;
-    background: #f0fdf4;
-    border: 2px solid #10b981;
-    border-radius: 12px;
-    margin-bottom: 25px;
-}
-
-.success-icon {
-    font-size: 4rem;
-    margin-bottom: 10px;
-}
-
-.success-header h1 {
-    color: #065f46;
-    font-size: 1.8rem;
-    margin: 0 0 8px 0;
-    font-weight: 700;
-}
-
-.success-header p {
-    color: #047857;
-    margin: 0;
-    font-size: 1rem;
-}
-
-/* Grid de estadísticas */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.stat-card {
-    background: white;
-    padding: 18px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    border-left: 4px solid;
-    text-align: center;
-}
-
-.stat-card h3 {
-    margin: 0 0 8px 0;
-    font-size: 0.85rem;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-card p {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #1e293b;
-}
-
-.stat-blue { border-left-color: #2563eb; }
-.stat-green { border-left-color: #10b981; }
-.stat-red { border-left-color: #ef4444; }
-
-/* Grid de información */
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
-.info-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px;
-}
-
-.section-subtitle {
-    color: #475569;
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin: 0 0 15px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.info-row:last-child {
-    border-bottom: none;
-}
-
-.info-label {
-    color: #64748b;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.info-value {
-    color: #1e293b;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-align: right;
-}
-
-.fecha-entrega {
-    color: #2563eb;
-    font-weight: 700;
-}
-
-/* Sección tipo tarjeta */
-.card-section {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-/* Tabla */
-.table-container {
-    overflow-x: auto;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table thead {
-    background: #f1f5f9;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.data-table th {
-    padding: 14px;
-    text-align: left;
-    color: #475569;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.data-table td {
-    padding: 14px;
-    border-bottom: 1px solid #e2e8f0;
-    color: #334155;
-    vertical-align: top;
-}
-
-.data-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.text-small {
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.badge-info {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.talla-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    background: #f1f5f9;
-    color: #334155;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border: 1px solid #e2e8f0;
-}
-
-/* Botones */
-.btn-primary {
-    padding: 10px 20px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background: #1d4ed8;
-}
-
-.btn-secondary {
-    padding: 10px 20px;
-    background: white;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-}
-
-.btn-success {
-    padding: 10px 20px;
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s;
-}
-
-.btn-success:hover {
-    background: #059669;
-}
-
-/* Acciones del formulario */
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
-    padding-top: 20px;
-    border-top: 1px solid #e2e8f0;
-}
-
-/* Estilos de impresión */
-@media print {
-    .sidebar-panel, 
-    .main-header, 
-    .form-actions,
-    footer {
-        display: none !important;
-    }
-    
-    .main-content-panel {
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-    }
-    
-    .success-header {
-        border: 2px solid #000;
-    }
-    
-    @page {
-        size: letter;
-        margin: 10mm;
-    }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card p {
-        font-size: 1.5rem;
-    }
-    
-    .data-table {
-        font-size: 0.85rem;
-    }
-    
-    .data-table th,
-    .data-table td {
-        padding: 10px 8px;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-    }
-    
-    .form-actions > * {
-        width: 100%;
-        text-align: center;
-    }
-}
-</style>
-
-<?php include(__DIR__ . "/footer.php"); ?>
+<?php include(__DIR__ . '/footer.php'); ?>
