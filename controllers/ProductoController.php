@@ -1,34 +1,47 @@
 <?php
-// Ruta: C:\xampp\htdocs\unideportes-system\controllers\ProductoController.php
-header("Access-Control-Allow-Origin: *");
+// \controllers\ProductoController.php
+
+// Usar la configuración existente del proyecto en lugar de credenciales hardcodeadas
+require_once __DIR__ . '/../config/bootstrap.php';
+
+// CORS: restringir a orígenes específicos (más seguro que "*")
+$allowedOrigins = [
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://localhost:8080',
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: " . $origin);
+}
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, GET");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// 1. Configuración de la Base de Datos
-$host = "localhost";
-$db_name = "unideportes"; 
-$username = "root";
-$password = "";
+// Manejar preflight OPTIONS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
+// Obtener conexión PDO desde la configuración centralizada del proyecto
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
+    $conn = app();
+} catch (Exception $e) {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => "Error de conexión: " . $e->getMessage()]);
     exit();
 }
 
-// 2. Procesar la petición POST (Guardar Producto)
+// Procesar la petición POST (Guardar Producto)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json = file_get_contents('php://input');
     $data = json_decode($json);
 
-    // ✅ VALIDACIÓN CORREGIDA: ahora espera los campos correctos
+    // VALIDACIÓN: espera los campos correctos
     if (!empty($data->nombre) && !empty($data->precio) && !empty($data->referencia)) {
         try {
-            // ✅ INSERT CORREGIDO: usa los nombres reales de las columnas
             $query = "INSERT INTO productos 
                       (nombre, referencia, categoria, color, material, genero, estado, descripcion, talla, stock, unidad, precio) 
                       VALUES 
@@ -36,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt = $conn->prepare($query);
 
-            // ✅ BIND PARAM CORREGIDO: mapea cada campo correctamente
             $nombre = $data->nombre;
             $referencia = $data->referencia;
             $categoria = $data->categoria ?? null;
@@ -46,9 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $estado = $data->estado ?? 'activo';
             $descripcion = $data->descripcion ?? null;
             $talla = $data->talla ?? 'Única';
-            $stock = $data->stock ?? 0;
+            $stock = (int) ($data->stock ?? 0);
             $unidad = $data->unidad ?? 'Unidad';
-            $precio = $data->precio;
+            $precio = (float) $data->precio;
 
             $stmt->bindParam(':nombre', $nombre);
             $stmt->bindParam(':referencia', $referencia);
@@ -59,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':estado', $estado);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->bindParam(':talla', $talla);
-            $stmt->bindParam(':stock', $stock);
+            $stmt->bindParam(':stock', $stock, PDO::PARAM_INT);
             $stmt->bindParam(':unidad', $unidad);
             $stmt->bindParam(':precio', $precio);
 
@@ -74,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(500);
                 echo json_encode(["status" => "error", "message" => "No se pudo ejecutar la consulta."]);
             }
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(["status" => "error", "message" => "No se pudo guardar: " . $e->getMessage()]);
         }
@@ -85,9 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "message" => "Datos incompletos. Se requiere: nombre, referencia y precio."
         ]);
     }
-
-// 3. Procesar la petición GET (Listar Productos)
-} else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+// Procesar la petición GET (Listar Productos)
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $query = "SELECT * FROM productos ORDER BY id DESC";
         $stmt = $conn->prepare($query);
@@ -97,9 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         http_response_code(200);
         echo json_encode($productos);
-    } catch(Exception $e) {
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(["status" => "error", "message" => "Error al consultar: " . $e->getMessage()]);
     }
 }
-?>
