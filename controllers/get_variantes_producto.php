@@ -1,11 +1,15 @@
 <?php
-// Agrega esto al inicio para debugging
+// controllers/get_variantes_producto.php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 session_start();
 require_once __DIR__ . '/../config/bootstrap.php';
 header('Content-Type: application/json; charset=UTF-8');
+
+// Constantes para evitar duplicación de literales (SonarCloud)
+define('SIN_COLOR', 'Sin color');
+define('SIN_TALLA', 'Sin talla');
 
 // Verificar conexión a BD
 try {
@@ -49,7 +53,7 @@ $response = [
 try {
     if ($color === '') {
         $stmt = $pdo->prepare(
-            "SELECT DISTINCT COALESCE(NULLIF(color, ''), 'Sin color') AS color
+            "SELECT DISTINCT COALESCE(NULLIF(color, ''), '" . SIN_COLOR . "') AS color
              FROM productos
              WHERE nombre = ? AND stock > 0
              ORDER BY color ASC"
@@ -61,15 +65,15 @@ try {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM productos WHERE nombre = ? AND stock > 0");
             $stmt->execute([$nombre]);
             if ((int)$stmt->fetchColumn() > 0) {
-                $response['colors'] = ['Sin color'];
+                $response['colors'] = [SIN_COLOR];
             }
         }
     } elseif ($talla === '') {
-        $colorQuery = $color === 'Sin color' ? "(color IS NULL OR color = '')" : "color = ?";
-        $params = $color === 'Sin color' ? [$nombre] : [$nombre, $color];
+        $colorQuery = $color === SIN_COLOR ? "(color IS NULL OR color = '')" : "color = ?";
+        $params = $color === SIN_COLOR ? [$nombre] : [$nombre, $color];
 
         $stmt = $pdo->prepare(
-            "SELECT DISTINCT COALESCE(NULLIF(talla, ''), 'Sin talla') AS talla
+            "SELECT DISTINCT COALESCE(NULLIF(talla, ''), '" . SIN_TALLA . "') AS talla
              FROM productos
              WHERE nombre = ? AND stock > 0 AND {$colorQuery}
              ORDER BY talla ASC"
@@ -81,18 +85,18 @@ try {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM productos WHERE nombre = ? AND stock > 0 AND {$colorQuery}");
             $stmt->execute($params);
             if ((int)$stmt->fetchColumn() > 0) {
-                $response['tallas'] = ['Sin talla'];
+                $response['tallas'] = [SIN_TALLA];
             }
         }
     } else {
-        $colorCondition = $color === 'Sin color' ? "(color IS NULL OR color = '')" : "color = ?";
-        $tallaCondition = $talla === 'Sin talla' ? "(talla IS NULL OR talla = '')" : "talla = ?";
+        $colorCondition = $color === SIN_COLOR ? "(color IS NULL OR color = '')" : "color = ?";
+        $tallaCondition = $talla === SIN_TALLA ? "(talla IS NULL OR talla = '')" : "talla = ?";
 
         $params = [$nombre];
-        if ($color !== 'Sin color') {
+        if ($color !== SIN_COLOR) {
             $params[] = $color;
         }
-        if ($talla !== 'Sin talla') {
+        if ($talla !== SIN_TALLA) {
             $params[] = $talla;
         }
 
@@ -120,8 +124,8 @@ try {
         }
 
         if ($variant) {
-            $variant['color'] = $variant['color'] === null || trim($variant['color']) === '' ? 'Sin color' : $variant['color'];
-            $variant['talla'] = $variant['talla'] === null || trim($variant['talla']) === '' ? 'Sin talla' : $variant['talla'];
+            $variant['color'] = $variant['color'] === null || trim($variant['color']) === '' ? SIN_COLOR : $variant['color'];
+            $variant['talla'] = $variant['talla'] === null || trim($variant['talla']) === '' ? SIN_TALLA : $variant['talla'];
             $response['variant'] = $variant;
         }
     }
