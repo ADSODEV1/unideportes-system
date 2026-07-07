@@ -1,4 +1,5 @@
 <?php
+// views/admin_usuarios.php
 require_once __DIR__ . '/../config/bootstrap.php';
 $pdo = app();
 require_login(['admin']);
@@ -7,12 +8,12 @@ $query = $pdo->query("SELECT * FROM usuarios");
 
 $mensaje = $_GET['msj'] ?? '';
 
-include("header.php");
+include 'header.php';
 ?>
 
 <div class="container admin-layout">
 
-    <?php include(__DIR__ . '/sidebar_control.php'); ?>
+    <?php include __DIR__ . '/sidebar_control.php'; ?>
 
     <!-- CONTENIDO -->
     <main class="main-content-panel">
