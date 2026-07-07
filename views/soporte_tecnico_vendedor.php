@@ -18,9 +18,11 @@ if ($rol_usuario === 'admin') {
     exit();
 }
 
+$vendedorSesion = $_SESSION['username'] ?? 'Sistema';
+$misTickets = listarTicketsPorVendedor($conn, $vendedorSesion);
+
 $success = trim($_GET['success'] ?? '');
 $error = trim($_GET['error'] ?? '');
-$usuarioSesion = $_SESSION['username'] ?? 'Sistema';
 
 include(__DIR__ . '/header.php');
 ?>
@@ -29,261 +31,450 @@ include(__DIR__ . '/header.php');
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
-        <div class="page-header" style="margin-bottom: 20px;">
-            <h1 style="margin: 0;">Soporte Técnico</h1>
-            <p style="margin: 6px 0 0 0; color: #64748b;">Envía un ticket de incidencia desde tu panel.</p>
+        
+        <div class="page-title">
+            <h1>Soporte Técnico</h1>
+            <p>Reporta incidencias y consulta el estado de tus tickets</p>
         </div>
 
         <?php if ($success === 'ticket_creado'): ?>
-            <div class="alert-success" style="margin-bottom: 14px;">Registro de ticket exitoso</div>
+            <div class="alert alert-success">Ticket enviado correctamente</div>
+        <?php elseif ($success === 'comentario_agregado'): ?>
+            <div class="alert alert-success">Comentario agregado correctamente</div>
         <?php endif; ?>
 
         <?php if ($error !== ''): ?>
-            <div class="alert-danger" style="margin-bottom: 14px;"><?= htmlspecialchars($error) ?></div>
+            <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <section class="form-container">
-            <form action="../controllers/soporte_tecnico_controller.php" method="POST" class="form-grid-vendedor">
+        <!-- Formulario crear ticket -->
+        <div class="card">
+            <h2 class="card-title">Crear nuevo ticket</h2>
+            <form action="../controllers/soporte_tecnico_controller.php" method="POST" class="form-simple">
                 <input type="hidden" name="accion" value="crear">
-                <div class="form-field">
-                    <label class="form-label">Asunto</label>
-                    <input type="text" name="asunto" required maxlength="180" placeholder="Describe el problema" class="form-input">
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Asunto *</label>
+                        <input type="text" name="asunto" required maxlength="180" placeholder="Describe el problema">
+                    </div>
+                    <div class="form-group">
+                        <label>Prioridad *</label>
+                        <select name="prioridad" required>
+                            <option value="Crítica">🔴 Crítica</option>
+                            <option value="Alta">🟠 Alta</option>
+                            <option value="Media" selected>🟡 Media</option>
+                            <option value="Baja">🟢 Baja</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-field">
-                    <label class="form-label">Prioridad</label>
-                    <select name="prioridad" required class="form-input">
-                        <option value="Crítica">Crítica</option>
-                        <option value="Alta">Alta</option>
-                        <option value="Media" selected>Media</option>
-                        <option value="Baja">Baja</option>
-                    </select>
+                
+                <div class="form-group">
+                    <label>Comentario (opcional)</label>
+                    <input type="text" name="comentario_solucion" maxlength="255" placeholder="Detalle adicional">
                 </div>
-                <div class="form-field">
-                    <label class="form-label">Comentario / Solución</label>
-                    <input type="text" name="comentario_solucion" maxlength="255" placeholder="Agrega detalle adicional" class="form-input">
-                </div>
-                <div class="form-field form-submit">
-                    <button type="submit" class="btn-primary">Enviar Ticket</button>
-                </div>
+                
+                <button type="submit" class="btn-primary">Enviar Ticket</button>
             </form>
+        </div>
 
-            <div class="badges-container">
-                <span class="badge-prioridad critica">🔴 Crítica</span>
-                <span class="badge-prioridad alta">🟠 Alta</span>
-                <span class="badge-prioridad media">🟡 Media</span>
-                <span class="badge-prioridad baja">🟢 Baja</span>
-            </div>
-        </section>
+        <!-- Mis tickets -->
+        <div class="card">
+            <h2 class="card-title">Mis tickets (<?= count($misTickets) ?>)</h2>
+            
+            <?php if (count($misTickets) === 0): ?>
+                <p class="empty">No has creado tickets todavía</p>
+            <?php else: ?>
+                <div class="tickets-list">
+                    <?php foreach ($misTickets as $t): ?>
+                        <?php
+                        $prioridad = $t['prioridad'] ?? 'Media';
+                        $estado = $t['estado'] ?? 'Abierto';
+                        $fecha = $t['fecha'] ?? '';
+                        $comentarios = listarComentariosTicket($conn, (int) $t['id_ticket']);
+                        ?>
+                        <div class="ticket-item">
+                            <div class="ticket-header">
+                                <div class="ticket-info">
+                                    <strong class="ticket-id">#<?= (int) $t['id_ticket'] ?></strong>
+                                    <span class="ticket-asunto"><?= htmlspecialchars($t['asunto']) ?></span>
+                                    <span class="badge badge-<?= strtolower($prioridad === 'Crítica' ? 'critica' : strtolower($prioridad)) ?>"><?= htmlspecialchars($prioridad) ?></span>
+                                </div>
+                                <div class="ticket-meta">
+                                    <span class="badge badge-estado-<?= strtolower(str_replace(' ', '', $estado)) ?>"><?= htmlspecialchars($estado) ?></span>
+                                    <span class="fecha"><?= $fecha ? date('d/m/Y H:i', strtotime($fecha)) : '—' ?></span>
+                                </div>
+                            </div>
+
+                            <!-- Historial de comentarios (aquí ve las respuestas del admin) -->
+                            <?php if (count($comentarios) > 0): ?>
+                                <div class="comentarios-lista">
+                                    <?php foreach ($comentarios as $c): ?>
+                                        <div class="comentario-item <?= ($c['autor'] === $vendedorSesion) ? 'comentario-propio' : 'comentario-admin' ?>">
+                                            <div class="comentario-header">
+                                                <strong>
+                                                    <?= ($c['autor'] === $vendedorSesion) ? 'Tú' : '🛠️ ' . htmlspecialchars($c['autor']) ?>
+                                                </strong>
+                                                <span class="comentario-fecha"><?= date('d/m/Y H:i', strtotime($c['fecha'])) ?></span>
+                                            </div>
+                                            <p><?= nl2br(htmlspecialchars($c['mensaje'])) ?></p>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="sin-respuesta">⏳ Esperando respuesta del equipo de soporte...</p>
+                            <?php endif; ?>
+
+                            <!-- Formulario para agregar más comentarios (no cambiar estado) -->
+                            <?php if ($estado !== 'Cerrado'): ?>
+                                <form action="../controllers/soporte_tecnico_controller.php" method="POST" class="form-respuesta">
+                                    <input type="hidden" name="accion" value="comentar">
+                                    <input type="hidden" name="id_ticket" value="<?= (int) $t['id_ticket'] ?>">
+                                    
+                                    <div class="respuesta-row">
+                                        <input type="text" name="nuevo_comentario" placeholder="Agregar más detalles..." class="input-respuesta" required>
+                                        <button type="submit" class="btn-small">Comentar</button>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
     </main>
 </div>
 
 <style>
-/* ============================================
-   SOPORTE TÉCNICO VENDEDOR - ESTILOS RESPONSIVE
-   ============================================ */
-
-/* Contenedor del formulario */
-.form-container {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 20px;
+.main-content-panel {
+    padding: 24px;
+    max-width: 1200px;
 }
 
-/* Formulario grid */
-.form-grid-vendedor {
-    display: grid;
-    grid-template-columns: 2fr 1fr 2fr auto;
-    gap: 12px;
-    align-items: end;
+.page-title {
+    margin-bottom: 24px;
 }
 
-.form-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.85rem;
-    color: #334155;
-    margin-bottom: 6px;
-    font-weight: 500;
-}
-
-.form-input {
-    width: 100%;
-    padding: 9px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.form-submit {
-    display: flex;
-    align-items: flex-end;
-}
-
-/* Badges de prioridad */
-.badges-container {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-}
-
-.badge-prioridad {
-    display: inline-block;
-    border-radius: 999px;
-    padding: 6px 10px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    border: 1px solid;
-}
-
-.badge-prioridad.critica {
-    background: #fee2e2;
-    color: #991b1b;
-    border-color: #fecaca;
-}
-
-.badge-prioridad.alta {
-    background: #ffedd5;
-    color: #9a3412;
-    border-color: #fdba74;
-}
-
-.badge-prioridad.media {
-    background: #fef9c3;
-    color: #854d0e;
-    border-color: #fde047;
-}
-
-.badge-prioridad.baja {
-    background: #dcfce7;
-    color: #166534;
-    border-color: #86efac;
-}
-
-/* Botón principal */
-.btn-primary {
-    background: #1d4ed8;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 18px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.2s;
-    font-size: 0.9rem;
-}
-
-.btn-primary:hover {
-    background: #1e40af;
-}
-
-/* Alertas */
-.alert-success {
-    padding: 12px 16px;
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 4px solid #10b981;
-    border-radius: 6px;
+.page-title h1 {
+    margin: 0 0 4px 0;
+    font-size: 1.5rem;
     font-weight: 600;
+    color: #0f172a;
+}
+
+.page-title p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    color: #166534;
+    border-left: 3px solid #16a34a;
 }
 
 .alert-danger {
-    padding: 12px 16px;
     background: #fef2f2;
     color: #991b1b;
-    border-left: 4px solid #ef4444;
+    border-left: 3px solid #dc2626;
+}
+
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    margin: 0 0 16px 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.form-simple {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    color: #334155;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    align-self: flex-start;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.empty {
+    text-align: center;
+    color: #94a3b8;
+    padding: 32px 12px;
+    font-style: italic;
+}
+
+/* Lista de tickets */
+.tickets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ticket-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafbfc;
+}
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ticket-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ticket-id {
+    color: #2563eb;
+    font-size: 0.95rem;
+}
+
+.ticket-asunto {
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+.ticket-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.fecha {
+    font-size: 0.8rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
     font-weight: 600;
 }
 
-/* ============================================
-   RESPONSIVE - TABLET (1024px)
-   ============================================ */
-@media (max-width: 1024px) {
-    .form-grid-vendedor {
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-    }
-    
-    .form-submit {
-        grid-column: 1 / -1;
-    }
-    
-    .btn-primary {
-        width: 100%;
-        padding: 12px;
-    }
+.badge-critica { background: #fee2e2; color: #991b1b; }
+.badge-alta    { background: #ffedd5; color: #9a3412; }
+.badge-media   { background: #fef9c3; color: #854d0e; }
+.badge-baja    { background: #dcfce7; color: #166534; }
+
+.badge-estado-abierto   { background: #e2e8f0; color: #475569; }
+.badge-estado-enproceso { background: #dbeafe; color: #1e40af; }
+.badge-estado-resuelto  { background: #dcfce7; color: #166534; }
+.badge-estado-cerrado   { background: #f1f5f9; color: #64748b; }
+
+/* Historial de comentarios */
+.comentarios-lista {
+    border-left: 3px solid #e2e8f0;
+    padding-left: 12px;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* ============================================
-   RESPONSIVE - MÓVIL (768px)
-   ============================================ */
+.comentario-item {
+    background: white;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #f1f5f9;
+}
+
+/* Diferenciar comentarios propios vs admin */
+.comentario-admin {
+    border-left: 3px solid #2563eb;
+    background: #f0f9ff;
+}
+
+.comentario-propio {
+    border-left: 3px solid #10b981;
+    background: #f0fdf4;
+}
+
+.comentario-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
+.comentario-header strong {
+    color: #2563eb;
+}
+
+.comentario-propio .comentario-header strong {
+    color: #059669;
+}
+
+.comentario-fecha {
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.comentario-item p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #334155;
+    line-height: 1.5;
+}
+
+.sin-respuesta {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-style: italic;
+    margin: 8px 0;
+}
+
+/* Formulario de respuesta */
+.form-respuesta {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.respuesta-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.input-respuesta {
+    flex: 1;
+    min-width: 200px;
+    padding: 7px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.88rem;
+}
+
+.input-respuesta:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.btn-small {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.btn-small:hover {
+    background: #1d4ed8;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-    .form-container {
+    .main-content-panel {
         padding: 16px;
     }
     
-    /* Formulario se apila */
-    .form-grid-vendedor {
-        grid-template-columns: 1fr;
-        gap: 12px;
+    .form-row {
+        flex-direction: column;
     }
     
-    .form-submit {
-        grid-column: 1;
+    .form-group {
+        min-width: 100%;
     }
     
     .btn-primary {
         width: 100%;
-        padding: 12px;
-        font-size: 1rem;
     }
     
-    /* Badges más pequeños */
-    .badge-prioridad {
-        font-size: 0.75rem;
-        padding: 5px 8px;
+    .ticket-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
     
-    .badges-container {
-        gap: 6px;
-    }
-}
-
-/* ============================================
-   RESPONSIVE - MÓVIL PEQUEÑO (480px)
-   ============================================ */
-@media (max-width: 480px) {
-    .page-header h1 {
-        font-size: 1.3rem;
+    .respuesta-row {
+        flex-direction: column;
     }
     
-    .badge-prioridad {
-        font-size: 0.7rem;
-        padding: 4px 6px;
-    }
-    
-    .form-label {
-        font-size: 0.8rem;
-    }
-    
-    .form-input {
-        font-size: 0.85rem;
-        padding: 8px;
+    .input-respuesta,
+    .btn-small {
+        width: 100%;
     }
 }
 </style>
