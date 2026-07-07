@@ -2,6 +2,9 @@
 // controllers/auth.php
 require_once __DIR__ . '/../config/connection.php';
 
+// Definir constante para evitar duplicación de literales (SonarCloud)
+define('REDIRECT_HEADER', 'Location: ');
+
 // Si no hay sesión iniciada, la arrancamos de forma segura
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -13,7 +16,7 @@ $base_url = "/unideportes-system/public";
 // 1. MOTOR DE SALIDA (Logout) 
 if (isset($_GET['logout'])) {
     session_destroy();
-    header("Location: " . $base_url . "/index.php");
+    header(REDIRECT_HEADER . $base_url . "/index.php");
     exit();
 }
 
@@ -24,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validamos que no vengan vacíos
     if (empty($userForm) || empty($passForm)) {
-        header("Location: " . $base_url . "/index.php?msj=vacio");
+        header(REDIRECT_HEADER . $base_url . "/index.php?msj=vacio");
         exit();
     }
 
@@ -66,13 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $destino = "/unideportes-system/views/panel_vendedor.php";
                 }
 
-                header("Location: " . $destino);
+                header(REDIRECT_HEADER . $destino);
                 exit();
             }
         }
 
         // Credenciales incorrectas - Redirecciona al index dentro de public
-        header("Location: " . $base_url . "/index.php?error=datos_incorrectos");
+        header(REDIRECT_HEADER . $base_url . "/index.php?error=datos_incorrectos");
         exit();
 
     } catch (PDOException $e) {
@@ -80,6 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 } else {
     // Si alguien intenta entrar a este archivo por URL sin POST ni GET[logout]
-    header("Location: " . $base_url . "/index.php");
+    header(REDIRECT_HEADER . $base_url . "/index.php");
     exit();
 }
