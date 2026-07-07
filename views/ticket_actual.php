@@ -254,7 +254,7 @@ include(__DIR__ . "/header.php");
             <!-- HEADER -->
             <div class="ticket-header">
                 <h1>UNIDEPORTES</h1>
-                <p>Sogamoso, Boyacá | Tel: 3185509709</p>
+                <p>NIT 46372005-1 | Carrera 12 # 12-27, Sogamoso, Boyacá | Tel: 3185509709</p>
                 <p style="margin-top: 10px; font-weight: 600; color: #1e293b;">COMPROBANTE DE VENTA</p>
             </div>
 
