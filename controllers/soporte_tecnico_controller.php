@@ -20,6 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $accion = trim($_POST['accion'] ?? '');
 
 try {
+    // ============================================
+    // ACCIÓN: CREAR TICKET
+    // ============================================
     if ($accion === 'crear') {
         $asunto = trim($_POST['asunto'] ?? '');
         $prioridad = trim($_POST['prioridad'] ?? 'Media');
@@ -42,6 +45,9 @@ try {
         exit();
     }
 
+    // ============================================
+    // ACCIÓN: ACTUALIZAR TICKET (solo admin)
+    // ============================================
     if ($accion === 'actualizar') {
         if (($_SESSION['role'] ?? '') !== 'admin') {
             throw new RuntimeException('Acceso no autorizado para actualizar tickets.');
@@ -66,40 +72,49 @@ try {
             agregarComentario($conn, $idTicket, $autor, $nuevoComentario);
         }
 
-     if ($accion === 'comentar') {
-    // Los vendedores pueden agregar comentarios a SUS tickets
-    $idTicket = (int) ($_POST['id_ticket'] ?? 0);
-    $nuevoComentario = trim($_POST['nuevo_comentario'] ?? '');
-    $vendedorSesion = trim($_SESSION['username'] ?? '');
-
-    if ($idTicket <= 0 || $nuevoComentario === '') {
-        throw new RuntimeException('Datos inválidos para comentar.');
+        header('Location: ../views/soporte_tecnico.php?success=ticket_actualizado');
+        exit();
     }
 
-    // Verificar que el ticket sea del vendedor (si no es admin)
-    if (($_SESSION['role'] ?? '') !== 'admin') {
-        $stmt = $conn->prepare("SELECT vendedor FROM soporte_tickets WHERE id_ticket = ?");
-        $stmt->execute([$idTicket]);
-        $ticketVendedor = $stmt->fetchColumn();
-        
-        if ($ticketVendedor !== $vendedorSesion) {
-            throw new RuntimeException('No puedes comentar en tickets de otros vendedores.');
+    // ============================================
+    // ACCIÓN: COMENTAR (vendedor o admin)
+    // ============================================
+    if ($accion === 'comentar') {
+        $idTicket = (int) ($_POST['id_ticket'] ?? 0);
+        $nuevoComentario = trim($_POST['nuevo_comentario'] ?? '');
+        $vendedorSesion = trim($_SESSION['username'] ?? '');
+
+        if ($idTicket <= 0 || $nuevoComentario === '') {
+            throw new RuntimeException('Datos inválidos para comentar.');
         }
+
+        // Verificar que el ticket sea del vendedor (si no es admin)
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            $stmt = $conn->prepare("SELECT vendedor FROM soporte_tickets WHERE id_ticket = ?");
+            $stmt->execute([$idTicket]);
+            $ticketVendedor = $stmt->fetchColumn();
+
+            if ($ticketVendedor !== $vendedorSesion) {
+                throw new RuntimeException('No puedes comentar en tickets de otros vendedores.');
+            }
+        }
+
+        $autor = $vendedorSesion;
+        agregarComentario($conn, $idTicket, $autor, $nuevoComentario);
+
+        $vistaDestino = (($_SESSION['role'] ?? '') === 'admin')
+            ? '../views/soporte_tecnico.php'
+            : '../views/soporte_tecnico_vendedor.php';
+
+        header('Location: ' . $vistaDestino . '?success=comentario_agregado');
+        exit();
     }
 
-    $autor = $vendedorSesion;
-    agregarComentario($conn, $idTicket, $autor, $nuevoComentario);
+    // Si llega aquí, la acción no es válida
+    throw new RuntimeException('Acción no permitida: ' . htmlspecialchars($accion));
 
-    $vistaDestino = (($_SESSION['role'] ?? '') === 'admin')
-        ? '../views/soporte_tecnico.php'
-        : '../views/soporte_tecnico_vendedor.php';
-
-    header('Location: ' . $vistaDestino . '?success=comentario_agregado');
-    exit();
-}
-
-    throw new RuntimeException('Acción no permitida.');
 } catch (Throwable $e) {
     header('Location: ../views/soporte_tecnico.php?error=' . urlencode($e->getMessage()));
     exit();
 }
+
