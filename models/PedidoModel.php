@@ -22,7 +22,9 @@ class Pedido {
             $stmt->execute([':id' => $id]);
             $res = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$res) return false;
+            if (!$res) {
+                return false;
+            }
 
             $saldo = $res['total_pedido'] - $res['pagado'];
 
@@ -39,7 +41,9 @@ class Pedido {
             $this->db->commit();
             return true;
         } catch (Exception $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             return false;
         }
     }
