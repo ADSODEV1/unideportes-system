@@ -40,12 +40,19 @@ $base = "/unideportes-system";
         <nav class="main-nav">
             <ul class="nav-list">
                 <li><a href="inventario.php" class="<?= ($pagina_actual == 'inventario.php') ? 'active' : '' ?>">Inventario</a></li>
-                <li><a href="pedidos_admin.php" class="<?= ($pagina_actual == 'pedidos_admin.php') ? 'active' : '' ?>">Producción</a></li>
+                
+                <!-- Solo visible para admin -->
+                <?php if ($rol_usuario == 'admin'): ?>
+                    <li><a href="pedidos_admin.php" class="<?= ($pagina_actual == 'pedidos_admin.php') ? 'active' : '' ?>">Producción</a></li>
+                <?php endif; ?>
+                
                 <li><a href="clientes.php" class="<?= ($pagina_actual == 'clientes.php') ? 'active' : '' ?>">Clientes</a></li>
                 <li><a href="reportes_ventas.php" class="<?= ($pagina_actual == 'reportes_ventas.php') ? 'active' : '' ?>">Reportes</a></li>
+                
                 <?php if (in_array($rol_usuario, ['vendedor', 'colaborador'], true)): ?>
                     <li><a href="/unideportes-system/views/soporte_tecnico_vendedor.php" class="<?= ($pagina_actual == 'soporte_tecnico_vendedor.php') ? 'active' : '' ?>">Soporte Técnico</a></li>
                 <?php endif; ?>
+                
                 <?php if ($rol_usuario == 'admin'): ?>
                     <li><a href="admin_usuarios.php" class="<?= ($pagina_actual == 'admin_usuarios.php') ? 'active' : '' ?>">Personal</a></li>
                     <li><a href="soporte_tecnico.php" class="<?= ($pagina_actual == 'soporte_tecnico.php') ? 'active' : '' ?>">Soporte Técnico</a></li>
