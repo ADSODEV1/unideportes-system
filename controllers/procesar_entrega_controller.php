@@ -24,8 +24,7 @@ if ($pedido_id <= 0) {
 try {
     $pdo->beginTransaction();
 
-    // 1. Calcular saldo pendiente usando la misma logica de la vista:
-    //    prioriza pedidos.saldo_pendiente y usa calculo matematico como respaldo.
+    // 1. Calcular saldo pendiente usando la misma lógica de la vista:
     $sqlSaldo = "SELECT
                     COALESCE(dt.total_detalle, p.total_pedido, 0) AS total_pedido,
                     COALESCE(p.abono, 0) AS abono_inicial,
@@ -55,7 +54,7 @@ try {
         : $saldo_matematico;
 
     if ($accion === 'abonar') {
-        // Registrar pago parcial o total sin entregar automaticamente.
+        // Registrar pago parcial o total sin entregar automáticamente.
         if ($pago_recibido === null || $pago_recibido <= 0) {
             throw new Exception("Debe ingresar un monto de pago mayor a cero.");
         }
@@ -66,24 +65,23 @@ try {
 
         $saldo_anterior = $saldo_calculado;
 
-        $sqlPago = "INSERT INTO pagos (id_pg_pedido, monto, fecha) VALUES (:id_pedido, :monto, NOW())";
+        // Insertar el pago en la tabla 'pagos'
+        $sqlPago = "INSERT INTO pagos (id_pg_pedido, monto, metodo_pago, fecha) VALUES (:id_pedido, :monto, :metodo, NOW())";
         $stmtPago = $pdo->prepare($sqlPago);
-        $stmtPago->execute([':id_pedido' => $pedido_id, ':monto' => $pago_recibido]);
+        $stmtPago->execute([
+            ':id_pedido' => $pedido_id, 
+            ':monto' => $pago_recibido,
+            ':metodo' => $metodo_pago
+        ]);
 
+        // Actualizar el saldo pendiente en la tabla 'pedidos'
         $nuevo_saldo = max(0, $saldo_calculado - $pago_recibido);
         $sqlUpdate = "UPDATE pedidos SET saldo_pendiente = :saldo WHERE id = :id";
         $stmtUpdate = $pdo->prepare($sqlUpdate);
         $stmtUpdate->execute([':saldo' => $nuevo_saldo, ':id' => $pedido_id]);
 
-        // Mantener detalle_pedido sincronizado con la cartera unificada.
-        $sqlSyncDetalle = "UPDATE detalle_pedido
-                           SET saldo_pendiente = :saldo,
-                               estado_cartera = CASE WHEN :saldo <= 0 THEN 'Pagado' ELSE 'Por Pagar' END
-                           WHERE pedido_id = :id";
-        $stmtSyncDetalle = $pdo->prepare($sqlSyncDetalle);
-        $stmtSyncDetalle->execute([':saldo' => $nuevo_saldo, ':id' => $pedido_id]);
-
         $pdo->commit();
+        
         header("Location: /unideportes-system/views/mis_pedidos.php?status=pago_success&monto=" . urlencode((string)$pago_recibido) . "&saldo_anterior=" . urlencode((string)$saldo_anterior) . "&saldo_actual=" . urlencode((string)$nuevo_saldo));
         exit;
     }
@@ -91,26 +89,21 @@ try {
     if ($accion === 'entregar') {
         // Solo permitir entrega cuando no hay saldo pendiente.
         if ($saldo_calculado > 0) {
-            throw new Exception("No se puede entregar: el pedido aun tiene saldo pendiente.");
+            throw new Exception("No se puede entregar: el pedido aún tiene saldo pendiente.");
         }
 
+        // Actualizar estado a 'Entregado' y asegurar saldo en 0
         $sqlUpdate = "UPDATE pedidos SET estado = 'Entregado', saldo_pendiente = 0 WHERE id = :id";
         $stmtUpdate = $pdo->prepare($sqlUpdate);
         $stmtUpdate->execute([':id' => $pedido_id]);
 
-        $sqlSyncDetalle = "UPDATE detalle_pedido
-                           SET saldo_pendiente = 0,
-                               estado_cartera = 'Pagado'
-                           WHERE pedido_id = :id";
-        $stmtSyncDetalle = $pdo->prepare($sqlSyncDetalle);
-        $stmtSyncDetalle->execute([':id' => $pedido_id]);
-
         $pdo->commit();
+        
         header("Location: /unideportes-system/views/mis_pedidos.php?status=success");
         exit;
     }
 
-    throw new Exception("Accion no valida.");
+    throw new Exception("Acción no válida.");
 
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {

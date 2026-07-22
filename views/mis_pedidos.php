@@ -14,7 +14,7 @@ require_login(['admin' , 'colaborador', 'vendedor']);
 // Capturar filtro de búsqueda si existe
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 
-// Construir consulta dinámica alineada a unideportes-bd.sql con cálculo matemático corregido
+// Construir consulta dinámica alineada a unideportes-bd.sql 
 try {
     $sql = "SELECT p.id, 
                    c.nombre_completo AS cliente_nombre, 
@@ -22,21 +22,21 @@ try {
                    COALESCE(
                        NULLIF(
                            (SELECT GROUP_CONCAT(
-                               CONCAT(
-                                   COALESCE(NULLIF(prod.nombre, ''), NULLIF(p.detalle, ''), 'Producto personalizado'),
-                                   ' x',
-                                   dp.cantidad
-                               )
-                               ORDER BY dp.id ASC
-                               SEPARATOR ', '
-                           )
-                           FROM detalle_pedido dp
-                           LEFT JOIN productos prod ON prod.id = dp.producto_id
-                           WHERE dp.pedido_id = p.id),
-                           ''
-                       ),
-                       p.detalle,
-                       'Pedido sin detalle'
+                                CONCAT(
+                                    COALESCE(NULLIF(pbc.tipo_prenda, ''), 'Prenda personalizada'),
+                                    ' x',
+                                    dp.cantidad
+                                )
+                                ORDER BY dp.id ASC
+                                SEPARATOR ', '
+                            )
+                            FROM detalle_pedido dp
+                            LEFT JOIN precios_base_confeccion pbc ON pbc.id = dp.tipo_prenda_id
+                            WHERE dp.pedido_id = p.id),
+                            ''
+                        ),
+                        p.detalle,
+                        'Pedido sin detalle'
                    ) AS detalle_resumen,
                    COALESCE(
                        (SELECT SUM(dp.cantidad * dp.precio_unitario)
@@ -83,7 +83,6 @@ try {
     $pedidos = [];
     $error_msg = "Error al cargar la lista de pedidos: " . $e->getMessage();
 }
-
 // Mensajes de estado
 $status = $_GET['status'] ?? null;
 $monto_pagado_msg = isset($_GET['monto']) ? floatval($_GET['monto']) : null;
