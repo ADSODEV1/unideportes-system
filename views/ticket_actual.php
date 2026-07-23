@@ -46,6 +46,15 @@ try {
     exit();
 }
 
+// ✅ CÁLCULO SEGURO: Recalculamos el total real basado en los items vendidos
+// Esto evita cualquier error de "5000 de más" si la BD tuvo una duplicación
+$subtotal_productos = 0;
+foreach ($detalles as $item) {
+    $subtotal_productos += floatval($item['subtotal']);
+}
+$costo_envio = floatval($venta['costo_envio'] ?? 0);
+$total_calculado = $subtotal_productos + $costo_envio;
+
 include(__DIR__ . "/header.php");
 ?>
 
@@ -303,16 +312,22 @@ include(__DIR__ . "/header.php");
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
+                
+                <!-- TOTALES: Basados en el cálculo real de los items -->
                 <tfoot>
-                    <?php if ($venta['costo_envio'] > 0): ?>
+                    <?php if ($costo_envio > 0): ?>
+                        <tr>
+                            <td colspan="4" style="text-align: right; color: var(--text-light);">Subtotal productos:</td>
+                            <td style="text-align: right; color: var(--text-light);">$<?= number_format($subtotal_productos, 0, ',', '.') ?></td>
+                        </tr>
                         <tr>
                             <td colspan="4" style="text-align: right;">Domicilio:</td>
-                            <td style="text-align: right;">$<?= number_format($venta['costo_envio'], 0, ',', '.') ?></td>
+                            <td style="text-align: right;">$<?= number_format($costo_envio, 0, ',', '.') ?></td>
                         </tr>
                     <?php endif; ?>
                     <tr class="total-row">
                         <td colspan="4" style="text-align: right; font-size: 1.2rem;">TOTAL:</td>
-                        <td style="text-align: right; font-size: 1.2rem;">$<?= number_format($venta['total_venta'], 0, ',', '.') ?></td>
+                        <td style="text-align: right; font-size: 1.2rem;">$<?= number_format($total_calculado, 0, ',', '.') ?></td>
                     </tr>
                 </tfoot>
             </table>
@@ -334,4 +349,5 @@ include(__DIR__ . "/header.php");
     </main>
 </div>
 
-<?php include(__DIR__ . "/footer.php"); ?>
+<?php include(__DIR__ . "/footer.php"); 
+?>
