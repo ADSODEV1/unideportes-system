@@ -1,16 +1,13 @@
 <?php
-// ZONA 1: LOGIN (Filtros de Sesión y Consultas Preliminares)
+// ZONA 1: LOGIN
 session_start();
 require_once __DIR__ . '/../config/bootstrap.php';
 $pdo = app();
-
 require_login(['vendedor', 'colaborador', 'admin']);
 
-// Se añade 'nit_cedula' a la consulta para que esté disponible en los data-attributes de JavaScript
 $stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes ORDER BY nombre_completo ASC");
 $res_clientes = $stmtClientes->fetchAll(PDO::FETCH_ASSOC);
 
-// Usamos nombres únicos de producto para que el vendedor seleccione la familia de artículo
 $stmtProductos = $pdo->query("SELECT DISTINCT nombre FROM productos WHERE stock > 0 ORDER BY nombre ASC");
 $res_productos = $stmtProductos->fetchAll(PDO::FETCH_ASSOC);
 
@@ -31,21 +28,19 @@ include(__DIR__ . "/header.php");
         <?php endif; ?>
 
         <form action="../controllers/procesar_venta.php" method="POST" id="ventaForm">
-            
             <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px;">
-                <!-- SECCIÓN CLIENTE -->
+                <!-- SECCIÓN IZQUIERDA: CLIENTE -->
                 <div style="flex: 1;">
                     <label><strong>Cliente:</strong></label>
                     <input type="text" list="listaClientes" id="clienteInput" placeholder="Buscar cliente..." style="width:100%; padding: 8px; margin-top: 5px;">
                     <datalist id="listaClientes">
                         <?php foreach ($res_clientes as $cli): ?>
-                            <option 
-                            data-id="<?= $cli['id'] ?>" 
-                            data-direccion="<?= htmlspecialchars($cli['direccion'] ?? '') ?>"
-                            data-barrio="<?= htmlspecialchars($cli['barrio'] ?? '') ?>"
-                            data-ciudad="<?= htmlspecialchars($cli['ciudad'] ?: 'Sogamoso') ?>"
-                            data-referencia="<?= htmlspecialchars($cli['referencia_entrega'] ?? '') ?>"
-                            value="<?= htmlspecialchars($cli['nombre_completo']) ?>">
+                            <option data-id="<?= $cli['id'] ?>" 
+                                    data-direccion="<?= htmlspecialchars($cli['direccion'] ?? '') ?>"
+                                    data-barrio="<?= htmlspecialchars($cli['barrio'] ?? '') ?>"
+                                    data-ciudad="<?= htmlspecialchars($cli['ciudad'] ?: 'Sogamoso') ?>"
+                                    data-referencia="<?= htmlspecialchars($cli['referencia_entrega'] ?? '') ?>"
+                                    value="<?= htmlspecialchars($cli['nombre_completo']) ?>">
                             </option>
                         <?php endforeach; ?>
                     </datalist>
@@ -59,22 +54,10 @@ include(__DIR__ . "/header.php");
                     <div id="nuevoClienteSection" style="display: none; margin-top: 15px; padding: 15px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;">
                         <h4 style="margin-top: 0; color: var(--text);">Datos de Registro Rápido</h4>
                         <div style="display: grid; gap: 10px;">
-                            <div>
-                                <label>Nombre completo *</label>
-                                <input type="text" name="nuevo_cliente_nombre_completo" id="nuevo_cliente_nombre_completo" style="width:100%; padding: 8px; margin-top: 5px;">
-                            </div>
-                            <div>
-                                <label>NIT / Cédula *</label>
-                                <input type="text" name="nuevo_cliente_nit_cedula" id="nuevo_cliente_nit_cedula" style="width:100%; padding: 8px; margin-top: 5px;">
-                            </div>
-                            <div>
-                                <label>Teléfono</label>
-                                <input type="text" name="nuevo_cliente_telefono" id="nuevo_cliente_telefono" style="width:100%; padding: 8px; margin-top: 5px;">
-                            </div>
-                            <div>
-                                <label>Email</label>
-                                <input type="email" name="nuevo_cliente_email" id="nuevo_cliente_email" style="width:100%; padding: 8px; margin-top: 5px;">
-                            </div>
+                            <div><label>Nombre completo *</label><input type="text" name="nuevo_cliente_nombre_completo" id="nuevo_cliente_nombre_completo" style="width:100%; padding: 8px; margin-top: 5px;"></div>
+                            <div><label>NIT / Cédula *</label><input type="text" name="nuevo_cliente_nit_cedula" id="nuevo_cliente_nit_cedula" style="width:100%; padding: 8px; margin-top: 5px;"></div>
+                            <div><label>Teléfono</label><input type="text" name="nuevo_cliente_telefono" id="nuevo_cliente_telefono" style="width:100%; padding: 8px; margin-top: 5px;"></div>
+                            <div><label>Email</label><input type="email" name="nuevo_cliente_email" id="nuevo_cliente_email" style="width:100%; padding: 8px; margin-top: 5px;"></div>
                             <div>
                                 <label>Tipo de cliente</label>
                                 <select name="nuevo_cliente_tipo_cliente" id="nuevo_cliente_tipo_cliente" style="width:100%; padding: 8px; margin-top: 5px;">
@@ -86,85 +69,18 @@ include(__DIR__ . "/header.php");
                             </div>
                             <div id="bloqueDireccionNuevoCliente" style="display: none; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 5px;">
                                 <div style="display: grid; gap: 10px;">
-                                    <div>
-                                        <label><strong>Dirección base de envío</strong></label>
-                                        <input type="text" name="nuevo_cliente_direccion" id="nuevo_cliente_direccion" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Calle, Carrera, #">
-                                    </div>
-                                    <div>
-                                        <label>Barrio</label>
-                                        <input type="text" name="nuevo_cliente_barrio" id="nuevo_cliente_barrio" style="width:100%; padding: 8px; margin-top: 5px;">
-                                    </div>
-                                    <div>
-                                        <label>Ciudad</label>
-                                        <input type="text" name="nuevo_cliente_ciudad" id="nuevo_cliente_ciudad" value="Sogamoso" style="width:100%; padding: 8px; margin-top: 5px;">
-                                    </div>
-                                    <div>
-                                        <label>Referencia de Entrega</label>
-                                        <textarea name="nuevo_cliente_referencia_entrega" id="nuevo_cliente_referencia_entrega" rows="2" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Ej: Frente al parque..."></textarea>
-                                    </div>
+                                    <div><label><strong>Dirección base de envío</strong></label><input type="text" name="nuevo_cliente_direccion" id="nuevo_cliente_direccion" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Calle, Carrera, #"></div>
+                                    <div><label>Barrio</label><input type="text" name="nuevo_cliente_barrio" id="nuevo_cliente_barrio" style="width:100%; padding: 8px; margin-top: 5px;"></div>
+                                    <div><label>Ciudad</label><input type="text" name="nuevo_cliente_ciudad" id="nuevo_cliente_ciudad" value="Sogamoso" style="width:100%; padding: 8px; margin-top: 5px;"></div>
+                                    <div><label>Referencia de Entrega</label><textarea name="nuevo_cliente_referencia_entrega" id="nuevo_cliente_referencia_entrega" rows="2" style="width:100%; padding: 8px; margin-top: 5px;" placeholder="Ej: Frente al parque..."></textarea></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- SECCIÓN PAGO Y ENTREGA -->
+                <!-- SECCIÓN DERECHA: TIPO DE ENTREGA -->
                 <div style="flex: 1;">
-                    <label><strong>Método de Pago:</strong></label>
-                    <select name="metodo_pago" id="metodo_pago" required style="width:100%; padding: 8px; margin-top: 5px;">
-                        <option value="Efectivo">Efectivo</option>
-                        <option value="Tarjeta">Tarjeta</option>
-                        <option value="Transferencia">Transferencia</option>
-                    </select>
-
-                    <!-- SECCIÓN TRANSFERENCIA -->
-<div id="seccionTransferencia" style="display: none; margin-top: 10px; background: var(--input-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-    <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);"><strong>Plataforma Virtual:</strong></label>
-    <select id="tipo_transferencia_select" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-        <option value="">Selecciona plataforma...</option>
-        <option value="Nequi">Nequi</option>
-        <option value="Daviplata">Daviplata</option>
-        <option value="Bancolombia">Bancolombia</option>
-        <option value="Otro">Otro ¿Cuál?</option>
-    </select>
-    <input type="text" id="otra_plataforma_input" placeholder="Ej: Breve, Davivienda..." 
-           style="display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px;">
-    
-    <!-- ✅ CAMPO NUEVO: Referencia (Obligatorio) -->
-    <div style="margin-top: 12px;">
-        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">
-            Número de Referencia <span style="color: var(--danger);">*</span>
-        </label>
-        <input type="text" id="referencia_pago_input" name="referencia_pago" 
-               placeholder="Ej: REF-123456789"
-               style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-        <small style="color: var(--text-light); font-size: 0.8rem;">Este número queda como soporte contable</small>
-    </div>
-    <input type="hidden" name="tipo_transferencia" id="tipo_transferencia_final">
-</div>
-
-                                
-                    <!-- SECCIÓN: TARJETA -->
-                    <div id="seccionTarjeta" style="display: none; margin-top: 10px; background: var(--input-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-                        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);"><strong>Datos de la Tarjeta (para conciliación)</strong></label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
-                            <div>
-                                <label style="font-size: 0.85rem; color: var(--text-light);">Últimos 4 dígitos</label>
-                                <input type="text" id="ultimos_4_digitos" name="ultimos_4_digitos" 
-                                    placeholder="Ej: 1234" maxlength="4"
-                                    style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.85rem; color: var(--text-light);">Banco emisor</label>
-                                <input type="text" id="banco_emisor" name="banco_emisor" 
-                                    placeholder="Ej: Bancolombia"
-                                    style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                            </div>
-                        </div>
-                        <small style="color: var(--text-light); font-size: 0.8rem; display: block; margin-top: 8px;">
-                            ℹ️ No almacenamos datos sensibles. Solo para conciliación.
-                        </small>
-                    </div>
                     <div style="margin-top: 20px;">
                         <label><strong>Tipo de Entrega:</strong></label>
                         <select name="tipo_entrega" id="tipo_entrega" required style="width:100%; padding: 8px; margin-top: 5px;">
@@ -176,22 +92,10 @@ include(__DIR__ . "/header.php");
                     <div id="seccionDomicilio" style="display: none; margin-top: 15px; padding: 15px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px;">
                         <h4 style="margin-top: 0; color: #b45309;">Datos de Envío para esta Venta</h4>
                         <div style="display: grid; gap: 10px;">
-                            <div>
-                                <label style="font-size: 0.85rem;">Dirección de Entrega *</label>
-                                <input type="text" name="direccion_entrega" id="direccion_entrega" style="width:100%; padding: 6px; margin-top: 3px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.85rem;">Barrio</label>
-                                <input type="text" name="barrio_entrega" id="barrio_entrega" style="width:100%; padding: 6px; margin-top: 3px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.85rem;">Ciudad *</label>
-                                <input type="text" name="ciudad_entrega" id="ciudad_entrega" value="Sogamoso" style="width:100%; padding: 6px; margin-top: 3px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.85rem;">Observaciones / Referencias de Envío</label>
-                                <textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" style="width:100%; padding: 6px; margin-top: 3px;" placeholder="Indicaciones para el domiciliario..."></textarea>
-                            </div>
+                            <div><label style="font-size: 0.85rem;">Dirección de Entrega *</label><input type="text" name="direccion_entrega" id="direccion_entrega" style="width:100%; padding: 6px; margin-top: 3px;"></div>
+                            <div><label style="font-size: 0.85rem;">Barrio</label><input type="text" name="barrio_entrega" id="barrio_entrega" style="width:100%; padding: 6px; margin-top: 3px;"></div>
+                            <div><label style="font-size: 0.85rem;">Ciudad *</label><input type="text" name="ciudad_entrega" id="ciudad_entrega" value="Sogamoso" style="width:100%; padding: 6px; margin-top: 3px;"></div>
+                            <div><label style="font-size: 0.85rem;">Observaciones / Referencias de Envío</label><textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" style="width:100%; padding: 6px; margin-top: 3px;" placeholder="Indicaciones para el domiciliario..."></textarea></div>
                         </div>
                     </div>
                 </div>
@@ -248,24 +152,79 @@ include(__DIR__ . "/header.php");
                 </div>
             </div>
 
-                    <!-- TOTALES Y BOTONES (ÚNICO, SIN DUPLICADOS) -->
-            <div class="venta-container" style="padding: 15px; text-align: right; background: var(--input-bg); border-radius: 8px;">
-                <p id="avisoDomicilio" style="display: none; color: #d97706; font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; text-align: right;">
-                    🛵 + Costo de Domicilio: $5.000
-                </p>
-                <h3>Total: <span id="txtTotal" style="color: var(--primary); font-size: 1.3rem;">$0.00</span></h3>
+            <!-- TOTALES Y MÉTODO DE PAGO (AL FINAL) -->
+            <div class="venta-container" style="padding: 20px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 30px; max-width: 900px; margin-left: auto;">
                 
-                <div id="seccionCambio" style="margin-bottom: 15px; text-align: left; width: 250px; margin-left: auto;">
-                    <label>Paga con:</label>
-                    <input type="number" id="inputPagaCon" name="paga_con" style="width: 100%; padding: 6px;" min="0" step="0.01">
-                    <h4 style="margin-top: 5px; text-align: right;">Cambio: <span id="txtCambio" style="color: var(--success);">$0.00</span></h4>
+                <!-- Columna Izquierda: Resumen de Totales -->
+                <div style="flex: 1; min-width: 250px; display: grid; gap: 15px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text);">💰 Resumen de la Venta</h3>
+                    <div style="display: flex; justify-content: space-between;"><span style="font-weight: 600;">SubTotal</span><span id="txtTotal" style="font-weight: 700;">$0.00</span></div>
+                    <div style="display: flex; justify-content: space-between; border-top: 2px dashed var(--border); padding-top: 15px; margin-top: 5px;">
+                        <span style="font-weight: 700; font-size: 1.2rem;">TOTAL A PAGAR</span>
+                        <span id="txtTotalFinal" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">$0.00</span>
+                    </div>
                 </div>
-                
+
+                <!-- Columna Derecha: Método de Pago y Acciones -->
+                <div style="flex: 1.2; min-width: 300px; display: flex; flex-direction: column; gap: 15px;">
+                    <h3 style="margin: 0 0 5px 0; font-size: 1.1rem; color: var(--text);">💳 Método de Pago</h3>
+                    <div>
+                        <select name="metodo_pago" id="metodo_pago" required style="width:100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-weight: 600;">
+                            <option value="Efectivo">💵 Efectivo</option>
+                            <option value="Tarjeta">💳 Tarjeta</option>
+                            <option value="Transferencia">📱 Transferencia</option>
+                        </select>
+                    </div>
+
+                    <!-- SECCIÓN EFECTIVO (PAGA CON Y CAMBIO) -->
+                    <div id="seccionCambio" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <label style="font-weight: 700; color: var(--text);">Paga con:</label>
+                            <input type="number" id="inputPagaCon" name="paga_con" min="0" step="0.01" style="width: 150px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; text-align: right;" placeholder="$0.00">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: var(--text);">Cambio:</span>
+                            <span id="txtCambio" style="font-size: 1.2rem; font-weight: 800; color: var(--success);">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN TRANSFERENCIA -->
+                    <div id="seccionTransferencia" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Plataforma Virtual:</label>
+                        <select id="tipo_transferencia_select" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
+                            <option value="">Selecciona plataforma...</option>
+                            <option value="Nequi">Nequi</option>
+                            <option value="Daviplata">Daviplata</option>
+                            <option value="Bancolombia">Bancolombia</option>
+                            <option value="Otro">Otro ¿Cuál?</option>
+                        </select>
+                        <input type="text" id="otra_plataforma_input" placeholder="Ej: Davivienda..." style="display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                        <div style="margin-top: 12px;">
+                            <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Número de Referencia <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="referencia_pago_input" name="referencia_pago" placeholder="Ej: REF-123456789" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <input type="hidden" name="tipo_transferencia" id="tipo_transferencia_final">
+                    </div>
+
+                    <!-- SECCIÓN TARJETA -->
+                    <div id="seccionTarjeta" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Datos de la Tarjeta</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                            <div><label style="font-size: 0.85rem; color: var(--text-light);">Últimos 4 dígitos</label><input type="text" id="ultimos_4_digitos" name="ultimos_4_digitos" placeholder="Ej: 1234" maxlength="4" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
+                            <div><label style="font-size: 0.85rem; color: var(--text-light);">Banco emisor</label><input type="text" id="banco_emisor" name="banco_emisor" placeholder="Ej: Bancolombia" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <a href="panel_vendedor.php" style="flex: 1; text-align: center; color: var(--text-light); text-decoration: none; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--card);">Cancelar</a>
+                        <button type="submit" class="btn-primary" style="flex: 2; border: none; cursor: pointer; padding: 12px; font-size: 1rem; font-weight: bold;">✅ Procesar Venta Directa</button>
+                    </div>
+                </div>
+
+                <!-- Campos ocultos necesarios -->
                 <input type="hidden" id="ventaJSON" name="venta_json">
                 <input type="hidden" id="inputTotal" name="total_venta">
-
-                <a href="panel_vendedor.php" style="margin-right: 15px; color: var(--text-light); text-decoration: none;">Cancelar</a>
-                <button type="submit" class="btn-primary" style="border: none; cursor: pointer;">Procesar Venta</button>
             </div>
         </form>
     </main>
