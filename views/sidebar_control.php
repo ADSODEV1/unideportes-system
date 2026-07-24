@@ -20,7 +20,8 @@ $menuConfig = [
             'panel_vendedor.php' => 'Mi Panel',
             'nueva_venta.php' => 'Nueva Venta',
             'venta_mayorista.php' => 'Venta Mayorista',
-            'nuevo_pedido.php' => 'Pedido de Confección'  // ✅ AGREGADO
+            'nuevo_pedido.php' => 'Pedido de Confección',  
+            'seguimiento_entregas.php' => 'Seguimiento de Entregas'
         ],
         'secundarios' => [
             'mis_ventas.php' => 'Mis Ventas',
@@ -35,7 +36,7 @@ $menuConfig = [
         'titulo_area' => 'Área de Producción',
         'principales' => [
             'panel_vendedor.php' => 'Panel General',
-            'nuevo_pedido.php' => 'Nuevo Pedido',  // ✅ AGREGADO
+            'nuevo_pedido.php' => 'Nuevo Pedido',
             'pedidos_admin.php' => 'Línea de Confección',
             'panel_produccion.php' => 'Gestión de Taller'
         ],
@@ -50,7 +51,8 @@ $menuConfig = [
             'panel_admin.php' => 'Dashboard',
             'nueva_venta.php' => 'Realizar Venta',
             'venta_mayorista.php' => 'Venta Mayorista',
-            'nuevo_pedido.php' => 'Nuevo Pedido'  // ✅ AGREGADO
+            'nuevo_pedido.php' => 'Nuevo Pedido',
+            'seguimiento_entregas.php' => 'Seguimiento de Entregas'
         ],
         'secundarios' => [
             'pedidos_admin.php' => 'Línea de Confección',
@@ -182,13 +184,14 @@ $modulosBusqueda = [
     ['nombre' => 'Nueva Venta', 'url' => 'nueva_venta.php', 'icono' => '🛒', 'desc' => 'Registrar venta directa', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Venta Mayorista', 'url' => 'venta_mayorista.php', 'icono' => '📦', 'desc' => 'Venta al por mayor', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Cobros Mayoristas', 'url' => 'ventas_mayoristas_pendientes.php', 'icono' => '💰', 'desc' => 'Ventas con saldo pendiente', 'roles' => ['admin', 'vendedor']],
-    ['nombre' => 'Pedido de Confección', 'url' => 'nuevo_pedido.php', 'icono' => '🏭', 'desc' => 'Crear orden de fabricación', 'roles' => ['vendedor', 'colaborador', 'admin']],  // ✅ AGREGADO
+    ['nombre' => 'Pedido de Confección', 'url' => 'nuevo_pedido.php', 'icono' => '🏭', 'desc' => 'Crear orden de fabricación', 'roles' => ['vendedor', 'colaborador', 'admin']],
     
     // Ventas
     ['nombre' => 'Mis Ventas', 'url' => 'mis_ventas.php', 'icono' => '📈', 'desc' => 'Historial de ventas', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Historial de Ventas', 'url' => 'mis_ventas.php', 'icono' => '📈', 'desc' => 'Todas las ventas del sistema', 'roles' => ['admin']],
     ['nombre' => 'Reportes de Ventas', 'url' => 'reportes_ventas.php', 'icono' => '📜', 'desc' => 'Reportes financieros', 'roles' => ['vendedor', 'admin']],
-    
+    ['nombre' => 'Seguimiento de Entregas', 'url' => 'seguimiento_entregas.php', 'icono' => '🚚', 'desc' => 'Domicilios pendientes de entrega', 'roles' => ['vendedor', 'admin']],
+
     // Pedidos y Producción
     ['nombre' => 'Mis Pedidos', 'url' => 'mis_pedidos.php', 'icono' => '📋', 'desc' => 'Despacho y entregas', 'roles' => ['vendedor', 'colaborador', 'admin']],
     ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['colaborador', 'admin']],
