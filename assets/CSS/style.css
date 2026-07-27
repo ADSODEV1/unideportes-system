@@ -1119,3 +1119,134 @@ footer.main-footer {
         font-size: 1.1rem;
     }
 }
+/* =========================================
+   8.5 INTERACCIÓN KPIs EN REPORTES
+   ========================================= */
+.kpi-clickable {
+    text-decoration: none !important;
+    color: inherit !important;
+    cursor: pointer;
+    position: relative;
+}
+
+.kpi-clickable:hover {
+    transform: translateY(-6px) !important;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+}
+
+.kpi-clickable::after {
+    content: '🔍 Ver detalle';
+    position: absolute;
+    bottom: 12px;
+    right: 15px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: white;
+}
+
+.kpi-clickable:hover::after {
+    opacity: 1;
+}
+
+/* Animación de resaltado para la sección destino */
+@keyframes highlight-pulse {
+    0% { background-color: var(--primary-light); box-shadow: 0 0 0 4px var(--primary-light); }
+    50% { background-color: transparent; box-shadow: 0 0 0 8px var(--primary-light); }
+    100% { background-color: transparent; box-shadow: none; }
+}
+
+.section-highlighted {
+    animation: highlight-pulse 2.5s ease-out;
+    border-radius: var(--radius);
+    background-color: var(--card); 
+}
+<?php
+/**
+ * Partial: Tarjetas de KPIs de Ventas
+ */
+?>
+<div class="kpis-grid">
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--success kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Total Ingresos</h6>
+            <h3 class="kpi-card__value">
+                <?= formatMoney($data['kpis_ventas']['total_ingresos'] ?? 0) ?>
+            </h3>
+        </div>
+        <span class="kpi-card__icon">💰</span>
+    </a>
+
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--primary kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Transacciones</h6>
+            <h3 class="kpi-card__value">
+                <?= number_format($data['kpis_ventas']['total_transacciones'] ?? 0, 0, ',', '.') ?> Facturas
+            </h3>
+        </div>
+        <span class="kpi-card__icon">🧾</span>
+    </a>
+
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--warning kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Ticket Promedio</h6>
+            <h3 class="kpi-card__value">
+                <?= formatMoney($data['kpis_ventas']['promedio_ticket'] ?? 0) ?>
+            </h3>
+        </div>
+        <span class="kpi-card__icon">📊</span>
+    </a>
+</div>
+<?php
+/**
+ * Partial: Tarjetas de KPIs de Cartera
+ */
+$porcentaje = calcularPorcentajeRecuperacion($data['kpis_cartera']);
+$total_cobrado = ($data['kpis_cartera']['total_abonos_iniciales'] ?? 0) + 
+                 ($data['kpis_cartera']['total_abonos_periodo'] ?? 0);
+?>
+<div class="kpis-grid">
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--info kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Total Facturado</h6>
+            <h3 class="kpi-card__value">
+                <?= formatMoney($data['kpis_cartera']['total_facturado'] ?? 0) ?>
+            </h3>
+        </div>
+        <span class="kpi-card__icon">📄</span>
+    </a>
+
+    <a href="#sec-abonos-recientes" class="kpi-card kpi-card--success kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Total Cobrado</h6>
+            <h3 class="kpi-card__value">
+                <?= formatMoney($total_cobrado) ?>
+            </h3>
+        </div>
+        <span class="kpi-card__icon">✅</span>
+    </a>
+
+    <a href="#sec-pedidos-pendientes" class="kpi-card kpi-card--danger kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">Por Cobrar</h6>
+            <h3 class="kpi-card__value">
+                <?= formatMoney($data['kpis_cartera']['saldo_pendiente_total'] ?? 0) ?>
+            </h3>
+        </div>
+        <span class="kpi-card__icon">⏳</span>
+    </a>
+
+    <a href="#sec-pedidos-pendientes" class="kpi-card kpi-card--secondary kpi-clickable">
+        <div class="kpi-card__content">
+            <h6 class="kpi-card__label">% Recuperación</h6>
+            <h3 class="kpi-card__value">
+                <?= number_format($porcentaje, 1) ?>%
+            </h3>
+        </div>
+        <span class="kpi-card__icon">📈</span>
+    </a>
+</div>
