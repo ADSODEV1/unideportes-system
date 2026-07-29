@@ -181,7 +181,7 @@ include(__DIR__ . '/header.php');
                     
                     <div class="form-group">
                         <label for="precio">Precio de Venta ($) *</label>
-                        <input type="number" name="precio" id="precio" step="1000" min="0" required 
+                        <input type="number" name="precio" id="precio" step="1" min="0" required 
                                class="form-input" 
                                value="<?= htmlspecialchars($producto['precio']) ?>"
                                placeholder="Ej: 85000">

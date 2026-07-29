@@ -190,30 +190,62 @@ include(__DIR__ . '/header.php');
             <!-- ======================================== -->
             <!-- SECCIÓN 4: PEDIDOS POR COBRAR -->
             <!-- ======================================== -->
-            <section class="report-section">
-                <h2 class="section-title">⏳ Pedidos con Saldo Pendiente</h2>
-                <?php include(__DIR__ . '/partials/_pedidos_pendientes.php'); ?>
-            </section>
+           <section class="report-section" id="sec-pedidos-pendientes">
+    <h2 class="section-title">⏳ Pedidos con Saldo Pendiente</h2>
+    <?php include(__DIR__ . '/partials/_pedidos_pendientes.php'); ?>
+</section>
 
             <!-- ======================================== -->
             <!-- SECCIÓN 5: ABONOS RECIENTES -->
             <!-- ======================================== -->
-            <section class="report-section">
-                <h2 class="section-title">✅ Abonos Registrados en el Período</h2>
-                <?php include(__DIR__ . '/partials/_abonos_recientes.php'); ?>
-            </section>
-
+           <section class="report-section" id="sec-abonos-recientes">
+    <h2 class="section-title">✅ Abonos Registrados en el Período</h2>
+    <?php include(__DIR__ . '/partials/_abonos_recientes.php'); ?>
+</section>
             <!-- ======================================== -->
             <!-- SECCIÓN 6: VENTAS DETALLADAS -->
             <!-- ======================================== -->
-            <section class="report-section">
-                <h2 class="section-title">🧾 Ventas Detalladas</h2>
-                <?php include(__DIR__ . '/partials/_ventas_detalladas.php'); ?>
-            </section>
+           <section class="report-section" id="sec-ventas-detalladas">
+    <h2 class="section-title">🧾 Ventas Detalladas</h2>
+    <?php include(__DIR__ . '/partials/_ventas_detalladas.php'); ?>
+</section>
 
         <?php endif; ?>
 
     </main>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clickableKpis = document.querySelectorAll('.kpi-clickable');
+    
+    clickableKpis.forEach(kpi => {
+        kpi.addEventListener('click', function(e) {
+            e.preventDefault(); // Evita el salto brusco por defecto
+            
+            const targetId = this.getAttribute('href').substring(1); // Obtiene el ID sin el '#'
+            const targetSection = document.getElementById(targetId);
+            
+            if (targetSection) {
+                // 1. Desplazamiento suave
+                targetSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+                
+                // 2. Limpiar resaltados anteriores
+                document.querySelectorAll('.section-highlighted').forEach(el => {
+                    el.classList.remove('section-highlighted');
+                });
+                
+                // 3. Activar resaltado en la sección destino
+                setTimeout(() => {
+                    targetSection.classList.add('section-highlighted');
+                }, 600); // Espera a que el scroll termine para iniciar la animación
+            }
+        });
+    });
+});
+</script>
 
 <?php include(__DIR__ . '/footer.php'); ?>

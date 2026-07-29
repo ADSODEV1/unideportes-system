@@ -4,7 +4,7 @@
  */
 ?>
 <div class="kpis-grid">
-    <div class="kpi-card kpi-card--success">
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--success kpi-clickable" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="kpi-card__content">
             <h6 class="kpi-card__label">Total Ingresos</h6>
             <h3 class="kpi-card__value">
@@ -12,9 +12,9 @@
             </h3>
         </div>
         <span class="kpi-card__icon">💰</span>
-    </div>
+    </a>
 
-    <div class="kpi-card kpi-card--primary">
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--primary kpi-clickable" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="kpi-card__content">
             <h6 class="kpi-card__label">Transacciones</h6>
             <h3 class="kpi-card__value">
@@ -22,9 +22,9 @@
             </h3>
         </div>
         <span class="kpi-card__icon">🧾</span>
-    </div>
+    </a>
 
-    <div class="kpi-card kpi-card--warning">
+    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--warning kpi-clickable" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="kpi-card__content">
             <h6 class="kpi-card__label">Ticket Promedio</h6>
             <h3 class="kpi-card__value">
@@ -32,5 +32,5 @@
             </h3>
         </div>
         <span class="kpi-card__icon">📊</span>
-    </div>
+    </a>
 </div>
