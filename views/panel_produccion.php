@@ -1,180 +1,199 @@
 <?php
 // views/panel_produccion.php
 
-// 1. INICIALIZACIÓN Y SEGURIDAD CENTRALIZADA DE TU SISTEMA
+// 1. INICIALIZACIÓN Y SEGURIDAD
 require_once __DIR__ . '/../config/bootstrap.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Validamos que estrictamente solo el 'admin' pueda gestionar este panel del taller
+// Validamos que estrictamente solo el 'admin' pueda gestionar este panel
 require_login(['admin']);
 
-// Cargamos tu conexión PDO original
+// Usamos ÚNICAMENTE la conexión PDO oficial del sistema
 $pdo = app();
-$conn = connection(); 
 
-$rol_usuario = $_SESSION['role'] ?? '';
-$usuario_nombre = $_SESSION['username'] ?? 'Usuario';
-$pagina_actual = basename($_SERVER['PHP_SELF']);
-$base = "/unideportes-system";
+$error = $_GET['error'] ?? null;
+$success = $_GET['success'] ?? null;
 
-// 2. OBTENER LOS PEDIDOS ACTIVOS SUMANDO EL ABONO NATIVO + PAGOS DE LA TABLA EXTRA
-try {
-    // CORRECCIÓN: Sumamos el p.abono (de la tabla pedidos) con los montos de la tabla pagos si existen
-    $sql = "SELECT p.*, 
-                   COALESCE(p.total_pedido, dt.total_detalle, 0) AS total_pedido_real,
-                   c.nombre_completo as cliente_nombre,
-                   IFNULL(pg.total_pagado, 0) AS total_pagado_db,
-                   COALESCE(
-                       p.saldo_pendiente,
-                       GREATEST(
-                           COALESCE(p.total_pedido, dt.total_detalle, 0) - (COALESCE(p.abono, 0) + IFNULL(pg.total_pagado, 0)),
-                           0
-                       )
-                   ) AS saldo_pendiente_real
-            FROM pedidos p 
-            LEFT JOIN (
-                SELECT pedido_id, SUM(cantidad * precio_unitario) AS total_detalle
-                FROM detalle_pedido
-                GROUP BY pedido_id
-            ) dt ON dt.pedido_id = p.id
-            LEFT JOIN (
-                SELECT id_pg_pedido, SUM(monto) AS total_pagado
-                FROM pagos
-                GROUP BY id_pg_pedido
-            ) pg ON pg.id_pg_pedido = p.id
-            LEFT JOIN clientes c ON p.cliente_id = c.id 
-            WHERE p.estado IN ('En Corte', 'En Confección', 'En Costura', 'En Acabado')
-            ORDER BY p.fecha_entrega ASC";
+// =========================================================================
+// PROCESAR CAMBIO DE ESTADO (Manejado aquí para garantizar consistencia)
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado'])) {
+    $pedido_id = intval($_POST['pedido_id']);
+    $nuevo_estado = isset($_POST['nuevo_estado']) ? trim($_POST['nuevo_estado']) : '';
+
+    // ✅ VALORES CORREGIDOS: Coinciden EXACTAMENTE con el ENUM de tu BD
+    $estados_validos = ['En Corte', 'En Costura', 'Terminado', 'Entregado'];
+    
+    if (in_array($nuevo_estado, $estados_validos)) {
+        try {
+            $stmt = $pdo->prepare("UPDATE pedidos SET estado = ?, fecha_actualizacion = NOW() WHERE id = ?");
+            $stmt->execute([$nuevo_estado, $pedido_id]);
             
-    $stmt_pedidos = $conn->query($sql);
-    $pedidos_activos = $stmt_pedidos->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    die("Error al consultar la línea de producción: " . $e->getMessage());
+            if ($stmt->rowCount() > 0) {
+                $msg = ($nuevo_estado === 'Terminado') ? 'pedido_listo_pos' : 'estado_actualizado';
+                header("Location: panel_produccion.php?success=" . $msg . "&t=" . time());
+                exit();
+            } else {
+                header("Location: panel_produccion.php?error=no_cambio&t=" . time());
+                exit();
+            }
+        } catch (Exception $e) {
+            // SEGURIDAD: Nunca mostrar el error real al usuario
+            error_log("Error en panel_produccion al actualizar pedido ID $pedido_id: " . $e->getMessage());
+            header("Location: panel_produccion.php?error=db_error&t=" . time());
+            exit();
+        }
+    } else {
+        header("Location: panel_produccion.php?error=estado_invalido&t=" . time());
+        exit();
+    }
 }
 
-// Incluir el Header Nativo del sistema
+// =========================================================================
+// CONSULTA OPTIMIZADA (Elimina el problema N+1 con GROUP_CONCAT)
+// =========================================================================
+try {
+    $sql = "SELECT 
+                p.id, p.estado, p.fecha_entrega, p.abono, p.saldo_pendiente, p.total_pedido,
+                c.nombre_completo AS cliente_nombre,
+                -- Agrupamos los detalles en un solo texto. 
+                -- Usa prod.nombre, y si no existe, muestra 'Producto'.
+                GROUP_CONCAT(
+                    CONCAT(
+                        IFNULL(prod.nombre, 'Producto'), 
+                        ' (x', dp.cantidad, ') T:', IFNULL(dp.talla, 'N/A'), ' C:', IFNULL(dp.color, 'N/A')
+                    ) SEPARATOR ' | '
+                ) AS resumen_detalle
+            FROM pedidos p 
+            LEFT JOIN detalle_pedido dp ON dp.pedido_id = p.id
+            LEFT JOIN productos prod ON dp.producto_id = prod.id
+            LEFT JOIN clientes c ON p.cliente_id = c.id 
+            WHERE p.estado IN ('En Corte', 'En Costura', 'Terminado')
+            GROUP BY p.id
+            ORDER BY p.fecha_entrega ASC";
+            
+    $stmt_pedidos = $pdo->query($sql);
+    $pedidos_activos = $stmt_pedidos->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    error_log("Error al consultar la línea de producción: " . $e->getMessage());
+    $pedidos_activos = []; // Fallback seguro: página no se rompe, muestra tabla vacía
+}
+
 include(__DIR__ . "/header.php");
 ?>
 
 <div class="container admin-layout">
-
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
 
     <main class="main-content-panel">
-
-        <div class="page-header" style="margin-bottom: 25px;">
-            <h2>🧵 Órdenes en Línea de Fabricación (Taller)</h2>
-            <p>Monitorea las prendas en confección avanzada y gestiona las fases operativas de la fábrica.</p>
+        <div class="page-header">
+            <div>
+                <h1 class="page-header__title">🧵 Órdenes en Línea de Fabricación</h1>
+                <p class="page-header__subtitle">Monitorea las prendas en confección, revisa saldos y gestiona las fases operativas.</p>
+            </div>
         </div>
         
-        <div class="table-responsive" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px;">
-            <table class="tabla-maestra" style="width: 100%; min-width: 800px; border-collapse: collapse;">
+        <?php if ($success === 'estado_actualizado'): ?>
+            <div class="alert alert-success">🔄 Estado del pedido actualizado correctamente.</div>
+        <?php elseif ($success === 'pedido_listo_pos'): ?>
+            <div class="alert alert-success">✅ Pedido marcado como <strong>Terminado</strong>. Visible en Punto de Venta.</div>
+        <?php elseif ($error === 'no_cambio'): ?>
+            <div class="alert alert-warning">ℹ️ El estado ya era el seleccionado, no se realizaron cambios.</div>
+        <?php elseif ($error): ?>
+            <div class="alert alert-error">❌ Ocurrió un error al procesar la solicitud.</div>
+        <?php endif; ?>
+
+        <div class="table-responsive">
+            <table class="tabla-maestra">
                 <thead>
                     <tr>
                         <th>OP #</th>
                         <th>Cliente</th>
                         <th>Fecha Entrega</th>
-                        <th>Estado de Fábrica</th>
-                        <th>Cuentas (Abono / Saldo)</th>
-                        <th>Lo que se va a confeccionar</th>
+                        <th>Estado</th>
+                        <th>Finanzas (Abono / Saldo)</th>
+                        <th>Detalle de Confección</th>
                         <th style="text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if(count($pedidos_activos) == 0): ?>
+                    <?php if (count($pedidos_activos) == 0): ?>
                         <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-light); padding: 40px;">
+                            <td colspan="7" class="empty-state">
                                 No hay órdenes activas en fabricación en este momento.
                             </td>
                         </tr>
-                    <?php endif; ?>
-
-                    <?php foreach($pedidos_activos as $pedido): ?>
-                        <?php 
-                        $p_id = $pedido['id'];
-                        
-                        // Buscar detalles del pedido por PDO
-                        // Evitar referenciar columnas que pueden no existir en la BD remota
-                        $stmtD = $conn->prepare("SELECT dp.*, prod.nombre AS producto_nombre FROM detalle_pedido dp 
-                                                 LEFT JOIN productos prod ON dp.producto_id = prod.id 
-                                                 WHERE dp.pedido_id = ?");
-                        $stmtD->execute([$p_id]);
-                        $detalles = $stmtD->fetchAll(PDO::FETCH_ASSOC);
-                        
-                        // CÁLCULO DE CUENTAS EN TIEMPO REAL
-                        $total_cuenta = floatval($pedido['total_pedido_real'] ?? 0);
-                        $saldo_real = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0));
-                        $abono_real = max(0, $total_cuenta - $saldo_real);
-
-                        // Clases dinámicas nativas para Badges según estado
-                        $clase_badge = 'naranja'; 
-                        if(in_array($pedido['estado'], ['En Confección', 'En Costura'])) $clase_badge = 'azul';
-                        if($pedido['estado'] == 'En Acabado') $clase_badge = 'verde';
+                    <?php else: ?>
+                        <?php foreach ($pedidos_activos as $pedido): 
+                            // Cálculo seguro de finanzas basado en la tabla pedidos
+                            $total = floatval($pedido['total_pedido'] ?? 0);
+                            $abono = floatval($pedido['abono'] ?? 0);
+                            $saldo = max(0, floatval($pedido['saldo_pendiente'] ?? ($total - $abono)));
+                            
+                            // Badge según estado (usando clases de tu CSS global)
+                            $badge_class = 'report-badge--warning'; // Default (En Corte)
+                            if ($pedido['estado'] === 'En Costura') $badge_class = 'report-badge--info';
+                            if ($pedido['estado'] === 'Terminado') $badge_class = 'report-badge--success';
                         ?>
-                        <tr>
-                            <td><strong>#<?= $pedido['id']; ?></strong></td>
-                            <td><?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General'); ?></td>
-                            <td>
-                                <span style="color: #e74c3c; font-weight: bold; white-space: nowrap;">
+                            <tr>
+                                <td><strong>#<?= $pedido['id']; ?></strong></td>
+                                <td><?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Cliente General'); ?></td>
+                                <td style="color: var(--danger); font-weight: 600; white-space: nowrap;">
                                     📅 <?= date('d/m/Y', strtotime($pedido['fecha_entrega'])); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge <?= $clase_badge; ?>">
-                                    <?= $pedido['estado']; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <small style="display: block; color: #27ae60; font-weight: 500; white-space: nowrap;">
-                                    Abonó: $<?= number_format($abono_real, 0, ',', '.'); ?>
-                                </small>
-                                <small style="display: block; color: #c0392b; font-weight: bold; white-space: nowrap;">
-                                    Debe: $<?= number_format($saldo_real, 0, ',', '.'); ?>
-                                </small>
-                            </td>
-                            <td>
-                                <ul style="list-style: none; padding-left: 0; margin-bottom: 0; font-size: 0.9rem;">
-                                    <?php if (!empty($detalles)): ?>
-                                        <?php foreach($detalles as $det): 
-                                            $nombre_det = $det['producto_nombre'] ?? $det['nombre'] ?? $det['producto'] ?? $pedido['detalle'] ?? 'Prenda'; ?>
-                                            <li style="margin-bottom: 4px;">
-                                                🧵 <strong>(x<?= $det['cantidad']; ?>)</strong> 
-                                                <?= htmlspecialchars($nombre_det); ?> 
-                                                <span style="color: #7f8c8d; font-size: 0.8rem; display: block;">[Talla: <?= $det['talla'] ?: 'N/A'; ?> | Color: <?= $det['color'] ?: 'N/A'; ?>]</span>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <li style="margin-bottom: 4px;">
-                                            🧵 <?= htmlspecialchars($pedido['detalle'] ?? 'Pedido sin detalle cargado'); ?>
-                                        </li>
-                                    <?php endif; ?>
-                                </ul>
-                            </td>
-                            <td style="text-align: center;">
-                                <form action="../controllers/cambiar_estado_pedido.php" method="POST" style="display: inline-block;">
-                                    <input type="hidden" name="pedido_id" value="<?= $pedido['id']; ?>">
-                                    <select name="nuevo_estado" class="search-bar" style="padding: 5px 8px; font-size: 0.85rem; width: auto; margin: 0;" onchange="this.form.submit()">
-                                        <option value="">-- Avanzar --</option>
-                                        <option value="En Corte">Mover a Corte ✂️</option>
-                                        <option value="En Confección">Mover a Costura 🪡</option>
-                                        <option value="En Acabado">Mover a Acabado ✨</option>
-                                        <option value="Terminado">Ir a Despacho / Entregar 📦</option>
-                                    </select>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                                </td>
+                                <td>
+                                    <span class="report-badge <?= $badge_class; ?>">
+                                        <?= htmlspecialchars($pedido['estado']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <small style="display: block; color: var(--success); font-weight: 600;">
+                                        Abonó: $<?= number_format($abono, 0, ',', '.'); ?>
+                                    </small>
+                                    <small style="display: block; color: var(--danger); font-weight: 700;">
+                                        Saldo: $<?= number_format($saldo, 0, ',', '.'); ?>
+                                    </small>
+                                </td>
+                                <td style="font-size: 0.85rem; color: var(--text); line-height: 1.5;">
+                                    <?= htmlspecialchars($pedido['resumen_detalle'] ?: 'Sin detalles específicos cargados'); ?>
+                                </td>
+                                <td style="text-align: center;">
+                                    <form method="POST" action="" onsubmit="return manejarEnvioProduccion(this)">
+                                        <input type="hidden" name="pedido_id" value="<?= $pedido['id']; ?>">
+                                        <input type="hidden" name="actualizar_estado" value="1">
+                                        
+                                        <select name="nuevo_estado" class="form-control" style="max-width: 160px; font-size: 0.85rem; padding: 6px;" onchange="this.form.submit()">
+                                            <option value="">-- Avanzar --</option>
+                                            <option value="En Corte" <?= $pedido['estado'] === 'En Corte' ? 'selected' : '' ?>>✂️ En Corte</option>
+                                            <option value="En Costura" <?= $pedido['estado'] === 'En Costura' ? 'selected' : '' ?>>🪡 En Costura</option>
+                                            <option value="Terminado" <?= $pedido['estado'] === 'Terminado' ? 'selected' : '' ?>>✅ Terminado (POS)</option>
+                                        </select>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
-
     </main>
 </div>
 
-<?php 
-// Incluir Footer del sistema
-include(__DIR__ . "/footer.php"); 
-?>
+<script>
+    function manejarEnvioProduccion(form) {
+        const select = form.querySelector('select[name="nuevo_estado"]');
+        if (select.value === "") {
+            alert("Por favor, selecciona un estado válido.");
+            return false;
+        }
+        select.disabled = true;
+        const opcionActual = select.options[select.selectedIndex];
+        opcionActual.text = "⏳ Guardando...";
+        return true;
+    }
+</script>
+
+<?php include(__DIR__ . "/footer.php"); ?>
