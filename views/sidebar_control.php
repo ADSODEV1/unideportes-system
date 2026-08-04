@@ -117,26 +117,7 @@ try {
         ];
     }
 
-    // 3. VENTAS MAYORISTAS CON SALDO (admin y vendedor)
-    if ($role === 'admin' || $role === 'vendedor') {
-        $stmt = $pdo->query("
-            SELECT COUNT(*)
-            FROM ventas
-            WHERE tipo_venta = 'mayorista'
-            AND estado = 'Pendiente'
-            AND saldo_pendiente > 0
-        ");
-        $ventasPendientes = $stmt->fetchColumn();
-        if ($ventasPendientes > 0) {
-            $alertas[] = [
-                'tipo' => 'warning',
-                'icono' => '💰',
-                'texto' => "{$ventasPendientes} venta(s) con saldo",
-                'url' => '/unideportes-system/views/ventas_mayoristas_pendientes.php'
-            ];
-        }
-    }
-
+    
     // 4. STOCK BAJO (solo admin)
     if ($role === 'admin') {
         $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0");
@@ -183,7 +164,6 @@ $modulosBusqueda = [
     ['nombre' => 'Panel Admin', 'url' => 'panel_admin.php', 'icono' => '📊', 'desc' => 'Dashboard de administración', 'roles' => ['admin']],
     ['nombre' => 'Nueva Venta', 'url' => 'nueva_venta.php', 'icono' => '🛒', 'desc' => 'Registrar venta directa', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Venta Mayorista', 'url' => 'venta_mayorista.php', 'icono' => '📦', 'desc' => 'Venta al por mayor', 'roles' => ['vendedor', 'admin']],
-    ['nombre' => 'Cobros Mayoristas', 'url' => 'ventas_mayoristas_pendientes.php', 'icono' => '💰', 'desc' => 'Ventas con saldo pendiente', 'roles' => ['admin', 'vendedor']],
     ['nombre' => 'Pedido de Confección', 'url' => 'nuevo_pedido.php', 'icono' => '🏭', 'desc' => 'Crear orden de fabricación', 'roles' => ['vendedor', 'colaborador', 'admin']],
     
     // Ventas
