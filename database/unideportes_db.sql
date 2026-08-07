@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 24, 2026 at 10:56 PM
+-- Generation Time: Aug 07, 2026 at 05:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -304,7 +304,13 @@ INSERT INTO `detalle_venta` (`id`, `venta_id`, `producto_id`, `cantidad`, `preci
 (114, 123, 1, 5, 20000.00, 100000.00, 'Azul', 'S', NULL),
 (115, 123, 15, 10, 85000.00, 850000.00, 'negra', 'M', NULL),
 (116, 124, 26, 11, 25000.00, 275000.00, 'Verde', 'Unica', NULL),
-(117, 125, 19, 4, 40000.00, 160000.00, 'Negra', 'M', NULL);
+(117, 125, 19, 4, 40000.00, 160000.00, 'Negra', 'M', NULL),
+(118, 126, 13, 1, 85000.00, 85000.00, NULL, NULL, NULL),
+(119, 127, 6, 1, 650000.00, 650000.00, NULL, NULL, NULL),
+(120, 128, 23, 1, 45000.00, 45000.00, 'Roja', 'S', NULL),
+(121, 129, 26, 6, 25000.00, 150000.00, 'Verde', 'Unica', NULL),
+(122, 129, 10, 10, 35000.00, 350000.00, 'Sin color', 'M', NULL),
+(123, 130, 19, 11, 40000.00, 440000.00, 'Negra', 'M', NULL);
 
 --
 -- Triggers `detalle_venta`
@@ -450,6 +456,7 @@ CREATE TABLE `pedidos` (
   `cantidad` int(11) NOT NULL DEFAULT 1,
   `total_pedido` decimal(10,2) NOT NULL DEFAULT 0.00,
   `estado` enum('En Corte','En Costura','Terminado','Entregado') NOT NULL DEFAULT 'En Corte',
+  `fecha_actualizacion` datetime DEFAULT NULL,
   `tipo_entrega` varchar(50) DEFAULT 'Tienda',
   `direccion_entrega` varchar(255) DEFAULT NULL,
   `barrio_entrega` varchar(100) DEFAULT NULL,
@@ -466,20 +473,20 @@ CREATE TABLE `pedidos` (
 -- Dumping data for table `pedidos`
 --
 
-INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `tipo_entrega`, `direccion_entrega`, `barrio_entrega`, `ciudad_entrega`, `observaciones_entrega`, `fecha_entrega`, `created_at`, `vendedor_id`, `abono`, `saldo_pendiente`) VALUES
-(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-15', '2026-05-25 17:43:41', NULL, 1100000.00, 0.00),
-(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-10', '2026-05-25 17:43:41', NULL, 4500000.00, 0.00),
-(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-28', '2026-05-25 17:43:41', NULL, 720000.00, 0.00),
-(4, 5, 'Pedido de confección mayorista', NULL, 1, 0.00, 'Entregado', 'Domicilio', 'Calle 3 este 9 20', 'rosario', 'Sogamoso', 'casa', '2026-06-25', '2026-06-10 20:08:36', NULL, 0.00, 0.00),
-(5, 12, '25 uniformes tipo Inter niño', 'Tela algodon 100', 25, 1125000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-25', '2026-06-13 16:08:44', NULL, 1125000.00, 0.00),
-(9, 12, '52 Uniformes de colegio la paz preescolar', 'Camisas cuello V', 52, 2080000.00, 'En Corte', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-29', '2026-06-17 17:07:44', NULL, 1580000.00, 500000.00),
-(10, 4, '25 uniformes tipo Inter niño', 'Escudos bordadodos', 100, 4000000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-07', '2026-06-25 21:46:04', NULL, 4000000.00, 0.00),
-(11, 14, '25 uniformes de baloncesto para niño', 'tela polisster', 25, 4125000.00, 'En Costura', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:37:57', 3, 1500000.00, 2625000.00),
-(12, 15, 'Uniformes colegio san pedro', 'costura reforzadas', 25, 1050000.00, 'Terminado', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:51:25', 3, 315000.00, 735000.00),
-(13, 5, 'Uniformes colegio san benito', '', 18, 756000.00, 'Terminado', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 23:02:29', 3, 250000.00, 506000.00),
-(14, 19, 'Camiseta Niños', 'Tela Nylon, Talla 12, Color Azul, BalonMano, Escudo a la izquierda Leon amarillo,', 22, 792000.00, 'En Corte', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-12', '2026-06-27 03:56:11', 3, 250000.00, 542000.00),
-(26, 1, 'Camiseta Niños', 'Camiseta Niños', 10, 850000.00, 'En Corte', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:29:15', 3, 300000.00, 500000.00),
-(27, 19, 'Camiseta Niños', 'Pedido torneo microfutbol niños 12 años, tallas 10 - und 7, tallas 12 - und 5', 19, 3420000.00, 'Entregado', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:44:10', 3, 1550000.00, 0.00);
+INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_actualizacion`, `tipo_entrega`, `direccion_entrega`, `barrio_entrega`, `ciudad_entrega`, `observaciones_entrega`, `fecha_entrega`, `created_at`, `vendedor_id`, `abono`, `saldo_pendiente`) VALUES
+(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-15', '2026-05-25 17:43:41', NULL, 1100000.00, 0.00),
+(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-10', '2026-05-25 17:43:41', NULL, 4500000.00, 0.00),
+(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-28', '2026-05-25 17:43:41', NULL, 720000.00, 0.00),
+(4, 5, 'Pedido de confección mayorista', NULL, 1, 0.00, 'Entregado', NULL, 'Domicilio', 'Calle 3 este 9 20', 'rosario', 'Sogamoso', 'casa', '2026-06-25', '2026-06-10 20:08:36', NULL, 0.00, 0.00),
+(5, 12, '25 uniformes tipo Inter niño', 'Tela algodon 100', 25, 1125000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-25', '2026-06-13 16:08:44', NULL, 1125000.00, 0.00),
+(9, 12, '52 Uniformes de colegio la paz preescolar', 'Camisas cuello V', 52, 2080000.00, 'Terminado', '2026-08-07 09:38:56', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-29', '2026-06-17 17:07:44', NULL, 1580000.00, 500000.00),
+(10, 4, '25 uniformes tipo Inter niño', 'Escudos bordadodos', 100, 4000000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-07', '2026-06-25 21:46:04', NULL, 4000000.00, 0.00),
+(11, 14, '25 uniformes de baloncesto para niño', 'tela polisster', 25, 4125000.00, 'En Costura', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:37:57', 3, 1500000.00, 2625000.00),
+(12, 15, 'Uniformes colegio san pedro', 'costura reforzadas', 25, 1050000.00, 'Terminado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:51:25', 3, 315000.00, 735000.00),
+(13, 5, 'Uniformes colegio san benito', '', 18, 756000.00, 'Terminado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 23:02:29', 3, 250000.00, 506000.00),
+(14, 19, 'Camiseta Niños', 'Tela Nylon, Talla 12, Color Azul, BalonMano, Escudo a la izquierda Leon amarillo,', 22, 792000.00, 'En Corte', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-12', '2026-06-27 03:56:11', 3, 250000.00, 542000.00),
+(26, 1, 'Camiseta Niños', 'Camiseta Niños', 10, 850000.00, 'En Corte', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:29:15', 3, 300000.00, 500000.00),
+(27, 19, 'Camiseta Niños', 'Pedido torneo microfutbol niños 12 años, tallas 10 - und 7, tallas 12 - und 5', 19, 3420000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:44:10', 3, 1550000.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -545,27 +552,27 @@ INSERT INTO `productos` (`id`, `codigo_descriptivo`, `nombre`, `referencia`, `ca
 (3, 'PROD-0003', 'Camiseta Selección Colombia 2024', 'COL-HOME-01', 'Selección', 'Verde', 'Algodon', 'Unisex', 'activo', NULL, 'M', 0, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (4, 'PROD-0004', 'Camiseta Selección Colombia Visitante', 'COL-AWAY-02', 'Seleccion Col', 'azul', 'Nylon', 'unisex', 'activo', 'Camiseta Selección Colombia Visitante', 'L', 0, 'Unidad', 249900.00, '2026-05-12 00:39:13'),
 (5, 'PROD-0005', 'Balón Adidas Al Rihla Pro', 'BALL-QA22', 'Balones', 'azul', 'Cintetico', 'Unisex', 'activo', 'Balón Adidas Al Rihla Pro', 'Única', 4, 'Unidad', 185000.00, '2026-05-12 00:39:13'),
-(6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '40', 20, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
+(6, 'PROD-0006', 'Tenis Running UltraBoost', 'RUN-UB-22', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '40', 19, 'Unidad', 650000.00, '2026-05-12 00:39:13'),
 (7, 'PROD-0007', 'Sudadera Entrenamiento ', 'SUD-TR-05', 'Sudaderas', 'negra', 'algodon', 'unisex', 'activo', 'Sudadera Entrenamiento unisex', 'S', 14, 'Unidad', 145000.00, '2026-05-12 00:39:13'),
 (8, 'PROD-0008', 'Gorra Unideportes Classic', 'ACC-CAP-01', 'Accesorios', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 2, 'Unidad', 45000.00, '2026-05-12 00:39:13'),
 (9, 'PROD-0009', 'Guayos Predator Edge', 'GYO-AD-P', 'Calzado', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, '41', 14, 'Unidad', 480000.00, '2026-05-12 00:39:13'),
-(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'M', 24, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
+(10, 'PROD-0010', 'Canilleras de Protección', 'PRO-CAN-02', 'Accesorios', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'M', 14, 'Unidad', 35000.00, '2026-05-12 00:39:13'),
 (11, 'PROD-0011', 'Chaqueta Rompevientos Unideportes', 'CHA-ROM-01', 'Chaqueta', 'Amarilla', 'Corta Viento', 'Hombre', 'activo', 'Corta vientos hombre', 'L', 0, 'Unidad', 120000.00, '2026-05-26 01:16:38'),
 (12, 'PROD-0012', 'Medias Ciclismo ', 'MED-CIC-02', 'Medias', 'azul', 'algodon', 'unisex', 'activo', 'Medias ciclismo', 'Única', 0, 'Unidad', 15000.00, '2026-05-26 01:16:38'),
-(13, 'PROD-0013', 'Maletín Deportivo Gym', 'MAL-GYM-05', 'General', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 7, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
+(13, 'PROD-0013', 'Maletín Deportivo Gym', 'MAL-GYM-05', 'General', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 6, 'Unidad', 85000.00, '2026-05-26 01:16:38'),
 (14, 'PROD-0014', 'Tula Deportiva Impermeable', 'TUL-IMP-09', 'General', 'Sin color', 'Sin especificar', 'Unisex', 'activo', NULL, 'Única', 25, 'Unidad', 25000.00, '2026-05-26 01:16:38'),
 (15, 'PROD-0015', 'Camiseta Cuello V', 'CAMCUE-M-547', 'Camisetas', 'negra', 'algodon', 'Unisex', 'activo', 'Camiseta cuello v sencilla', 'M', 0, 'Unidad', 85000.00, '2026-05-26 03:37:04'),
 (16, 'PROD-0016', 'Camiseta Polo', 'CAMPOL-M-431', 'Camisetas', 'Azul', 'Poliester', 'Hombre', 'activo', 'Camiseta polo sport hombre', 'M', 0, 'Unidad', 58900.00, '2026-06-08 17:06:20'),
 (17, 'PROD-0017', 'Buso', 'BUSOXX-XL-374', 'Sudaderas', 'Azul', 'Nylon', 'Unisex', 'activo', 'Buso marca Unideportes diseño sport', 'XL', 15, 'Unidad', 55000.00, '2026-06-13 16:35:20'),
 (18, 'PROD-0018', 'Buso', 'BUSOXX-M-792', 'Sudaderas', 'Azul', 'Nylon', 'Unisex', 'activo', 'Buso Unideportes Sport', 'M', 8, 'Unidad', 55000.00, '2026-06-13 16:39:14'),
-(19, 'PROD-0019', 'Camiseta Micro', 'CAMMIC-M-568', 'Camisetas', 'Negra', 'Poliester', 'Unisex', 'activo', 'Camiseta diseñada para los amantes del futsal o futbol de salon con diseño personalizado', 'M', 23, 'Unidad', 40000.00, '2026-06-14 19:02:59'),
+(19, 'PROD-0019', 'Camiseta Micro', 'CAMMIC-M-568', 'Camisetas', 'Negra', 'Poliester', 'Unisex', 'activo', 'Camiseta diseñada para los amantes del futsal o futbol de salon con diseño personalizado', 'M', 12, 'Unidad', 40000.00, '2026-06-14 19:02:59'),
 (20, 'PROD-0020', 'Short Deportivo Negro', 'SHO-DEP-01', 'Shorts', 'Negro', 'Poliester', 'Unisex', 'activo', 'Short deportivo para entrenamiento', 'M', 0, 'Unidad', 35000.00, '2026-06-18 20:52:53'),
 (21, 'PROD-0021', 'Camiseta Futsal', 'camiseta', 'Camiseta unisex para deporte futsal', 'negra', 'Nylon', 'Unisex', 'activo', '', 'Única', 10, 'Unidad', 50000.00, '2026-06-18 21:35:21'),
 (22, 'PROD-0022', 'Pantalon Deportivo Negro', 'PAN-DEP-01', 'Pantalones', 'Negro', 'Poliester', 'Unisex', 'activo', 'Pantalon deportivo para entrenamiento', 'M', 0, 'Unidad', 75000.00, '2026-06-19 18:00:05'),
-(23, NULL, 'Camiseta Deportiva', 'CAM-DAM-001', 'Camisetas', 'Roja', 'Poliéster', 'Dama', 'activo', 'Camiseta deportiva de alto rendimiento', 'S', 7, 'Unidad', 45000.00, '2026-06-26 04:15:48'),
+(23, NULL, 'Camiseta Deportiva', 'CAM-DAM-001', 'Camisetas', 'Roja', 'Poliéster', 'Dama', 'activo', 'Camiseta deportiva de alto rendimiento', 'S', 6, 'Unidad', 45000.00, '2026-06-26 04:15:48'),
 (24, NULL, 'Camiseta Deportiva', 'CAM-NI-001', 'Camisetas', 'Verde', 'Poliéster', 'Niños', 'activo', 'Camiseta deportiva de alto rendimiento', '12', 50, 'Unidad', 45000.00, '2026-06-26 04:17:31'),
 (25, NULL, 'Camiseta Deportiva', 'CAM-NIN-001', 'Camisetas', 'Verde', 'Poliéster', 'Niños', 'activo', 'Camiseta deportiva de alto rendimiento', '16', 50, 'Unidad', 45000.00, '2026-06-26 04:18:34'),
-(26, NULL, 'Camiseta Micro Hombre', 'CAMMIC-UNICA-983', 'Camisetas', 'Verde', 'Poliester', 'Unisex', 'activo', 'Camiseta Micro Hombre', 'Unica', 6, 'Unidad', 25000.00, '2026-07-07 18:05:20');
+(26, NULL, 'Camiseta Micro Hombre', 'CAMMIC-UNICA-983', 'Camisetas', 'Verde', 'Poliester', 'Unisex', 'activo', 'Camiseta Micro Hombre', 'Unica', 0, 'Unidad', 25000.00, '2026-07-07 18:05:20');
 
 -- --------------------------------------------------------
 
@@ -591,7 +598,8 @@ INSERT INTO `soporte_comentarios` (`id_comentario`, `id_ticket`, `autor`, `mensa
 (3, 1, 'admin', 'Se verificara estados de alerta de Stok', '2026-07-07 09:58:07'),
 (4, 6, 'Pablo', 'Corregir impresión de facturas', '2026-07-07 09:58:44'),
 (5, 6, 'admin', 'Se verificará la impresión en el sistema', '2026-07-07 09:59:46'),
-(6, 7, 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04');
+(6, 7, 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04'),
+(7, 8, 'admin', 'la pagina demora mucho', '2026-07-29 19:39:15');
 
 -- --------------------------------------------------------
 
@@ -621,7 +629,8 @@ INSERT INTO `soporte_tickets` (`id_ticket`, `asunto`, `prioridad`, `estado`, `fe
 (4, 'Prueba de funcion de ticket desde el vendedor', 'Crítica', 'Cerrado', '2026-07-06 22:56:38', 'Pablo', NULL, '2026-07-06 23:41:59'),
 (5, 'Prueba de funcion de ticket desde el area vendedor', 'Baja', 'Abierto', '2026-07-06 23:59:36', 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 00:00:27'),
 (6, 'No puedo imprimir facturas', 'Baja', 'En Proceso', '2026-07-07 09:58:44', 'Pablo', 'Corregir impresión de facturas', '2026-07-07 09:59:46'),
-(7, 'Prueba de funcion de ticket desde el vendedor', 'Media', 'Abierto', '2026-07-07 11:23:04', 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04');
+(7, 'Prueba de funcion de ticket desde el vendedor', 'Media', 'Abierto', '2026-07-07 11:23:04', 'Pablo', 'Sistema Caido (prueba de falla)', '2026-07-07 11:23:04'),
+(8, 'lentitud', 'Crítica', 'Abierto', '2026-07-29 19:39:15', 'admin', 'la pagina demora mucho', '2026-07-29 19:39:15');
 
 -- --------------------------------------------------------
 
@@ -684,7 +693,7 @@ CREATE TABLE `ventas` (
   `fecha_venta` datetime NOT NULL DEFAULT current_timestamp(),
   `fecha_entrega` date DEFAULT NULL,
   `fecha_entrega_real` datetime DEFAULT NULL,
-  `entregado_por` varchar(100) DEFAULT NULL
+  `entregado_por` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -773,24 +782,29 @@ INSERT INTO `ventas` (`id`, `codigo_descriptivo`, `ticket_numero`, `cliente_id`,
 (97, NULL, 'T-20260722202702-264', 21, 3, 15000.00, 0.00, 'directa', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 5000.00, 'Pendiente', NULL, NULL, NULL, NULL, '2026-07-22 13:27:02', NULL, NULL, NULL),
 (98, NULL, 'T-20260722203946-163', 22, 3, 50000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Cl. 3 Este #9-1', 'El Rosario', 'Sogamoso', 'purta negra', NULL, 0.00, 'Pendiente', NULL, NULL, NULL, NULL, '2026-07-22 13:39:46', NULL, NULL, NULL),
 (99, NULL, 'T-20260722222216-423', 23, 3, 30000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Cl. 3 Este #9-2', 'El Rosario', 'Sogamoso', 'Puerta roja', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 15:22:16', NULL, NULL, NULL),
-(101, 'V-3405', 'T-260722-21', 6, 3, 490000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 16:34:16', NULL, NULL, NULL),
-(102, 'V-1769', 'T-260722-36', 6, 3, 45000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 5000.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 16:43:20', NULL, NULL, NULL),
-(103, 'V-8512', 'T-260723-67', 6, 3, 45000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 18:20:59', NULL, NULL, NULL),
+(101, 'V-3405', 'T-260722-21', 6, 3, 490000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 16:34:16', NULL, NULL, NULL),
+(102, 'V-1769', 'T-260722-36', 6, 3, 45000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 5000.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 16:43:20', NULL, NULL, NULL),
+(103, 'V-8512', 'T-260723-67', 6, 3, 45000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 18:20:59', NULL, NULL, NULL),
 (104, 'V-5549', 'T-260723-36', 2, 3, 90000.00, 0.00, 'directa', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 18:27:13', NULL, NULL, NULL),
-(105, 'V-9029', 'T-260723-30', 19, 3, 115000.00, 0.00, 'directa', 'Transferencia', 'Domicilio', 5000.00, 'Calle 10 #5-20', 'El Rosario', 'Sogamoso', 'Frente al parque, casa de rejas negras y timbrar el el piso 2', NULL, 0.00, 'En Camino', 'Nequi', NULL, NULL, NULL, '2026-07-22 18:47:19', NULL, NULL, NULL),
-(106, 'V-6792', 'T-260723-74', 19, 3, 270000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 10 #5-20', 'El Rosario', 'Sogamoso', 'Frente al parque, casa de rejas negras y timbrar el el piso 2', NULL, 0.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 18:55:17', NULL, NULL, NULL),
-(107, 'V-3432', 'T-260723-50', 6, 3, 125000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 19:20:49', NULL, NULL, NULL),
+(105, 'V-9029', 'T-260723-30', 19, 3, 115000.00, 0.00, 'directa', 'Transferencia', 'Domicilio', 5000.00, 'Calle 10 #5-20', 'El Rosario', 'Sogamoso', 'Frente al parque, casa de rejas negras y timbrar el el piso 2', NULL, 0.00, 'Entregado', 'Nequi', NULL, NULL, NULL, '2026-07-22 18:47:19', NULL, NULL, NULL),
+(106, 'V-6792', 'T-260723-74', 19, 3, 270000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 10 #5-20', 'El Rosario', 'Sogamoso', 'Frente al parque, casa de rejas negras y timbrar el el piso 2', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 18:55:17', NULL, NULL, NULL),
+(107, 'V-3432', 'T-260723-50', 6, 3, 125000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 19:20:49', NULL, NULL, NULL),
 (108, 'V-2632', 'T-260723-89', 6, 3, 180000.00, 0.00, 'directa', 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', 'Nequi', '236589', NULL, NULL, '2026-07-22 19:22:34', NULL, NULL, NULL),
 (109, 'V-5651', 'T-260723-92', 5, 3, 480000.00, 0.00, 'directa', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 19:23:54', NULL, NULL, NULL),
-(110, 'V-5128', 'T-260723-54', 6, 3, 445000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-22 19:30:53', NULL, NULL, NULL),
+(110, 'V-5128', 'T-260723-54', 6, 3, 445000.00, 0.00, 'directa', 'Tarjeta', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-22 19:30:53', NULL, NULL, NULL),
 (111, 'V-6806', 'T-260723-60', 5, 3, 75000.00, 0.00, 'directa', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, '6325', 'Bancolombia', '2026-07-22 19:44:09', NULL, NULL, NULL),
 (112, 'V-9168', 'T-260723-75', 5, 3, 70000.00, 0.00, 'directa', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, '6325', 'Bancolombia', '2026-07-22 19:57:24', NULL, NULL, NULL),
 (113, 'V-5081', 'T-260723-80', 2, 3, 135000.00, 0.00, 'directa', 'Transferencia', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', 'Daviplata', '236589', NULL, NULL, '2026-07-22 19:58:26', NULL, NULL, NULL),
 (121, 'V-1588', 'T-260724010857-1341', 6, 3, 304000.00, 0.00, 'mayorista', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-23 18:08:57', NULL, NULL, NULL),
-(122, 'V-8723', 'T-260724221447-1300', 6, 3, 1943250.00, 101750.00, 'mayorista', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', NULL, NULL, 56750.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-24 15:14:47', NULL, NULL, NULL),
+(122, 'V-8723', 'T-260724221447-1300', 6, 3, 1943250.00, 101750.00, 'mayorista', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', NULL, NULL, 56750.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-24 15:14:47', NULL, NULL, NULL),
 (123, 'V-1454', 'T-260724221836-1509', 2, 3, 902500.00, 47500.00, 'mayorista', 'Tarjeta', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 0.00, 'Entregado', NULL, NULL, '1234', 'Bancolombia', '2026-07-24 15:18:36', NULL, NULL, NULL),
 (124, 'V-9223', 'T-260724223102-9485', 5, 3, 261250.00, 13750.00, 'mayorista', 'Efectivo', 'Tienda', 0.00, NULL, NULL, NULL, NULL, NULL, 8750.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-24 15:31:02', NULL, NULL, NULL),
-(125, 'V-4067', 'T-260724223947-4293', 6, 3, 170000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 30000.00, 'En Camino', NULL, NULL, NULL, NULL, '2026-07-24 15:39:47', NULL, NULL, NULL);
+(125, 'V-4067', 'T-260724223947-4293', 6, 3, 170000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 30000.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-24 15:39:47', NULL, NULL, NULL),
+(126, 'V-8432', 'T-260730181319-6573', 6, 3, 95000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-30 11:13:19', NULL, NULL, NULL),
+(127, 'V-5413', 'T-260730192234-8997', 2, 3, 660000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Cl. 3 Este #9-1', 'El Rosario', 'Sogamoso', 'Puerta verde', NULL, 40000.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-30 12:22:34', NULL, '2026-07-30 12:23:01', 3),
+(128, 'V-7249', 'T-260730192902-1478', 6, 3, 55000.00, 0.00, 'directa', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, 0.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-30 12:29:02', NULL, '2026-07-30 12:29:15', 3),
+(129, 'V-5555', 'T-260730193735-4108', 6, 3, 485000.00, 25000.00, 'mayorista', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', NULL, NULL, 15000.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-07-30 12:37:35', NULL, '2026-07-30 12:38:13', 3),
+(130, 'V-3766', 'T-260807163500-2993', 6, 3, 428000.00, 22000.00, 'mayorista', 'Efectivo', 'Domicilio', 5000.00, 'Calle 14 N 10-54', 'Centro', 'Sogamoso', NULL, NULL, 22000.00, 'Entregado', NULL, NULL, NULL, NULL, '2026-08-07 09:35:00', NULL, '2026-08-07 09:36:04', 3);
 
 -- --------------------------------------------------------
 
@@ -1084,7 +1098,7 @@ ALTER TABLE `detalle_pedido`
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=118;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
 
 --
 -- AUTO_INCREMENT for table `pagos`
@@ -1126,13 +1140,13 @@ ALTER TABLE `productos`
 -- AUTO_INCREMENT for table `soporte_comentarios`
 --
 ALTER TABLE `soporte_comentarios`
-  MODIFY `id_comentario` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_comentario` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `soporte_tickets`
 --
 ALTER TABLE `soporte_tickets`
-  MODIFY `id_ticket` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_ticket` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
@@ -1144,7 +1158,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=126;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=131;
 
 --
 -- Constraints for dumped tables
