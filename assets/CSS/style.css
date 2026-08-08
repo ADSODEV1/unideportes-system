@@ -1250,3 +1250,403 @@ $total_cobrado = ($data['kpis_cartera']['total_abonos_iniciales'] ?? 0) +
         <span class="kpi-card__icon">📈</span>
     </a>
 </div>
+
+/* =========================================
+   10. SEGUIMIENTO DE ENTREGAS EN REPORTES
+   ========================================= */
+
+/* --- Header de la sección con botón --- */
+.entregas-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.entregas-section-header .section-title {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+/* --- KPI Card de entregas en camino --- */
+.entregas-kpi-body {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.entregas-kpi-numero {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.entregas-kpi-info {
+    flex: 1;
+}
+
+/* --- Tabla desktop (visible en desktop, oculta en móvil) --- */
+.entregas-tabla-desktop {
+    display: block;
+}
+
+/* --- Tarjetas móvil (ocultas en desktop, visibles en móvil) --- */
+.entregas-tarjetas-movil {
+    display: none;
+}
+
+.entrega-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.entrega-card__header {
+    background: var(--input-bg);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.entrega-card__ticket {
+    font-weight: 700;
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.entrega-card__body {
+    padding: 16px;
+}
+
+.entrega-card__row {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+}
+
+.entrega-card__row:last-child {
+    border-bottom: none;
+}
+
+.entrega-card__row--warning {
+    background: #fffbeb;
+    margin: 0 -16px;
+    padding: 10px 16px;
+}
+
+.entrega-card__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 85px;
+    flex-shrink: 0;
+}
+
+.entrega-card__value {
+    flex: 1;
+    color: var(--text);
+    font-size: 0.92rem;
+    word-break: break-word;
+}
+
+/* --- Footer con contador --- */
+.entregas-footer-counter {
+    text-align: center;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--input-bg);
+    border-radius: var(--radius-sm);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .entregas-section-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .entregas-section-header .btn-primary {
+        width: 100%;
+    }
+    
+    .entregas-kpi-body {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .entregas-kpi-numero {
+        font-size: 3rem;
+    }
+    
+    /* Ocultar tabla, mostrar tarjetas */
+    .entregas-tabla-desktop {
+        display: none;
+    }
+    
+    .entregas-tarjetas-movil {
+        display: block;
+    }
+}
+
+@media (max-width: 480px) {
+    .entrega-card__row {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .entrega-card__label {
+        min-width: auto;
+    }
+}
+
+/* =========================================
+   11. MIS PEDIDOS - DESPACHO Y ENTREGA
+   ========================================= */
+
+/* --- Buscador mejorado --- */
+.mis-pedidos-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.mis-pedidos-search input[type="text"] {
+    flex: 1;
+    min-width: 220px;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    font-size: 0.95rem;
+    color: var(--text);
+    font-family: var(--font-main);
+}
+
+.mis-pedidos-search input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* --- Vista tabla desktop --- */
+.mis-pedidos-tabla-desktop {
+    display: block;
+}
+
+/* --- Vista tarjetas móvil (oculta en desktop) --- */
+.mis-pedidos-tarjetas-movil {
+    display: none;
+}
+
+/* --- Tarjeta de pedido móvil --- */
+.pedido-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.pedido-card__header {
+    background: var(--input-bg);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.pedido-card__cliente {
+    flex: 1;
+    min-width: 150px;
+}
+
+.pedido-card__cliente strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+
+.pedido-card__cliente small {
+    color: var(--text-light);
+    font-size: 0.82rem;
+}
+
+.pedido-card__total {
+    text-align: right;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.pedido-card__body {
+    padding: 16px;
+}
+
+.pedido-card__row {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+}
+
+.pedido-card__row:last-child {
+    border-bottom: none;
+}
+
+.pedido-card__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 90px;
+    flex-shrink: 0;
+}
+
+.pedido-card__value {
+    flex: 1;
+    color: var(--text);
+    font-size: 0.92rem;
+    word-break: break-word;
+}
+
+/* --- Formulario de pago en tarjeta --- */
+.pedido-card__pago {
+    background: #fffbeb;
+    padding: 16px;
+    margin: 0 -16px -16px -16px;
+    border-top: 1px solid #fde68a;
+}
+
+.pedido-card__pago-titulo {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pedido-card__pago form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pedido-card__pago-input-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.pedido-card__pago-input-group label {
+    font-size: 0.82rem;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
+.pedido-card__pago-input-group input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: var(--font-main);
+}
+
+.pedido-card__pago select {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: white;
+    font-family: var(--font-main);
+}
+
+/* --- Estado vacío --- */
+.mis-pedidos-empty {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-light);
+}
+
+.mis-pedidos-empty-icon {
+    font-size: 3.5rem;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.mis-pedidos-empty p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    /* Ocultar tabla, mostrar tarjetas */
+    .mis-pedidos-tabla-desktop {
+        display: none;
+    }
+    
+    .mis-pedidos-tarjetas-movil {
+        display: block;
+    }
+    
+    .mis-pedidos-search {
+        flex-direction: column;
+    }
+    
+    .mis-pedidos-search input[type="text"] {
+        width: 100%;
+    }
+    
+    .mis-pedidos-search button,
+    .mis-pedidos-search .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pedido-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .pedido-card__total {
+        text-align: left;
+        font-size: 1.2rem;
+    }
+    
+    .pedido-card__row {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .pedido-card__label {
+        min-width: auto;
+    }
+}

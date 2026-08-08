@@ -140,9 +140,6 @@ include(__DIR__ . "/header.php");
                 <h1 class="page-header__title">🏭 Control de Producción Taller</h1>
                 <p class="page-header__subtitle">Mapeo de órdenes mayoristas en confección. Cambia el estado para que se refleje en el punto de venta.</p>
             </div>
-            <a href="venta_mayorista.php" class="btn-primary">
-                ➕ Crear Orden Mayorista
-            </a>
         </div>
 
         <?php if ($success === 'estado_actualizado'): ?>
