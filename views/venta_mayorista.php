@@ -122,13 +122,28 @@ include(__DIR__ . '/header.php');
                 </div>
             </div>
 
-            <!-- FILA 3: TABLA DEL CARRITO -->
-            <div class="venta-container" style="margin-bottom: 20px; overflow-x: auto;">
-                <table class="tabla-maestra">
-                    <thead><tr><th>Producto</th><th>Color</th><th>Talla</th><th>Precio Unit.</th><th style="text-align: center;">Cant</th><th style="text-align: right;">Subtotal</th><th style="text-align: center;">Acciones</th></tr></thead>
-                    <tbody id="carritoBody"><tr><td colspan="7" style="text-align: center; padding: 30px; color: var(--text-light);">No hay productos agregados aún.</td></tr></tbody>
-                </table>
-            </div>
+          <!-- FILA 3: TABLA DEL CARRITO -->
+<div class="venta-container" style="margin-bottom: 20px; overflow-x: auto;">
+    <table class="tabla-maestra">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Color</th>
+                <th>Talla</th>
+                <th>Precio Unit.</th>
+                <th style="text-align: center;">Cant</th>
+                <th style="text-align: right;">Desc.</th>
+                <th style="text-align: right;">Subtotal</th>
+                <th style="text-align: center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="carritoBody">
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-light);">🛒 No hay productos agregados aún.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
 
             <!-- FILA 4: TOTALES Y MÉTODO DE PAGO (AL FINAL, DONDE TIENE SENTIDO LÓGICO) -->
             <div class="venta-container" style="padding: 25px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 30px; max-width: 900px; margin-left: auto;">

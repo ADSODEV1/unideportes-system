@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const listaClientes = document.getElementById("listaClientes");
     const btnToggleNuevoCliente = document.getElementById("btnToggleNuevoCliente");
     const nuevoClienteSection = document.getElementById("nuevoClienteSection");
-    
+
     const metodoPago = document.getElementById("metodo_pago");
     const seccionCambio = document.getElementById("seccionCambio");
     const inputPagaCon = document.getElementById("inputPagaCon");
@@ -19,13 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const referenciaPagoInput = document.getElementById("referencia_pago_input");
     const ultimos4DigitosInput = document.getElementById("ultimos_4_digitos");
     const bancoEmisorInput = document.getElementById("banco_emisor");
-    
+
     const tipoEntrega = document.getElementById("tipo_entrega");
     const seccionDomicilio = document.getElementById("seccionDomicilio");
     const direccionEntrega = document.getElementById("direccion_entrega");
     const barrioEntrega = document.getElementById("barrio_entrega");
     const ciudadEntrega = document.getElementById("ciudad_entrega");
-    
+
     const productoInput = document.getElementById("productoInput");
     const listaProductos = document.getElementById("listaProductos");
     const productoPrecio = document.getElementById("productoPrecio");
@@ -35,14 +35,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const ventaJSON = document.getElementById("ventaJSON");
     const inputTotal = document.getElementById("inputTotal");
     const formVentaMayorista = document.getElementById("formVentaMayorista");
-    
+
     const wrapperColor = document.getElementById("wrapperProductoColor");
     const wrapperTalla = document.getElementById("wrapperProductoTalla");
-    
+
     let carrito = [];
     let prodSeleccionado = { id: "", nombre: "", precio: 0, stock: 0 };
     let varianteActual = null;
-    
+
     // 2. FUNCIONES AUXILIARES
     function mostrarMensajeAlerta(msg, tipo) {
         const alerta = document.getElementById("mensajeAlerta");
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         alerta.style.borderLeft = `4px solid ${tipo === "danger" ? "#ef4444" : (tipo === "success" ? "#10b981" : "#f59e0b")}`;
         setTimeout(() => { alerta.style.display = "none"; }, 6000);
     }
-    
+
     function actualizarEstadoBtnAgregar(habilitado, stock = null) {
         if (!btnAgregar) return;
         btnAgregar.disabled = !habilitado;
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnAgregar.style.cursor = habilitado ? "pointer" : "not-allowed";
         btnAgregar.innerHTML = (habilitado && stock !== null) ? `+ Añadir (${stock} disp.)` : "+ Añadir";
     }
-    
+
     // 3. CONTROLADORES DE CLIENTE
     if (clienteInput && listaClientes) {
         clienteInput.addEventListener("input", () => {
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!encontrado) clienteIdHidden.value = "";
         });
     }
-    
+
     if (btnToggleNuevoCliente) {
         btnToggleNuevoCliente.addEventListener("click", () => {
             const estaOculto = nuevoClienteSection.style.display === "none" || nuevoClienteSection.style.display === "";
@@ -99,32 +99,38 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    
+
     // 4. LÓGICA DE PAGO (EFECTIVO, TRANSFERENCIA, TARJETA)
-    if (metodoPago) {
-        metodoPago.addEventListener("change", () => {
-            if (seccionCambio) seccionCambio.style.display = "none";
-            if (seccionTransferencia) seccionTransferencia.style.display = "none";
-            if (seccionTarjeta) seccionTarjeta.style.display = "none";
-            if (referenciaPagoInput) referenciaPagoInput.required = false;
-            
-            if (metodoPago.value === "Efectivo") {
-                if (seccionCambio) seccionCambio.style.display = "block";
-                if (inputPagaCon) inputPagaCon.value = "";
-                if (txtCambio) txtCambio.innerText = "$0.00";
-            } else if (metodoPago.value === "Transferencia") {
-                if (seccionTransferencia) seccionTransferencia.style.display = "block";
-                if (referenciaPagoInput) referenciaPagoInput.required = true;
-                actualizarTipoTransferencia();
-            } else if (metodoPago.value === "Tarjeta") {
-                if (seccionTarjeta) seccionTarjeta.style.display = "block";
-            }
-        });
+    function mostrarSeccionPago() {
+        // Ocultar TODAS las secciones primero
+        if (seccionCambio) seccionCambio.style.display = "none";
+        if (seccionTransferencia) seccionTransferencia.style.display = "none";
+        if (seccionTarjeta) seccionTarjeta.style.display = "none";
+        if (referenciaPagoInput) referenciaPagoInput.required = false;
+
+        const metodo = metodoPago.value;
+
+        // Mostrar la sección correspondiente
+        if (metodo === "Efectivo") {
+            if (seccionCambio) seccionCambio.style.display = "block";
+            if (inputPagaCon) inputPagaCon.value = "";
+            if (txtCambio) txtCambio.innerText = "$0";
+        } else if (metodo === "Transferencia") {
+            if (seccionTransferencia) seccionTransferencia.style.display = "block";
+            if (referenciaPagoInput) referenciaPagoInput.required = true;
+            actualizarTipoTransferencia();
+        } else if (metodo === "Tarjeta") {
+            if (seccionTarjeta) seccionTarjeta.style.display = "block";
+        }
     }
-    
+
+    if (metodoPago) {
+        metodoPago.addEventListener("change", mostrarSeccionPago);
+    }
+
     if (tipoTransferenciaSelect) tipoTransferenciaSelect.addEventListener("change", actualizarTipoTransferencia);
     if (otraPlataformaInput) otraPlataformaInput.addEventListener("input", actualizarTipoTransferencia);
-    
+
     function actualizarTipoTransferencia() {
         if (!tipoTransferenciaSelect) return;
         if (tipoTransferenciaSelect.value === "Otro") {
@@ -153,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    
+
     // 5. LÓGICA DE DOMICILIO
     if (tipoEntrega && seccionDomicilio) {
         tipoEntrega.addEventListener("change", function() {
@@ -180,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
             actualizarRenderCarrito();
         });
     }
-    
+
     // 6. LÓGICA DEL BUSCADOR DE PRODUCTOS
     if (productoInput && listaProductos) {
         productoInput.addEventListener("input", () => {
@@ -204,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    
+
     function cargarColoresDisponibles(nombreProducto) {
         fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(nombreProducto)}`)
             .then(res => res.json())
@@ -220,9 +226,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     wrapperColor.innerHTML = `<label><strong>Color:</strong></label><input type="text" value="Sin color" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">`;
                     cargarTallasDisponibles(nombreProducto, "Sin color");
                 }
+            })
+            .catch(err => {
+                console.error("Error cargando colores:", err);
+                mostrarMensajeAlerta("Error al cargar los colores del producto.", "danger");
+                desactivarCamposProducto();
             });
     }
-    
+
     function cargarTallasDisponibles(nombreProducto, color) {
         fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(nombreProducto)}&color=${encodeURIComponent(color)}`)
             .then(res => res.json())
@@ -236,15 +247,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     wrapperTalla.innerHTML = `<label><strong>Talla:</strong></label><input type="text" value="Sin talla" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">`;
                     consultarStockVariante(nombreProducto, color, "Sin talla");
                 }
+            })
+            .catch(err => {
+                console.error("Error cargando tallas:", err);
+                mostrarMensajeAlerta("Error al cargar las tallas del producto.", "danger");
             });
     }
-    
+
     function desactivarTalla() {
         wrapperTalla.innerHTML = `<label><strong>Talla:</strong></label><input type="text" disabled placeholder="Seleccione color primero" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">`;
         varianteActual = null;
         actualizarEstadoBtnAgregar(false);
     }
-    
+
     function consultarStockVariante(nombre, color, talla) {
         fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(nombre)}&color=${encodeURIComponent(color)}&talla=${encodeURIComponent(talla)}`)
             .then(res => res.json())
@@ -263,16 +278,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     varianteActual = null;
                     actualizarEstadoBtnAgregar(false);
                 }
+            })
+            .catch(err => {
+                console.error("Error consultando stock:", err);
+                mostrarMensajeAlerta("Error al consultar el stock del producto.", "danger");
+                actualizarEstadoBtnAgregar(false);
             });
     }
-    
+
     function desactivarCamposProducto() {
         wrapperColor.innerHTML = `<label><strong>Color:</strong></label><input type="text" disabled placeholder="Selecciona producto" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">`;
         wrapperTalla.innerHTML = `<label><strong>Talla:</strong></label><input type="text" disabled placeholder="Selecciona color" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">`;
         varianteActual = null;
         actualizarEstadoBtnAgregar(false);
     }
-    
+
     // 7. BOTÓN "+ AÑADIR"
     actualizarEstadoBtnAgregar(false);
     if (btnAgregar) {
@@ -288,12 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             const stockDisponible = parseInt(varianteActual.stock);
             const cantidadEnCarrito = carrito.filter(item => item.id === varianteActual.id).reduce((total, item) => total + item.cantidad, 0);
-            
+
             if (cantidadEnCarrito + cantidadSolicitada > stockDisponible) {
                 mostrarMensajeAlerta(`⚠️ Stock insuficiente. Solo hay ${stockDisponible} unidades disponibles.`, "danger");
                 return;
             }
-            
+
             const itemExistente = carrito.find(item => item.id === varianteActual.id);
             if (itemExistente) {
                 itemExistente.cantidad += cantidadSolicitada;
@@ -313,33 +333,42 @@ document.addEventListener("DOMContentLoaded", () => {
             productoCantidad.value = "1";
             desactivarCamposProducto();
             actualizarRenderCarrito();
+
+            // IMPORTANTE: Asegurar que la sección de pago activa siga visible después de añadir
+            if (metodoPago) {
+                mostrarSeccionPago();
+            }
         });
     }
-    
+
     // 8. RENDER DEL CARRITO Y TOTALES
     function actualizarRenderCarrito() {
+        // Limpiar completamente el body de la tabla
         carritoBody.innerHTML = "";
         let subtotalAcumulado = 0;
         const totalUnidades = carrito.reduce((acc, item) => acc + item.cantidad, 0);
-        
+
         let factorDescuento = 0;
         if (totalUnidades >= 20) factorDescuento = 0.10;
         else if (totalUnidades >= 10) factorDescuento = 0.05;
-        
+
         if (carrito.length === 0) {
-            carritoBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: var(--text-light);">🛒 El carrito está vacío.</td></tr>`;
+            // colspan="8" porque la tabla tiene 8 columnas
+            carritoBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-light);">🛒 El carrito está vacío.</td></tr>`;
         } else {
+            // Construir todas las filas primero para mejor rendimiento
+            let filasHTML = "";
             carrito.forEach((item, index) => {
                 const descItem = item.precio * factorDescuento;
                 const subtotalItem = (item.precio - descItem) * item.cantidad;
                 subtotalAcumulado += item.precio * item.cantidad;
-                
-                carritoBody.innerHTML += `
+
+                filasHTML += `
                     <tr>
                         <td style="padding: 10px;">${item.nombre}</td>
                         <td style="padding: 10px;">${item.color}</td>
                         <td style="padding: 10px;">${item.talla}</td>
-                        <td style="padding: 10px;">$${item.precio.toLocaleString('es-CO')}</td>
+                        <td style="padding: 10px; text-align: right;">$${item.precio.toLocaleString('es-CO')}</td>
                         <td style="padding: 10px; text-align: center;">
                             <button type="button" onclick="cambiarCantidad(${index}, -1)" style="padding: 2px 8px;">-</button>
                             <span style="margin: 0 8px;">${item.cantidad}</span>
@@ -352,24 +381,29 @@ document.addEventListener("DOMContentLoaded", () => {
                         </td>
                     </tr>`;
             });
+            carritoBody.innerHTML = filasHTML;
         }
-        
+
         const descuentoTotal = subtotalAcumulado * factorDescuento;
         let totalFinal = subtotalAcumulado - descuentoTotal;
-        
+
         if (tipoEntrega && tipoEntrega.value === "Domicilio") {
             totalFinal += 5000;
         }
-        
-        document.getElementById("txtTotal").innerText = `$${subtotalAcumulado.toLocaleString('es-CO')}`;
-        document.getElementById("txtDescuento").innerText = `$${descuentoTotal.toLocaleString('es-CO')}`;
-        document.getElementById("txtTotalFinal").innerText = `$${totalFinal.toLocaleString('es-CO')}`;
-        
+
+        const txtTotal = document.getElementById("txtTotal");
+        const txtDescuento = document.getElementById("txtDescuento");
+        const txtTotalFinal = document.getElementById("txtTotalFinal");
+
+        if (txtTotal) txtTotal.innerText = `$${subtotalAcumulado.toLocaleString('es-CO')}`;
+        if (txtDescuento) txtDescuento.innerText = `$${descuentoTotal.toLocaleString('es-CO')}`;
+        if (txtTotalFinal) txtTotalFinal.innerText = `$${totalFinal.toLocaleString('es-CO')}`;
+
         inputTotal.value = totalFinal.toFixed(2);
         ventaJSON.value = JSON.stringify(carrito);
-        
+
         // Recalcular cambio si ya hay algo escrito
-        if (inputPagaCon && txtCambio) {
+        if (inputPagaCon && txtCambio && inputPagaCon.value) {
             const pagaCon = parseFloat(inputPagaCon.value) || 0;
             const cambio = pagaCon - totalFinal;
             if (cambio >= 0) {
@@ -381,7 +415,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
-    
+
     // 9. CONTROLES DE CANTIDAD
     window.cambiarCantidad = (index, cambio) => {
         const item = carrito[index];
@@ -399,6 +433,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         carrito[index].cantidad += cambio;
                         actualizarRenderCarrito();
                     }
+                })
+                .catch(err => {
+                    console.error("Error cambiando cantidad:", err);
+                    mostrarMensajeAlerta("Error al validar stock.", "danger");
                 });
         } else {
             carrito[index].cantidad += cambio;
@@ -406,12 +444,12 @@ document.addEventListener("DOMContentLoaded", () => {
             actualizarRenderCarrito();
         }
     };
-    
+
     window.quitarDelCarrito = (index) => {
         carrito.splice(index, 1);
         actualizarRenderCarrito();
     };
-    
+
     // 10. VALIDACIÓN FINAL (SIN ABONOS)
     if (formVentaMayorista) {
         formVentaMayorista.addEventListener("submit", (e) => {
@@ -425,9 +463,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 mostrarMensajeAlerta("⚠️ Debes seleccionar un cliente o crear uno nuevo.", "danger");
                 return false;
             }
-            
+
             const total = parseFloat(inputTotal.value) || 0;
-            
+
             // Validar pago en efectivo
             if (metodoPago.value === "Efectivo") {
                 const pagaCon = parseFloat(inputPagaCon.value) || 0;
@@ -438,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     return false;
                 }
             }
-            
+
             // Validar dirección si es domicilio
             if (tipoEntrega && tipoEntrega.value === "Domicilio") {
                 if (!direccionEntrega || !direccionEntrega.value.trim()) {
@@ -447,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     return false;
                 }
             }
-            
+
             // Validar campos de Transferencia
             if (metodoPago.value === "Transferencia") {
                 if (!referenciaPagoInput || !referenciaPagoInput.value.trim()) {
@@ -456,7 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     return false;
                 }
             }
-            
+
             // Validar campos de Tarjeta
             if (metodoPago.value === "Tarjeta") {
                 if (!ultimos4DigitosInput || !ultimos4DigitosInput.value.trim()) {
@@ -470,13 +508,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     return false;
                 }
             }
-            
+
             if (!confirm(`¿Confirmas procesar esta venta mayorista por un total de $${total.toLocaleString('es-CO')}?`)) {
                 e.preventDefault();
                 return false;
             }
         });
     }
-    
+
+    // ============================================
+    // INICIALIZACIÓN CRÍTICA 
+    // ============================================
     actualizarRenderCarrito();
+
+    // Mostrar la sección de pago correspondiente a la opción seleccionada por defecto
+    if (metodoPago) {
+        mostrarSeccionPago();
+    }
 });
