@@ -372,7 +372,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             mysqli_stmt_close($check);
 
-            $sqlUpdatePedido = "UPDATE pedidos SET cliente_id = ?, total_pedido = ?, estado = 'En Corte', fecha_entrega = ?, vendedor_id = ?, abono = ?, saldo_pendiente = ?, tipo_entrega = ?, direccion_entrega = ?, barrio_entrega = ?, ciudad_entrega = ?, observaciones_entrega = ?, detalle = ?, descripcion = ?, cantidad = ? WHERE id = ?";
+            $sqlUpdatePedido = "UPDATE pedidos SET cliente_id = ?, total_pedido = ?, estado = 'En Corte', fecha_entrega = ?, vendedor_id = ?, abono = ?, 
+            saldo_pendiente = ?, tipo_entrega = ?, direccion_entrega = ?, barrio_entrega = ?, ciudad_entrega = ?, observaciones_entrega = ?, detalle = ?, descripcion = ?, 
+            cantidad = ? WHERE id = ?";
             $stmtUpdatePedido = mysqli_prepare($db, $sqlUpdatePedido);
             if (!$stmtUpdatePedido) {
                 throw new Exception("Error preparando la actualización del pedido: " . mysqli_error($db));

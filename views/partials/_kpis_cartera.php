@@ -17,7 +17,7 @@ $total_cobrado = ($data['kpis_cartera']['total_abonos_iniciales'] ?? 0) +
         <span class="kpi-card__icon">📄</span>
     </a>
 
-    <!-- ✅ CAMBIO: Ahora apunta a #sec-seguimiento-entregas -->
+    <!-- Apunta a #sec-seguimiento-entregas -->
     <a href="#sec-seguimiento-entregas" class="kpi-card kpi-card--success kpi-clickable">
         <div class="kpi-card__content">
             <h6 class="kpi-card__label">Total Cobrado</h6>

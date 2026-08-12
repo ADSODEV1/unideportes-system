@@ -28,7 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cliente_id = $clienteExistente['id'];
             } else {
                 $codigo_descriptivo = generarCodigoDescriptivoCliente();
-                $sqlCli = "INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega, estado)
+                $sqlCli = "INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, 
+                referencia_entrega, estado)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmtCli = $pdo->prepare($sqlCli);
                 $stmtCli->execute([
@@ -160,7 +161,8 @@ $codigo_descriptivo_venta = 'V-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEF
         if (empty($json_raw)) throw new Exception("El carrito de compras está vacío.");
         if (!is_array($productos_carrito) || count($productos_carrito) === 0) throw new Exception("Formato de carrito inválido.");
 
-        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES 
+        (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmtDetalle = $pdo->prepare($sqlDetalle);
         $stmtSelectStock = $pdo->prepare("SELECT stock FROM productos WHERE id = ? FOR UPDATE");
 
@@ -198,7 +200,8 @@ $codigo_descriptivo_venta = 'V-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEF
         try {
             $logDir = __DIR__ . '/../logs';
             if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
-            @file_put_contents($logDir . '/procesar_venta_errors.log', json_encode(['time' => date('c'), 'message' => $e->getMessage(), 'post' => array_filter($_POST)]) . PHP_EOL, FILE_APPEND | LOCK_EX);
+            @file_put_contents($logDir . '/procesar_venta_errors.log', json_encode(['time' => date('c'), 'message' => $e->getMessage(), 'post' => array_filter($_POST)]) . 
+            PHP_EOL, FILE_APPEND | LOCK_EX);
         } catch (Exception $ignore) {}
 
         // Redirección inteligente según el origen del formulario

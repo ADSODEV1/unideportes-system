@@ -157,7 +157,8 @@ include(__DIR__ . "/header.php");
                                     </td>
                                     <td class="text-center">
                                         <div class="actions-cell">
-                                            <button onclick="editarPrecio(<?= $p['id'] ?>, '<?= htmlspecialchars($p['tipo_prenda'], ENT_QUOTES) ?>', <?= $p['precio_base'] ?>, '<?= htmlspecialchars($p['descripcion'] ?? '', ENT_QUOTES) ?>')" 
+                                            <button onclick="editarPrecio(<?= $p['id'] ?>, '<?= htmlspecialchars($p['tipo_prenda'], ENT_QUOTES) ?>', <?= $p['precio_base'] 
+                                            ?>, '<?= htmlspecialchars($p['descripcion'] ?? '', ENT_QUOTES) ?>')" 
                                                     class="btn-action" title="Editar">✏️</button>
                                             <form method="POST" class="inline-form" onsubmit="return confirm('¿Desactivar este precio?');">
                                                 <input type="hidden" name="accion" value="eliminar">

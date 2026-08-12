@@ -227,7 +227,8 @@ include(__DIR__ . "/header.php");
                                                        style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
                                             </div>
 
-                                            <select name="metodo_pago" style="padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; background:#fff;">
+                                            <select name="metodo_pago" style="padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; 
+                                            background:#fff;">
                                                 <option value="Efectivo">💵 Efectivo</option>
                                                 <option value="Transferencia">📲 Transferencia</option>
                                                 <option value="Tarjeta">💳 Tarjeta</option>

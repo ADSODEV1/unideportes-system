@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // FLUJO 2: CAMBIAR ESTADO (SOLO ADMIN)
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && request('action') === 'toggle_status') {
     
-    // ✅ Restricción SOLO para este flujo
+    // Restricción SOLO para este flujo
     if ($_SESSION['role'] !== 'admin') {
         redirect('../views/clientes.php?error=permiso_denegado');
     }

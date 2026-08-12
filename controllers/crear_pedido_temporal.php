@@ -36,7 +36,8 @@ try {
     // Permitimos cliente_id = 0 para ordenes temporales creadas desde UI sin cliente seleccionado.
 
     // Insert temporal
-    $sql = "INSERT INTO pedidos (cliente_id, total_pedido, estado, fecha_entrega, vendedor_id, abono, saldo_pendiente, tipo_entrega, direccion_entrega, barrio_entrega, ciudad_entrega, observaciones_entrega, detalle)
+    $sql = "INSERT INTO pedidos (cliente_id, total_pedido, estado, fecha_entrega, vendedor_id, abono, saldo_pendiente, tipo_entrega, direccion_entrega, barrio_entrega, 
+    ciudad_entrega, observaciones_entrega, detalle)
             VALUES (?, 0, 'En Corte', ?, ?, 0, 0, ?, ?, ?, ?, ?, 'Pedido temporal creado desde UI')";
     $stmt = mysqli_prepare($db, $sql);
     if (!$stmt) throw new Exception('Error preparando consulta: ' . mysqli_error($db));

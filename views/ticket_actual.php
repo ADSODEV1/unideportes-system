@@ -46,7 +46,7 @@ try {
     exit();
 }
 
-// ✅ CÁLCULO SEGURO: Recalculamos el total real basado en los items vendidos
+// CÁLCULO SEGURO: Recalculamos el total real basado en los items vendidos
 // Esto evita cualquier error de "5000 de más" si la BD tuvo una duplicación
 $subtotal_productos = 0;
 foreach ($detalles as $item) {

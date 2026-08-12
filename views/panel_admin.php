@@ -68,7 +68,8 @@ include(__DIR__ . "/header.php");
                 <div class="alert-icon">📈</div>
                 <div class="alert-text">
                     <strong>Actividad Comercial Hoy</strong>
-                    <p>Se procesaron <strong><?= htmlspecialchars($ventas_hoy) ?></strong> ventas. Hay <strong><?= htmlspecialchars($ordenes_taller) ?></strong> prendas en taller.</p>
+                    <p>Se procesaron <strong><?= htmlspecialchars($ventas_hoy) ?></strong> ventas. Hay <strong><?= htmlspecialchars($ordenes_taller) ?></strong> 
+                    prendas en taller.</p>
                 </div>
             </div>
 

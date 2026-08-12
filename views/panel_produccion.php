@@ -165,7 +165,8 @@ include(__DIR__ . "/header.php");
                                         <input type="hidden" name="pedido_id" value="<?= $pedido['id']; ?>">
                                         <input type="hidden" name="actualizar_estado" value="1">
                                         
-                                        <select name="nuevo_estado" class="form-control" style="max-width: 160px; font-size: 0.85rem; padding: 6px;" onchange="this.form.submit()">
+                                        <select name="nuevo_estado" class="form-control" style="max-width: 160px; font-size: 0.85rem; padding: 6px;" 
+                                        onchange="this.form.submit()">
                                             <option value="">-- Avanzar --</option>
                                             <option value="En Corte" <?= $pedido['estado'] === 'En Corte' ? 'selected' : '' ?>>✂️ En Corte</option>
                                             <option value="En Costura" <?= $pedido['estado'] === 'En Costura' ? 'selected' : '' ?>>🪡 En Costura</option>
