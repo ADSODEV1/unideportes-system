@@ -209,7 +209,7 @@ include(__DIR__ . "/header.php");
                     </div>
 
                     <!-- SECCIÓN EFECTIVO (PAGA CON Y CAMBIO) -->
-                    <div id="seccionCambio" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div id="seccionCambio" style="background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <label style="font-weight: 700; color: var(--text);">Paga con:</label>
                             <input type="number" id="inputPagaCon" name="paga_con" min="0" step="0.01" style="width: 150px; padding: 8px; border: 1px solid 
