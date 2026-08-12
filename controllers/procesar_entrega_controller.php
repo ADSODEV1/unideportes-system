@@ -26,6 +26,7 @@ try {
 
     // 1. Calcular saldo pendiente usando la misma lógica de la vista:
     $sqlSaldo = "SELECT
+                    p.estado,
                     COALESCE(dt.total_detalle, p.total_pedido, 0) AS total_pedido,
                     COALESCE(p.abono, 0) AS abono_inicial,
                     p.saldo_pendiente AS saldo_pendiente_guardado,
@@ -38,11 +39,12 @@ try {
                  ) dt ON dt.pedido_id = p.id
                  LEFT JOIN pagos pa ON p.id = pa.id_pg_pedido
                  WHERE p.id = :id
-                 GROUP BY p.id, dt.total_detalle, p.total_pedido, p.abono, p.saldo_pendiente";
+                 GROUP BY p.id, dt.total_detalle, p.total_pedido, p.abono, p.saldo_pendiente, p.estado";
 
     $stmtSaldo = $pdo->prepare($sqlSaldo);
     $stmtSaldo->execute([':id' => $pedido_id]);
     $valores = $stmtSaldo->fetch(PDO::FETCH_ASSOC);
+    $estado_actual = strtolower(trim((string)($valores['estado'] ?? '')));
 
     if (!$valores) {
         throw new Exception("El pedido no existe.");
@@ -87,21 +89,26 @@ try {
     }
 
     if ($accion === 'entregar') {
-        // Solo permitir entrega cuando no hay saldo pendiente.
-        if ($saldo_calculado > 0) {
-            throw new Exception("No se puede entregar: el pedido aún tiene saldo pendiente.");
-        }
-
-        // Actualizar estado a 'Entregado' y asegurar saldo en 0
-        $sqlUpdate = "UPDATE pedidos SET estado = 'Entregado', saldo_pendiente = 0 WHERE id = :id";
-        $stmtUpdate = $pdo->prepare($sqlUpdate);
-        $stmtUpdate->execute([':id' => $pedido_id]);
-
-        $pdo->commit();
-        
-        header("Location: /unideportes-system/views/mis_pedidos.php?status=success");
-        exit;
+    // Solo permitir entrega cuando el estado sea Terminado.
+    if ($estado_actual !== 'terminado') {
+        throw new Exception("No se puede entregar: el pedido debe estar en estado Terminado.");
     }
+
+    // Solo permitir entrega cuando no hay saldo pendiente.
+    if ($saldo_calculado > 0) {
+        throw new Exception("No se puede entregar: el pedido aún tiene saldo pendiente.");
+    }
+
+    // Actualizar estado a 'Entregado' y asegurar saldo en 0
+    $sqlUpdate = "UPDATE pedidos SET estado = 'Entregado', saldo_pendiente = 0 WHERE id = :id";
+    $stmtUpdate = $pdo->prepare($sqlUpdate);
+    $stmtUpdate->execute([':id' => $pedido_id]);
+
+    $pdo->commit();
+
+    header("Location: /unideportes-system/views/mis_pedidos.php?status=success");
+    exit;
+}
 
     throw new Exception("Acción no válida.");
 
