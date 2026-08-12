@@ -76,8 +76,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $vendedor_id = $_SESSION['user_id'] ?? ($_SESSION['usuario_id'] ?? 1);
-        $ticket_numero = 'T-' . date('ymdHis') . '-' . rand(1000, 9999);
-        $codigo_descriptivo_venta = 'V-' . rand(1000, 9999);
+// Generar número de factura secuencial FAC-XXXXXX
+$stmtUltimaFactura = $pdo->query("SELECT ticket_numero FROM ventas WHERE ticket_numero LIKE 'FAC-%' ORDER BY id DESC LIMIT 1");
+$ultimaFactura = $stmtUltimaFactura->fetchColumn();
+
+if ($ultimaFactura) {
+    // Extraer el número después de 'FAC-'
+    $ultimoNumero = intval(substr($ultimaFactura, 4));
+    $siguienteNumero = $ultimoNumero + 1;
+} else {
+    $siguienteNumero = 1;
+}
+
+$ticket_numero = 'FAC-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT);
+$codigo_descriptivo_venta = 'V-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT);
 
         // Detectar venta mayorista
         $es_mayorista = ($_POST['venta_tipo'] ?? '') === 'mayorista';
