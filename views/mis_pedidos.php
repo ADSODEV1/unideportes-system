@@ -9,7 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $pdo = app();
 
 // Seguridad: Ajustado para los roles de tu sistema (Admin o Vendedor)
-require_login(['admin' , 'colaborador', 'vendedor']);
+require_login(['admin', 'colaborador', 'vendedor']);
 
 // Capturar filtro de búsqueda si existe
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
@@ -83,13 +83,14 @@ try {
     $pedidos = [];
     $error_msg = "Error al cargar la lista de pedidos: " . $e->getMessage();
 }
+
 // Mensajes de estado
 $status = $_GET['status'] ?? null;
 $monto_pagado_msg = isset($_GET['monto']) ? floatval($_GET['monto']) : null;
 $saldo_anterior_msg = isset($_GET['saldo_anterior']) ? floatval($_GET['saldo_anterior']) : null;
 $saldo_actual_msg = isset($_GET['saldo_actual']) ? floatval($_GET['saldo_actual']) : null;
 
-// Incluir Header del sistema original de la marca
+// Incluir Header del sistema
 include(__DIR__ . "/header.php");
 ?>
 
@@ -100,8 +101,10 @@ include(__DIR__ . "/header.php");
     <main class="main-content-panel">
         
         <div class="page-header" style="margin-bottom: 25px;">
-            <h1>🎁 Despacho y Entrega de Pedidos</h1>
-            <p>Busca los pedidos listos de clientes, recauda saldos pendientes y efectúa la entrega formal.</p>
+            <div>
+                <h1>🎁 Despacho y Entrega de Pedidos</h1>
+                <p>Busca los pedidos listos de clientes, recauda saldos pendientes y efectúa la entrega formal.</p>
+            </div>
         </div>
 
         <?php if ($status === 'success'): ?>
@@ -123,7 +126,7 @@ include(__DIR__ . "/header.php");
             </div>
         <?php elseif ($status === 'error'): ?>
             <div class="alert-error" style="margin-bottom: 20px;">
-                Hubo un problema al procesar la operacion del pedido. Por favor, intente nuevamente.
+                Hubo un problema al procesar la operación del pedido. Por favor, intente nuevamente.
                 <?php if (!empty($_GET['msg'])): ?>
                     <br><small><?= htmlspecialchars($_GET['msg']) ?></small>
                 <?php endif; ?>
@@ -136,15 +139,18 @@ include(__DIR__ . "/header.php");
             </div>
         <?php endif; ?>
 
-        <form method="GET" action="" class="search-bar">
-            <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" placeholder="Buscar por nombre de cliente o NIT/Cédula...">
-            <button type="submit" class="btn-primary">🔍 Buscar</button>
+        <!-- BUSCADOR MEJORADO -->
+        <form method="GET" action="" class="mis-pedidos-search">
+            <input type="text" name="buscar" value="<?= htmlspecialchars($busqueda) ?>" 
+                   placeholder="🔍 Buscar por nombre de cliente o NIT/Cédula...">
+            <button type="submit" class="btn-primary">Buscar</button>
             <?php if ($busqueda !== ''): ?>
-                <a href="mis_pedidos.php" class="btn-secondary" style="display: inline-flex; align-items: center; text-decoration: none;">Limpiar</a>
+                <a href="mis_pedidos.php" class="btn-secondary">✖ Limpiar</a>
             <?php endif; ?>
         </form>
 
-        <div class="table-responsive">
+        <!-- ============ VISTA DESKTOP: TABLA ============ -->
+        <div class="table-responsive mis-pedidos-tabla-desktop">
             <table class="tabla-maestra">
                 <thead>
                     <tr>
@@ -159,57 +165,80 @@ include(__DIR__ . "/header.php");
                 <tbody>
                     <?php if (empty($pedidos)): ?>
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-light); padding: 30px;">
-                                No se encontraron pedidos pendientes por entregar.
+                            <td colspan="6" class="mis-pedidos-empty">
+                                <div class="mis-pedidos-empty-icon">📦</div>
+                                <p>No se encontraron pedidos pendientes por entregar.</p>
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($pedidos as $pedido): 
+                       <?php foreach ($pedidos as $pedido): 
                             $saldo_pendiente = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0)); 
+
+                            // Normalizar estado para validar entrega (CORRECCIÓN DEL WARNING)
+                            $estado_texto = strtolower(trim((string)($pedido['estado'] ?? '')));
+                            $estado_terminado = ($estado_texto === 'terminado');
+                            $puede_entregar = ($saldo_pendiente <= 0 && $estado_terminado);
+
+                            $motivo_bloqueo = '';
+                            if ($saldo_pendiente > 0 && !$estado_terminado) {
+                                $motivo_bloqueo = 'Entrega bloqueada: falta pago y el estado debe ser Terminado.';
+                            } elseif ($saldo_pendiente > 0) {
+                                $motivo_bloqueo = 'Primero registra el pago completo para entregar.';
+                            } elseif (!$estado_terminado) {
+                                $motivo_bloqueo = 'Entrega bloqueada: el estado debe ser Terminado.';
+                            }
+                            
+                            // Badge de estado del pedido
+                            $estadoClase = match($pedido['estado']) {
+                                'En Corte'      => 'report-badge--warning',
+                                'En Costura',
+                                'En Confección' => 'report-badge--info',
+                                'Terminado'     => 'report-badge--success',
+                                default         => 'report-badge--light',
+                            };
                         ?>
                             <tr>
                                 <td>
                                     <strong><?= htmlspecialchars($pedido['cliente_nombre']) ?></strong><br>
-                                    <small style="color: var(--text-light);">NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?></small>
+                                    <small class="text-muted">NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?></small>
                                 </td>
                                 <td><?= htmlspecialchars($pedido['detalle_resumen']) ?></td>
-                                <td><strong>$<?= number_format($pedido['total_pedido_real'], 0, ',', '.') ?></strong></td>
                                 <td>
-                                    <?php
-                                        $estadoBadgeStyle = match($pedido['estado']) {
-                                            'En Corte'      => 'background:#fef3c7; color:#92400e; border:1px solid #fde68a;',
-                                            'En Costura',
-                                            'En Confección' => 'background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe;',
-                                            'Terminado'     => 'background:#d1fae5; color:#065f46; border:1px solid #6ee7b7;',
-                                            default         => 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;',
-                                        };
-                                    ?>
-                                    <span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.82rem; font-weight:700; white-space:nowrap; <?= $estadoBadgeStyle ?>">
+                                    <strong class="text-primary">
+                                        $<?= number_format($pedido['total_pedido_real'], 0, ',', '.') ?>
+                                    </strong>
+                                </td>
+                                <td>
+                                    <span class="report-badge <?= $estadoClase ?>">
                                         <?= htmlspecialchars($pedido['estado']) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php if ($saldo_pendiente > 0): ?>
-                                        <span class="badge naranja">Por Pagar: $<?= number_format($saldo_pendiente, 0, ',', '.') ?></span>
+                                        <span class="report-badge report-badge--warning">
+                                            💳 Por Pagar: $<?= number_format($saldo_pendiente, 0, ',', '.') ?>
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge verde">Pagado Totalmente ✅</span>
+                                        <span class="report-badge report-badge--success">
+                                            ✅ Pagado Totalmente
+                                        </span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="text-align: center; min-width: 260px;">
+                               <td style="text-align: center; min-width: 280px;">
                                     <?php if ($saldo_pendiente > 0): ?>
                                         <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                              onsubmit="return confirm('¿Registrar este pago/abono?');"
-                                              style="display:flex; flex-direction:column; gap:6px; align-items:stretch; margin-bottom:8px;">
+                                            onsubmit="return confirm('¿Registrar este pago/abono?');"
+                                            style="display:flex; flex-direction:column; gap:6px; align-items:stretch; margin-bottom:8px;">
                                             <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                             <input type="hidden" name="accion" value="abonar">
 
                                             <div style="display:flex; gap:6px; align-items:center;">
                                                 <label style="font-size:0.8rem; white-space:nowrap; color:var(--text-light);">Monto ($):</label>
                                                 <input type="number" name="pago_recibido" min="0.01" step="0.01"
-                                                       max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                       value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                       required
-                                                       style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
+                                                    max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                    value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                    required
+                                                    style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
                                             </div>
 
                                             <select name="metodo_pago" style="padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; background:#fff;">
@@ -218,34 +247,190 @@ include(__DIR__ . "/header.php");
                                                 <option value="Tarjeta">💳 Tarjeta</option>
                                             </select>
 
-                                            <button type="submit" class="btn-action btn-active"
-                                                    style="font-size:0.88rem; font-weight:600; padding:8px 10px; border:none; cursor:pointer;">
+                                            <button type="submit" class="btn-primary" style="font-size:0.88rem; padding:8px 10px;">
                                                 💰 Registrar Pago
                                             </button>
                                         </form>
 
-                                        <button type="button" class="btn-action" disabled
-                                                style="font-size:0.84rem; padding:7px 10px; border:none; cursor:not-allowed; opacity:0.6;"
-                                                title="Primero registra el pago completo para entregar">
-                                            📦 Entregar (bloqueado por saldo)
+                                        <button type="button" class="btn-secondary" disabled
+                                                style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (bloqueado)
                                         </button>
-                                    <?php else: ?>
+
+                                    <?php elseif ($puede_entregar): ?>
                                         <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                              onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
+                                            onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
                                             <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                             <input type="hidden" name="accion" value="entregar">
-                                            <button type="submit" class="btn-action btn-active"
-                                                    style="font-size:0.88rem; font-weight:600; padding:8px 14px; border:none; cursor:pointer;">
+
+                                            <button type="submit" class="btn-primary" style="font-size:0.88rem; padding:8px 14px;">
                                                 📦 Confirmar Entrega
                                             </button>
                                         </form>
+
+                                    <?php else: ?>
+                                        <button type="button" class="btn-secondary" disabled
+                                                style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (requiere Terminado)
+                                        </button>
                                     <?php endif; ?>
                                 </td>
+   
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+        <!-- ============ VISTA MÓVIL: TARJETAS ============ -->
+        <div class="mis-pedidos-tarjetas-movil">
+            <?php if (empty($pedidos)): ?>
+                <div class="pedido-card">
+                    <div class="pedido-card__body mis-pedidos-empty">
+                        <div class="mis-pedidos-empty-icon">📦</div>
+                        <p>No se encontraron pedidos pendientes.</p>
+                    </div>
+                </div>
+            <?php else: ?>
+                <?php foreach ($pedidos as $pedido):
+                    $saldo_pendiente = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0));
+
+                    // Normalizar estado para validar entrega
+                    $estado_texto = strtolower(trim((string)($pedido['estado'] ?? '')));
+                    $estado_terminado = ($estado_texto === 'terminado');
+                    $puede_entregar = ($saldo_pendiente <= 0 && $estado_terminado);
+
+                    $motivo_bloqueo = '';
+                    if ($saldo_pendiente > 0 && !$estado_terminado) {
+                        $motivo_bloqueo = 'Entrega bloqueada: falta pago y el estado debe ser Terminado.';
+                    } elseif ($saldo_pendiente > 0) {
+                        $motivo_bloqueo = 'Primero registra el pago completo para entregar.';
+                    } elseif (!$estado_terminado) {
+                        $motivo_bloqueo = 'Entrega bloqueada: el estado debe ser Terminado.';
+                    }
+
+                    $estadoClase = match($pedido['estado']) {
+                        'En Corte'      => 'report-badge--warning',
+                        'En Costura',
+                        'En Confección' => 'report-badge--info',
+                        'Terminado'     => 'report-badge--success',
+                        default         => 'report-badge--light',
+                    };
+                ?>
+                    <div class="pedido-card">
+                        <!-- Header de la tarjeta -->
+                        <div class="pedido-card__header">
+                            <div class="pedido-card__cliente">
+                                <strong><?= htmlspecialchars($pedido['cliente_nombre']) ?></strong>
+                                <small>NIT: <?= htmlspecialchars($pedido['cliente_nit']) ?></small>
+                            </div>
+                            <div class="pedido-card__total">
+                                $<?= number_format($pedido['total_pedido_real'], 0, ',', '.') ?>
+                            </div>
+                        </div>
+
+                        <!-- Body de la tarjeta -->
+                        <div class="pedido-card__body">
+                            <div class="pedido-card__row">
+                                <span class="pedido-card__label">📦 Detalle</span>
+                                <span class="pedido-card__value">
+                                    <?= htmlspecialchars($pedido['detalle_resumen']) ?>
+                                </span>
+                            </div>
+
+                            <div class="pedido-card__row">
+                                <span class="pedido-card__label">🏭 Estado</span>
+                                <span class="pedido-card__value">
+                                    <span class="report-badge <?= $estadoClase ?>">
+                                        <?= htmlspecialchars($pedido['estado']) ?>
+                                    </span>
+                                </span>
+                            </div>
+
+                            <div class="pedido-card__row">
+                                <span class="pedido-card__label">💰 Cartera</span>
+                                <span class="pedido-card__value">
+                                    <?php if ($saldo_pendiente > 0): ?>
+                                        <span class="report-badge report-badge--warning">
+                                            💳 Por Pagar: $<?= number_format($saldo_pendiente, 0, ',', '.') ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="report-badge report-badge--success">
+                                            ✅ Pagado Totalmente
+                                        </span>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+
+                            <!-- Formulario de pago si hay saldo pendiente -->
+                            <?php if ($saldo_pendiente > 0): ?>
+                                <div class="pedido-card__pago">
+                                    <div class="pedido-card__pago-titulo">
+                                        💰 Registrar Pago/Abono
+                                    </div>
+
+                                    <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
+                                        onsubmit="return confirm('¿Registrar este pago/abono?');">
+                                        <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
+                                        <input type="hidden" name="accion" value="abonar">
+
+                                        <div class="pedido-card__pago-input-group">
+                                            <label>Monto ($):</label>
+                                            <input type="number" name="pago_recibido" min="0.01" step="0.01"
+                                                max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                required>
+                                        </div>
+
+                                        <select name="metodo_pago">
+                                            <option value="Efectivo">💵 Efectivo</option>
+                                            <option value="Transferencia">📲 Transferencia</option>
+                                            <option value="Tarjeta">💳 Tarjeta</option>
+                                        </select>
+
+                                        <button type="submit" class="btn-primary" style="width: 100%;">
+                                            💰 Registrar Pago
+                                        </button>
+
+                                        <button type="button" class="btn-secondary" disabled
+                                                style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (bloqueado)
+                                        </button>
+                                    </form>
+                                </div>
+
+                            <?php elseif ($puede_entregar): ?>
+                                <!-- Botón de entrega cuando está pagado y Terminado -->
+                                <div style="padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px;">
+                                    <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
+                                        onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
+                                        <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
+                                        <input type="hidden" name="accion" value="entregar">
+
+                                        <button type="submit" class="btn-primary" style="width: 100%;">
+                                            📦 Confirmar Entrega
+                                        </button>
+                                    </form>
+                                </div>
+
+                            <?php else: ?>
+                                <!-- Pedido pagado pero que todavía no está Terminado -->
+                                <div style="padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px;">
+                                    <button type="button" class="btn-secondary" disabled
+                                            style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
+                                            title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                        📦 Entregar (requiere Terminado)
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
     </main>

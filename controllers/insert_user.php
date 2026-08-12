@@ -38,7 +38,8 @@ try {
         redirigirError('datos_invalidos');
     }
 
-    if (mb_strlen($name) < 2 || mb_strlen($name) > 60 || mb_strlen($lastname) < 2 || mb_strlen($lastname) > 60 || mb_strlen($username) < 4 || mb_strlen($username) > 30) {
+    if (mb_strlen($name) < 2 || mb_strlen($name) > 60 || mb_strlen($lastname) < 2 || mb_strlen($lastname) > 60 || mb_strlen($username) < 4 || mb_strlen($username) > 30) 
+    {
         redirigirError('datos_invalidos');
     }
 

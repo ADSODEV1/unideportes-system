@@ -28,7 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cliente_id = $clienteExistente['id'];
             } else {
                 $codigo_descriptivo = generarCodigoDescriptivoCliente();
-                $sqlCli = "INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, referencia_entrega, estado)
+                $sqlCli = "INSERT INTO clientes (codigo_descriptivo, nombre_completo, nit_cedula, telefono, email, tipo_cliente, direccion, barrio, ciudad, 
+                referencia_entrega, estado)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmtCli = $pdo->prepare($sqlCli);
                 $stmtCli->execute([
@@ -76,8 +77,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $vendedor_id = $_SESSION['user_id'] ?? ($_SESSION['usuario_id'] ?? 1);
-        $ticket_numero = 'T-' . date('ymdHis') . '-' . rand(1000, 9999);
-        $codigo_descriptivo_venta = 'V-' . rand(1000, 9999);
+// Generar número de factura secuencial FAC-XXXXXX
+$stmtUltimaFactura = $pdo->query("SELECT ticket_numero FROM ventas WHERE ticket_numero LIKE 'FAC-%' ORDER BY id DESC LIMIT 1");
+$ultimaFactura = $stmtUltimaFactura->fetchColumn();
+
+if ($ultimaFactura) {
+    // Extraer el número después de 'FAC-'
+    $ultimoNumero = intval(substr($ultimaFactura, 4));
+    $siguienteNumero = $ultimoNumero + 1;
+} else {
+    $siguienteNumero = 1;
+}
+
+$ticket_numero = 'FAC-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT);
+$codigo_descriptivo_venta = 'V-' . str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT);
 
         // Detectar venta mayorista
         $es_mayorista = ($_POST['venta_tipo'] ?? '') === 'mayorista';
@@ -148,7 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($json_raw)) throw new Exception("El carrito de compras está vacío.");
         if (!is_array($productos_carrito) || count($productos_carrito) === 0) throw new Exception("Formato de carrito inválido.");
 
-        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $sqlDetalle = "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal, color, talla, comentario_vendedor) VALUES 
+        (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmtDetalle = $pdo->prepare($sqlDetalle);
         $stmtSelectStock = $pdo->prepare("SELECT stock FROM productos WHERE id = ? FOR UPDATE");
 
@@ -186,7 +200,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $logDir = __DIR__ . '/../logs';
             if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
-            @file_put_contents($logDir . '/procesar_venta_errors.log', json_encode(['time' => date('c'), 'message' => $e->getMessage(), 'post' => array_filter($_POST)]) . PHP_EOL, FILE_APPEND | LOCK_EX);
+            @file_put_contents($logDir . '/procesar_venta_errors.log', json_encode(['time' => date('c'), 'message' => $e->getMessage(), 'post' => array_filter($_POST)]) . 
+            PHP_EOL, FILE_APPEND | LOCK_EX);
         } catch (Exception $ignore) {}
 
         // Redirección inteligente según el origen del formulario
