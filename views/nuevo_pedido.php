@@ -80,8 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_pedido'])) {
             $total_pedido = $cantidad * $precio_con_descuento;
 
             // Guardar la orden principal en pedidos
-            $stmtPed = $pdo->prepare("INSERT INTO pedidos (cliente_id, detalle, descripcion, cantidad, total_pedido, estado, fecha_entrega, tipo_entrega, direccion_entrega, barrio_entrega, ciudad_entrega, observaciones_entrega) VALUES (?, ?, ?, ?, ?, 'En Corte', ?, ?, ?, ?, ?, ?)");
-            $stmtPed->execute([$cliente_id, $detalle, $descripcion, $cantidad, $total_pedido, $fecha_entrega, $tipo_entrega, $direccion_entrega ?: null, $barrio_entrega ?: null, $ciudad_entrega ?: null, $observaciones_entrega ?: null]);
+            $stmtPed = $pdo->prepare("INSERT INTO pedidos (cliente_id, detalle, descripcion, cantidad, total_pedido, estado, fecha_entrega, tipo_entrega, direccion_entrega, 
+            barrio_entrega, ciudad_entrega, observaciones_entrega) VALUES (?, ?, ?, ?, ?, 'En Corte', ?, ?, ?, ?, ?, ?)");
+            $stmtPed->execute([$cliente_id, $detalle, $descripcion, $cantidad, $total_pedido, $fecha_entrega, $tipo_entrega, $direccion_entrega ?: null, $barrio_entrega ?: 
+            null, $ciudad_entrega ?: null, $observaciones_entrega ?: null]);
             $pedido_id = $pdo->lastInsertId();
 
             // Registrar el abono inicial obligatorio en pagos
@@ -146,7 +148,8 @@ include(__DIR__ . "/header.php");
 
             <div>
                 <label class="form-label">Especificaciones de Fabricación (Tallas, Colores, Escudos)</label>
-                <textarea name="descripcion" rows="3" placeholder="Ej: Camisetas en tela Dry-Fit, números estampados en espalda. Tallas: 10 M, 15 L..." class="form-textarea"></textarea>
+                <textarea name="descripcion" rows="3" placeholder="Ej: Camisetas en tela Dry-Fit, números estampados en espalda. Tallas: 10 M, 15 L..." 
+                class="form-textarea"></textarea>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -168,12 +171,14 @@ include(__DIR__ . "/header.php");
             <div>
                 <label class="form-label">Tipo de Entrega *</label>
                 <select name="tipo_entrega" id="tipo_entrega" required class="form-select" style="width:100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+
                     <option value="Tienda">Retiro en Tienda</option>
                     <option value="Domicilio">Envío a Domicilio</option>
                 </select>
             </div>
 
-            <div id="entregaDomicilio" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 15px; gap: 12px; margin-bottom: 10px;">
+            <div id="entregaDomicilio" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 15px; gap: 12px; 
+            margin-bottom: 10px;">
                 <div>
                     <label class="form-label">Dirección de Entrega</label>
                     <input type="text" name="direccion_entrega" id="direccion_entrega" class="form-input" placeholder="Ej: Calle 15 # 12-34">
@@ -188,7 +193,8 @@ include(__DIR__ . "/header.php");
                 </div>
                 <div>
                     <label class="form-label">Observaciones de Entrega</label>
-                    <textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" class="form-textarea" placeholder="Ej: Dejar en la portería si no encuentra el apartamento."></textarea>
+                    <textarea name="observaciones_entrega" id="observaciones_entrega" rows="2" class="form-textarea" placeholder="Ej: Dejar en la portería si no 
+                    encuentra el apartamento."></textarea>
                 </div>
             </div>
 
@@ -306,10 +312,12 @@ function guardarClienteAjax() {
 .btn-cancel { background: #e2e8f0; color: #334155; text-decoration: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; text-align: center; }
 .btn-cancel:hover { background: #cbd5e1; }
 
-.alert-danger { padding: 12px; background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; margin-bottom: 20px; border-radius: 4px; font-size: 0.9rem; font-weight: 500; }
+.alert-danger { padding: 12px; background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; margin-bottom: 20px; border-radius: 4px; font-size: 0.9rem; 
+font-weight: 500; }
 
 /* Estilos de la Ventana Modal Flotante */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: 
+    center; z-index: 1000; }
 .modal-box { background: white; padding: 25px; border-radius: 12px; max-width: 450px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
 .modal-box h3 { margin: 0 0 5px 0; color: #1e293b; font-size: 1.2rem; }
 </style>

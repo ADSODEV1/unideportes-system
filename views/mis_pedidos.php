@@ -171,8 +171,22 @@ include(__DIR__ . "/header.php");
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($pedidos as $pedido): 
+                       <?php foreach ($pedidos as $pedido): 
                             $saldo_pendiente = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0)); 
+
+                            // Normalizar estado para validar entrega (CORRECCIÓN DEL WARNING)
+                            $estado_texto = strtolower(trim((string)($pedido['estado'] ?? '')));
+                            $estado_terminado = ($estado_texto === 'terminado');
+                            $puede_entregar = ($saldo_pendiente <= 0 && $estado_terminado);
+
+                            $motivo_bloqueo = '';
+                            if ($saldo_pendiente > 0 && !$estado_terminado) {
+                                $motivo_bloqueo = 'Entrega bloqueada: falta pago y el estado debe ser Terminado.';
+                            } elseif ($saldo_pendiente > 0) {
+                                $motivo_bloqueo = 'Primero registra el pago completo para entregar.';
+                            } elseif (!$estado_terminado) {
+                                $motivo_bloqueo = 'Entrega bloqueada: el estado debe ser Terminado.';
+                            }
                             
                             // Badge de estado del pedido
                             $estadoClase = match($pedido['estado']) {
@@ -210,21 +224,21 @@ include(__DIR__ . "/header.php");
                                         </span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="text-align: center; min-width: 280px;">
+                               <td style="text-align: center; min-width: 280px;">
                                     <?php if ($saldo_pendiente > 0): ?>
                                         <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                              onsubmit="return confirm('¿Registrar este pago/abono?');"
-                                              style="display:flex; flex-direction:column; gap:6px; align-items:stretch; margin-bottom:8px;">
+                                            onsubmit="return confirm('¿Registrar este pago/abono?');"
+                                            style="display:flex; flex-direction:column; gap:6px; align-items:stretch; margin-bottom:8px;">
                                             <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                             <input type="hidden" name="accion" value="abonar">
 
                                             <div style="display:flex; gap:6px; align-items:center;">
                                                 <label style="font-size:0.8rem; white-space:nowrap; color:var(--text-light);">Monto ($):</label>
                                                 <input type="number" name="pago_recibido" min="0.01" step="0.01"
-                                                       max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                       value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                       required
-                                                       style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
+                                                    max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                    value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                    required
+                                                    style="width:120px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem;">
                                             </div>
 
                                             <select name="metodo_pago" style="padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; background:#fff;">
@@ -233,29 +247,37 @@ include(__DIR__ . "/header.php");
                                                 <option value="Tarjeta">💳 Tarjeta</option>
                                             </select>
 
-                                            <button type="submit" class="btn-primary"
-                                                    style="font-size:0.88rem; padding:8px 10px;">
+                                            <button type="submit" class="btn-primary" style="font-size:0.88rem; padding:8px 10px;">
                                                 💰 Registrar Pago
                                             </button>
                                         </form>
 
                                         <button type="button" class="btn-secondary" disabled
                                                 style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
-                                                title="Primero registra el pago completo para entregar">
-                                            📦 Entregar (bloqueado por saldo)
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (bloqueado)
                                         </button>
-                                    <?php else: ?>
+
+                                    <?php elseif ($puede_entregar): ?>
                                         <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                              onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
+                                            onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
                                             <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                             <input type="hidden" name="accion" value="entregar">
-                                            <button type="submit" class="btn-primary"
-                                                    style="font-size:0.88rem; padding:8px 14px;">
+
+                                            <button type="submit" class="btn-primary" style="font-size:0.88rem; padding:8px 14px;">
                                                 📦 Confirmar Entrega
                                             </button>
                                         </form>
+
+                                    <?php else: ?>
+                                        <button type="button" class="btn-secondary" disabled
+                                                style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (requiere Terminado)
+                                        </button>
                                     <?php endif; ?>
                                 </td>
+   
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -273,9 +295,23 @@ include(__DIR__ . "/header.php");
                     </div>
                 </div>
             <?php else: ?>
-                <?php foreach ($pedidos as $pedido): 
+                <?php foreach ($pedidos as $pedido):
                     $saldo_pendiente = max(0, floatval($pedido['saldo_pendiente_real'] ?? 0));
-                    
+
+                    // Normalizar estado para validar entrega
+                    $estado_texto = strtolower(trim((string)($pedido['estado'] ?? '')));
+                    $estado_terminado = ($estado_texto === 'terminado');
+                    $puede_entregar = ($saldo_pendiente <= 0 && $estado_terminado);
+
+                    $motivo_bloqueo = '';
+                    if ($saldo_pendiente > 0 && !$estado_terminado) {
+                        $motivo_bloqueo = 'Entrega bloqueada: falta pago y el estado debe ser Terminado.';
+                    } elseif ($saldo_pendiente > 0) {
+                        $motivo_bloqueo = 'Primero registra el pago completo para entregar.';
+                    } elseif (!$estado_terminado) {
+                        $motivo_bloqueo = 'Entrega bloqueada: el estado debe ser Terminado.';
+                    }
+
                     $estadoClase = match($pedido['estado']) {
                         'En Corte'      => 'report-badge--warning',
                         'En Costura',
@@ -295,7 +331,7 @@ include(__DIR__ . "/header.php");
                                 $<?= number_format($pedido['total_pedido_real'], 0, ',', '.') ?>
                             </div>
                         </div>
-                        
+
                         <!-- Body de la tarjeta -->
                         <div class="pedido-card__body">
                             <div class="pedido-card__row">
@@ -304,7 +340,7 @@ include(__DIR__ . "/header.php");
                                     <?= htmlspecialchars($pedido['detalle_resumen']) ?>
                                 </span>
                             </div>
-                            
+
                             <div class="pedido-card__row">
                                 <span class="pedido-card__label">🏭 Estado</span>
                                 <span class="pedido-card__value">
@@ -313,7 +349,7 @@ include(__DIR__ . "/header.php");
                                     </span>
                                 </span>
                             </div>
-                            
+
                             <div class="pedido-card__row">
                                 <span class="pedido-card__label">💰 Cartera</span>
                                 <span class="pedido-card__value">
@@ -335,17 +371,18 @@ include(__DIR__ . "/header.php");
                                     <div class="pedido-card__pago-titulo">
                                         💰 Registrar Pago/Abono
                                     </div>
+
                                     <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                          onsubmit="return confirm('¿Registrar este pago/abono?');">
+                                        onsubmit="return confirm('¿Registrar este pago/abono?');">
                                         <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                         <input type="hidden" name="accion" value="abonar">
 
                                         <div class="pedido-card__pago-input-group">
                                             <label>Monto ($):</label>
                                             <input type="number" name="pago_recibido" min="0.01" step="0.01"
-                                                   max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                   value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
-                                                   required>
+                                                max="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                value="<?= number_format($saldo_pendiente, 2, '.', '') ?>"
+                                                required>
                                         </div>
 
                                         <select name="metodo_pago">
@@ -357,24 +394,37 @@ include(__DIR__ . "/header.php");
                                         <button type="submit" class="btn-primary" style="width: 100%;">
                                             💰 Registrar Pago
                                         </button>
-                                        
+
                                         <button type="button" class="btn-secondary" disabled
-                                                style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;">
-                                            📦 Entregar (bloqueado por saldo)
+                                                style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
+                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                            📦 Entregar (bloqueado)
                                         </button>
                                     </form>
                                 </div>
-                            <?php else: ?>
-                                <!-- Botón de entrega cuando está pagado -->
+
+                            <?php elseif ($puede_entregar): ?>
+                                <!-- Botón de entrega cuando está pagado y Terminado -->
                                 <div style="padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px;">
                                     <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
-                                          onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
+                                        onsubmit="return confirm('¿Confirmas la entrega del pedido?');">
                                         <input type="hidden" name="pedido_id" value="<?= $pedido['id'] ?>">
                                         <input type="hidden" name="accion" value="entregar">
+
                                         <button type="submit" class="btn-primary" style="width: 100%;">
                                             📦 Confirmar Entrega
                                         </button>
                                     </form>
+                                </div>
+
+                            <?php else: ?>
+                                <!-- Pedido pagado pero que todavía no está Terminado -->
+                                <div style="padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px;">
+                                    <button type="button" class="btn-secondary" disabled
+                                            style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
+                                            title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                        📦 Entregar (requiere Terminado)
+                                    </button>
                                 </div>
                             <?php endif; ?>
                         </div>

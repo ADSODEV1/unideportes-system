@@ -67,8 +67,10 @@ include(__DIR__ . '/header.php');
                 <p style="color: var(--text-light);">La orden fue enviada a la línea de confección.</p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button onclick="window.print();" class="btn-secondary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid var(--border);">🖨️ Imprimir Ticket</button>
-                <a href="venta_mayorista.php" class="btn-primary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; background: var(--navy); color: #fff;">➕ Nueva Orden</a>
+                <button onclick="window.print();" class="btn-secondary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 
+                1px solid var(--border);">🖨️ Imprimir Ticket</button>
+                <a href="venta_mayorista.php" class="btn-primary" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; background: 
+                var(--navy); color: #fff;">➕ Nueva Orden</a>
             </div>
         </div>
 
@@ -126,23 +128,27 @@ include(__DIR__ . '/header.php');
                         <td style="padding: 12px;">
                             <strong><?= htmlspecialchars($det['producto_nombre']) ?></strong>
                             <?php if (!empty($det['comentario_vendedor'])): ?>
-                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?></span>
+                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?>
+                            </span>
                             <?php endif; ?>
                         </td>
                         <td style="padding: 12px; text-align: center;">
-                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?></span>
+                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?>
+                        </span>
                         </td>
                         <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($det['color'] ?: '—') ?></td>
                         <td style="padding: 12px; text-align: right;">$<?= number_format($det['precio_unitario'], 0, ',', '.') ?></td>
                         <td style="padding: 12px; text-align: center; font-weight: 700;"><?= intval($det['cantidad']) ?></td>
-                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?>
+                    </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr style="background: #f8fafc;">
                         <td colspan="5" style="padding: 12px; text-align: right; font-weight: 700;">Total:</td>
-                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?>
+                    </td>
                     </tr>
                 </tfoot>
             </table>
@@ -152,9 +158,12 @@ include(__DIR__ . '/header.php');
         </div>
 
         <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
-            <button onclick="window.print();" style="padding: 10px 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text);">🖨️ Imprimir Ticket</button>
-            <a href="venta_mayorista.php" style="padding: 10px 20px; background: var(--navy); color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">➕ Nueva Orden Mayorista</a>
-            <a href="pedidos_admin.php" style="padding: 10px 20px; background: #047857; color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">🏭 Ver en Producción</a>
+            <button onclick="window.print();" style="padding: 10px 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: 
+            pointer; color: var(--text);">🖨️ Imprimir Ticket</button>
+            <a href="venta_mayorista.php" style="padding: 10px 20px; background: var(--navy); color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">
+                ➕ Nueva Orden Mayorista</a>
+            <a href="pedidos_admin.php" style="padding: 10px 20px; background: #047857; color: #fff; border-radius: 8px; font-weight: 600; text-decoration: none;">
+                🏭 Ver en Producción</a>
         </div>
 
     </main>

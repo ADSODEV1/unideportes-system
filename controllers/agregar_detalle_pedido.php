@@ -169,7 +169,8 @@ try {
     mysqli_stmt_close($stmt);
 
     // Opcional: actualizar total en pedidos sumando montos actuales
-    $sqlUpd = "UPDATE pedidos SET total_pedido = (SELECT COALESCE(SUM(cantidad * precio_unitario),0) FROM detalle_pedido WHERE pedido_id = ?), saldo_pendiente = (SELECT COALESCE(SUM(cantidad * precio_unitario),0) - COALESCE(abono,0) FROM pedidos WHERE id = ?) WHERE id = ?";
+    $sqlUpd = "UPDATE pedidos SET total_pedido = (SELECT COALESCE(SUM(cantidad * precio_unitario),0) FROM detalle_pedido WHERE pedido_id = ?), saldo_pendiente = 
+    (SELECT COALESCE(SUM(cantidad * precio_unitario),0) - COALESCE(abono,0) FROM pedidos WHERE id = ?) WHERE id = ?";
     $stmt2 = mysqli_prepare($db, $sqlUpd);
     if ($stmt2) {
         mysqli_stmt_bind_param($stmt2, 'iii', $pedido_id, $pedido_id, $pedido_id);

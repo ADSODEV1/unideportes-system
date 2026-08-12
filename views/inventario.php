@@ -55,31 +55,41 @@ include(__DIR__ . "/../views/header.php");
         <div class="header-carapteristicas" style="margin-bottom: 15px;">
             <h1 style="margin: 0; font-size: 1.8rem; color: #0f172a;">Inventario Unideportes</h1>
             <?php if ($search !== ''): ?>
-                <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Resultados para: "<strong><?= htmlspecialchars($search) ?></strong>" (<?= $total_productos_filtrados ?> encontrados)</p>
+                <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Resultados para: "<strong><?= htmlspecialchars($search) ?></strong>" 
+                (<?= $total_productos_filtrados ?> encontrados)</p>
             <?php else: ?>
-                <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Mostrando listado de existencias físicas en bodega. (<strong>Total catálogo: <?= $total_productos_filtrados ?> artículos</strong>)</p>
+                <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Mostrando listado de existencias físicas en bodega. 
+                    (<strong>Total catálogo: <?= $total_productos_filtrados ?> artículos</strong>)</p>
             <?php endif; ?>
         </div>
 
         <div class="search-wrapper" style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
             <form method="GET" action="inventario.php" style="display: flex; gap: 10px; width: 100%;">
                 <div style="position: relative; flex-grow: 1;">
-                    <input type="search" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Buscar por nombre de prenda o código de referencia..." style="width: 100%; padding: 12px 40px 12px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; outline: none; box-sizing: border-box;" autocomplete="off">
+                    <input type="search" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Buscar por nombre de prenda o código de referencia..." 
+                    style="width: 100%; padding: 12px 40px 12px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; outline: none; box-sizing: 
+                    border-box;" autocomplete="off">
                     <?php if ($search !== ''): ?>
-                        <a href="inventario.php" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); text-decoration: none; color: #94a3b8; font-weight: bold;" title="Limpiar filtro">❌</a>
+                        <a href="inventario.php" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); text-decoration: none; color: 
+                            #94a3b8; font-weight: bold;" title="Limpiar filtro">❌</a>
                     <?php endif; ?>
                 </div>
-                <button type="submit" style="padding: 12px 25px; background: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; gap: 5px;">
+                <button type="submit" style="padding: 12px 25px; background: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: 
+                pointer; font-size: 0.95rem; display: flex; align-items: center; gap: 5px;">
                     Buscar
                 </button>
             </form>
         </div>
 
         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
-            <span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🔴 Stock Crítico: Cantidad &lt; Stock Mínimo</span>
-            <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🟡 Stock Bajo: Cantidad cerca del mínimo</span>
-            <span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🟢 Stock Óptimo: Cantidad &gt; Stock Mínimo</span>
-            <span style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">🔵 Nuevo Pedido: Registro de venta / Dashboard</span>
+            <span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">
+                🔴 Stock Crítico: Cantidad &lt; Stock Mínimo</span>
+            <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">
+                🟡 Stock Bajo: Cantidad cerca del mínimo</span>
+            <span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">
+                🟢 Stock Óptimo: Cantidad &gt; Stock Mínimo</span>
+            <span style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;">
+                🔵 Nuevo Pedido: Registro de venta / Dashboard</span>
         </div>
 
         <table class="tabla-maestra">
@@ -108,7 +118,8 @@ include(__DIR__ . "/../views/header.php");
                             </td>
                             
                             <td>
-                                <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; border: 1px solid #e2e8f0;">
+                                <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; border: 
+                                1px solid #e2e8f0;">
                                     <?= htmlspecialchars($row['categoria'] ?? 'Sin Línea') ?>
                                 </span>
                             </td>
@@ -130,7 +141,8 @@ include(__DIR__ . "/../views/header.php");
                                     }
 
                                     if (!empty($_GET['success']) && $_GET['success'] === 'venta_registrada') {
-                                        echo " <span style='display:inline-block; margin-left: 4px; background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:4px 8px; border-radius:999px; font-size:0.78rem; font-weight:700;'>🔵 NUEVO PEDIDO</span>";
+                                        echo " <span style='display:inline-block; margin-left: 4px; background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; 
+                                        padding:4px 8px; border-radius:999px; font-size:0.78rem; font-weight:700;'>🔵 NUEVO PEDIDO</span>";
                                     }
                                 ?>
                             </td>
@@ -151,18 +163,21 @@ include(__DIR__ . "/../views/header.php");
             <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 30px; padding-bottom: 10px;">
                 
                 <?php if ($pagina_actual > 1): ?>
-                    <a href="inventario.php?page=<?= $pagina_actual - 1 ?>&q=<?= urlencode($search) ?>" style="padding: 8px 14px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid #e2e8f0;">&laquo; Anterior</a>
+                    <a href="inventario.php?page=<?= $pagina_actual - 1 ?>&q=<?= urlencode($search) ?>" style="padding: 8px 14px; background: #f1f5f9; color: #334155; 
+                    text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid #e2e8f0;">&laquo; Anterior</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
                     <a href="inventario.php?page=<?= $i ?>&q=<?= urlencode($search) ?>" 
-                       style="padding: 8px 14px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid <?= $i === $pagina_actual ? '#c91a25' : '#e2e8f0' ?>; <?= $i === $pagina_actual ? 'background: #c91a25; color: white;' : 'background: #ffffff; color: #334155;' ?>">
+                       style="padding: 8px 14px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid <?= $i === $pagina_actual ? 
+                       '#c91a25' : '#e2e8f0' ?>; <?= $i === $pagina_actual ? 'background: #c91a25; color: white;' : 'background: #ffffff; color: #334155;' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
 
                 <?php if ($pagina_actual < $total_paginas): ?>
-                    <a href="inventario.php?page=<?= $pagina_actual + 1 ?>&q=<?= urlencode($search) ?>" style="padding: 8px 14px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid #e2e8f0;">Siguiente &raquo;</a>
+                    <a href="inventario.php?page=<?= $pagina_actual + 1 ?>&q=<?= urlencode($search) ?>" style="padding: 8px 14px; background: #f1f5f9; color: #334155; 
+                    text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; border: 1px solid #e2e8f0;">Siguiente &raquo;</a>
                 <?php endif; ?>
                 
             </div>
