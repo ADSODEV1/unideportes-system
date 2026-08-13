@@ -1,40 +1,30 @@
 ﻿<?php
 // views/venta_mayorista.php
 require_once __DIR__ . '/../config/bootstrap.php';
-require_login(['admin', 'colaborador', 'vendedor']);
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_login(['vendedor', 'colaborador', 'admin']);
 $pdo = app();
 
-// ✅ Catálogo de precios y piso por rol
-$catalogo = $pdo->query("SELECT id, tipo_prenda, precio_base FROM precios_base_confeccion WHERE activo = 1 ORDER BY tipo_prenda ASC")->fetchAll(PDO::FETCH_ASSOC);
-$maxDescRol = ['admin'=>1.0,'colaborador'=>0.10,'vendedor'=>0.05][$_SESSION['rol'] ?? 'vendedor'] ?? 0.05;
-
-// Clientes para el datalist
-$stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes WHERE estado = 'activo' ORDER BY nombre_completo ASC");
+$stmtClientes = $pdo->query("SELECT id, nombre_completo, nit_cedula, direccion, barrio, ciudad, referencia_entrega FROM clientes ORDER BY nombre_completo ASC");
 $res_clientes = $stmtClientes->fetchAll(PDO::FETCH_ASSOC);
 
-// Mostrar errores del controller
-if (!empty($_GET['error'])) {
-    echo '<div style="padding:12px;background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444;border-radius:4px;margin:10px 0;">' 
-         . htmlspecialchars($_GET['error']) . '</div>';
-}
+$stmtProductos = $pdo->query("SELECT id, nombre, precio, stock FROM productos WHERE stock > 0 ORDER BY nombre ASC");
+$res_productos = $stmtProductos->fetchAll(PDO::FETCH_ASSOC);
 
 include(__DIR__ . '/header.php');
 ?>
 
 <div class="container admin-layout">
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
-  <main class="main-content-panel">
-    <!-- Contenedor de alertas del JS -->
-    <div id="mensajeAlerta" style="display:none; padding:12px; margin-bottom:15px; border-radius:6px; font-weight:600;"></div>
-    
-    <div class="page-header">
+    <main class="main-content-panel">
+        <div class="page-header">
             <div>
                 <h1>🧵 Venta Mayorista</h1>
-                <p>Negociación por prenda desde catálogo. Abono mínimo 50%.</p>
+                <p>Ventas por volumen con descuento automático (10+ unid. = 5%, 20+ unid. = 10%).</p>
             </div>
         </div>
 
-        <form id="formVentaMayorista" method="POST" action="../controllers/procesar_pedido_confeccion.php">
+        <form action="../controllers/procesar_venta.php" method="POST" id="formVentaMayorista" autocomplete="off">
             
             <!-- FILA 1: CLIENTE Y ENTREGA -->
             <div class="venta-container" style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
@@ -49,7 +39,7 @@ include(__DIR__ . '/header.php');
                                 <option data-id="<?= $cli['id'] ?>" data-direccion="<?= htmlspecialchars($cli['direccion'] ?? '') ?>" data-barrio="<?= htmlspecialchars($cli['barrio'] ?? '') ?>" data-ciudad="<?= htmlspecialchars($cli['ciudad'] ?: 'Sogamoso') ?>" data-referencia="<?= htmlspecialchars($cli['referencia_entrega'] ?? '') ?>" value="<?= htmlspecialchars($cli['nombre_completo']) ?>"></option>
                             <?php endforeach; ?>
                         </datalist>
-                        <input type="hidden" name="cliente_id_hidden" id="cliente_id_hidden">
+                        <input type="hidden" name="cliente_id" id="cliente_id_hidden">
                         <input type="hidden" name="vendedor_id" value="<?= htmlspecialchars($_SESSION['user_id'] ?? 0) ?>">
                     </div>
                     
@@ -63,6 +53,12 @@ include(__DIR__ . '/header.php');
                             <div><label style="font-size: 0.9rem;">Nombre completo *</label><input type="text" name="nuevo_cliente_nombre_completo" style="width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;"></div>
                             <div><label style="font-size: 0.9rem;">NIT / Cédula *</label><input type="text" name="nuevo_cliente_nit_cedula" style="width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;"></div>
                             <div><label style="font-size: 0.9rem;">Teléfono</label><input type="text" name="nuevo_cliente_telefono" style="width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;"></div>
+                            <div>
+                                <label style="font-size: 0.9rem;">Tipo de cliente</label>
+                                <select name="nuevo_cliente_tipo_cliente" style="width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                                    <option value="Individual">Individual</option><option value="Equipo">Equipo</option><option value="Colegio">Colegio</option><option value="Empresa">Empresa</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -70,18 +66,11 @@ include(__DIR__ . '/header.php');
                 <!-- SECCIÓN DERECHA: ENTREGA -->
                 <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 15px;">
                     <h3 style="margin-top: 0; color: var(--text); font-size: 1.1rem;">🚚 Tipo de Entrega</h3>
-                    
-                    <!-- ✅ NUEVO: Fecha de entrega -->
-                    <div>
-                        <label><strong>Fecha de Entrega *</strong></label>
-                        <input type="date" name="fecha_entrega" id="fecha_entrega" required value="<?= date('Y-m-d', strtotime('+12 days')) ?>" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                    </div>
-                    
                     <div>
                         <label><strong>Tipo de Entrega:</strong></label>
                         <select name="tipo_entrega" id="tipo_entrega" required style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
                             <option value="Tienda">Retiro en Tienda</option>
-                            <option value="Domicilio">Envío a Domicilio</option>
+                            <option value="Domicilio">Envío a Domicilio (+ $5.000)</option>
                         </select>
                     </div>
 
@@ -112,95 +101,61 @@ include(__DIR__ . '/header.php');
                 </div>
             </div>
 
-            <!-- FILA 2: AGREGAR PRODUCTOS (✅ REEMPLAZADO POR CATÁLOGO) -->
+            <!-- FILA 2: AGREGAR PRODUCTOS -->
             <div class="venta-container" style="display: grid; gap: 12px; margin-bottom: 20px; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;">
                 <h3 style="margin: 0; font-size: 1.1rem; color: var(--text);">➕ Agregar ítem a la orden</h3>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
-                    
-                    <!-- ✅ NUEVO: Select de catálogo en lugar de input libre -->
                     <div style="flex: 2; min-width: 200px;">
-                        <label><strong>Tipo de Prenda (Catálogo) *</strong></label>
-                        <select id="selectTipoPrenda" data-max-desc="<?= $maxDescRol ?>" required style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                            <option value="">-- Seleccione un tipo de prenda --</option>
-                            <?php foreach ($catalogo as $c): ?>
-                            <option value="<?= $c['id'] ?>" 
-                                    data-precio="<?= $c['precio_base'] ?>" 
-                                    data-nombre="<?= htmlspecialchars($c['tipo_prenda'], ENT_QUOTES) ?>">
-                                <?= htmlspecialchars($c['tipo_prenda']) ?> · Base: $<?= number_format($c['precio_base'], 0, ',', '.') ?>
-                            </option>
+                        <label><strong>Producto:</strong></label>
+                        <input type="text" list="listaProductos" id="productoInput" placeholder="Ej: Camiseta Dry-Fit" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;" autocomplete="off">
+                        <datalist id="listaProductos">
+                            <?php foreach ($res_productos as $prod): ?>
+                                <option data-id="<?= $prod['id'] ?>" data-precio="<?= $prod['precio'] ?>" data-stock="<?= $prod['stock'] ?>" value="<?= htmlspecialchars($prod['nombre']) ?>"></option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                     </div>
-                    
-                    <!-- ✅ NUEVO: Precio negociado -->
-                    <div style="flex: 1; min-width: 150px;">
-                        <label><strong>Precio Negociado *</strong></label>
-                        <input type="number" id="inputPrecioNegociado" min="0" step="500" required style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                        <small id="pisoInfo" style="color:#92400e; display:block; margin-top:5px; font-size:0.85rem;"></small>
-                    </div>
-                    
-                    <div style="flex: 1; min-width: 120px;">
-                        <label><strong>Color:</strong></label>
-                        <input type="text" id="productoColor" placeholder="Ej: Rojo" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                    </div>
-                    
-                    <div style="flex: 1; min-width: 120px;">
-                        <label><strong>Talla:</strong></label>
-                        <input type="text" id="productoTalla" placeholder="Ej: M" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
-                    </div>
-                    
-                    <div style="flex: 1; min-width: 100px;">
-                        <label><strong>Cantidad:</strong></label>
-                        <input type="number" id="productoCantidad" min="1" value="1" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; text-align: center;">
-                    </div>
-                    
+                    <div style="flex: 1; min-width: 120px;"><label><strong>Precio:</strong></label><input type="number" id="productoPrecio" readonly style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);"></div>
+                    <div id="wrapperProductoColor" style="flex: 1; min-width: 120px;"><label><strong>Color:</strong></label><input type="text" id="productoColor" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);"></div>
+                    <div id="wrapperProductoTalla" style="flex: 1; min-width: 120px;"><label><strong>Talla:</strong></label><input type="text" id="productoTalla" disabled style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);"></div>
+                    <div style="flex: 1; min-width: 100px;"><label><strong>Cantidad:</strong></label><input type="number" id="productoCantidad" min="1" value="1" style="width:100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; text-align: center;"></div>
                     <button type="button" id="btnAgregar" style="padding: 11px 20px; background: var(--success); color: white; border: none; border-radius: 6px; font-weight: bold; cursor:pointer; height: 42px; margin-top: 5px;">+ Añadir</button>
                 </div>
             </div>
 
-            <!-- FILA 3: TABLA DEL CARRITO -->
-            <div class="venta-container" style="margin-bottom: 20px; overflow-x: auto;">
-                <table class="tabla-maestra">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Color</th>
-                            <th>Talla</th>
-                            <th>Precio Unit.</th>
-                            <th style="text-align: center;">Cant</th>
-                            <th style="text-align: center;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="carritoBody">
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-light);">🛒 No hay productos agregados aún.</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p id="carritoStatus" style="text-align: right; font-size: 0.85rem; color: var(--text-light); margin-top: 10px;">Carrito: 0 productos.</p>
-            </div>
+          <!-- FILA 3: TABLA DEL CARRITO -->
+<div class="venta-container" style="margin-bottom: 20px; overflow-x: auto;">
+    <table class="tabla-maestra">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Color</th>
+                <th>Talla</th>
+                <th>Precio Unit.</th>
+                <th style="text-align: center;">Cant</th>
+                <th style="text-align: right;">Desc.</th>
+                <th style="text-align: right;">Subtotal</th>
+                <th style="text-align: center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="carritoBody">
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-light);">🛒 No hay productos agregados aún.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
 
-            <!-- FILA 4: TOTALES Y MÉTODO DE PAGO -->
+            <!-- FILA 4: TOTALES Y MÉTODO DE PAGO (AL FINAL, DONDE TIENE SENTIDO LÓGICO) -->
             <div class="venta-container" style="padding: 25px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 30px; max-width: 900px; margin-left: auto;">
                 
                 <!-- Columna Izquierda: Resumen de Totales -->
                 <div style="flex: 1; min-width: 250px; display: grid; gap: 15px;">
                     <h3 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text);">💰 Resumen de la Venta</h3>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-weight: 600;">TOTAL A PAGAR</span>
-                        <span id="txtTotalFinal" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">$0</span>
-                    </div>
-                    
-                    <!-- ✅ NUEVO: Abono (50% mínimo) -->
-                    <div>
-                        <label style="font-weight: 700; color: var(--text);">Abono Inicial (mínimo 50%) *</label>
-                        <input type="number" id="inputAbono" name="abono" min="0" step="1000" required style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; font-size: 1.1rem; font-weight: 700;">
-                        <small id="infoAbonoMin" style="color:#d97706; display:block; margin-top:5px; font-size:0.85rem;">Abono mínimo: $0</small>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; border-top: 2px dashed var(--border); padding-top: 15px;">
-                        <span style="font-weight: 700;">Saldo Pendiente:</span>
-                        <span id="txtSaldoPendiente" style="font-size: 1.3rem; font-weight: 800; color: var(--danger);">$0</span>
+                    <div style="display: flex; justify-content: space-between;"><span style="font-weight: 600;">SubTotal</span><span id="txtTotal" style="font-weight: 700;">$0.00</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="font-weight: 600;">Descuento mayorista</span><span id="txtDescuento" style="font-weight: 700; color: var(--warning);">$0.00</span></div>
+                    <div style="display: flex; justify-content: space-between; border-top: 2px dashed var(--border); padding-top: 15px; margin-top: 5px;">
+                        <span style="font-weight: 700; font-size: 1.2rem;">TOTAL A PAGAR</span>
+                        <span id="txtTotalFinal" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">$0.00</span>
                     </div>
                 </div>
 
@@ -215,6 +170,42 @@ include(__DIR__ . '/header.php');
                         </select>
                     </div>
 
+                    <!-- SECCIÓN EFECTIVO (PAGA CON Y CAMBIO) -->
+                    <div id="seccionCambio" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <label style="font-weight: 700; color: var(--text);">Paga con:</label>
+                            <input type="number" id="inputPagaCon" name="paga_con" min="0" step="0.01" style="width: 150px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; text-align: right; font-weight: bold;" placeholder="$0.00">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: var(--text);">Cambio:</span>
+                            <span id="txtCambio" style="font-size: 1.2rem; font-weight: 800; color: var(--success);">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN TRANSFERENCIA -->
+                    <div id="seccionTransferencia" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Plataforma Virtual:</label>
+                        <select id="tipo_transferencia_select" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
+                            <option value="">Selecciona plataforma...</option>
+                            <option value="Nequi">Nequi</option><option value="Daviplata">Daviplata</option><option value="Bancolombia">Bancolombia</option><option value="Otro">Otro ¿Cuál?</option>
+                        </select>
+                        <input type="text" id="otra_plataforma_input" placeholder="Ej: Davivienda..." style="display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                        <div style="margin-top: 12px;">
+                            <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Número de Referencia <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="referencia_pago_input" name="referencia_pago" placeholder="Ej: REF-123456789" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <input type="hidden" name="tipo_transferencia" id="tipo_transferencia_final">
+                    </div>
+
+                    <!-- SECCIÓN TARJETA -->
+                    <div id="seccionTarjeta" style="display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text);">Datos de la Tarjeta</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                            <div><label style="font-size: 0.85rem; color: var(--text-light);">Últimos 4 dígitos</label><input type="text" id="ultimos_4_digitos" name="ultimos_4_digitos" placeholder="Ej: 1234" maxlength="4" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
+                            <div><label style="font-size: 0.85rem; color: var(--text-light);">Banco emisor</label><input type="text" id="banco_emisor" name="banco_emisor" placeholder="Ej: Bancolombia" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+
                     <!-- Botones de acción -->
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <a href="panel_vendedor.php" style="flex: 1; text-align: center; color: var(--text-light); text-decoration: none; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--card);">Cancelar</a>
@@ -222,52 +213,13 @@ include(__DIR__ . '/header.php');
                     </div>
                 </div>
 
-                <!-- ✅ Campos ocultos CORREGIDOS -->
-                <input type="hidden" id="ventaJSON" name="ventaJSON">
+                <!-- Campos ocultos necesarios -->
+                <input type="hidden" id="ventaJSON" name="venta_json">
                 <input type="hidden" id="inputTotal" name="total_venta">
                 <input type="hidden" name="venta_tipo" value="mayorista">
             </div>
-                </form>
+        </form>
     </main>
 </div>
-
-<!-- Modal FUERA del main -->
-<div id="modalEditarItem" class="modal-overlay">
-    <div class="modal-box">
-        <h3 class="modal-title">✏️ Editar Prenda</h3>
-        <div class="form-group">
-            <label class="form-label">Tipo de Prenda</label>
-            <input type="text" id="editNombre" class="form-control" readonly>
-        </div>
-        <div class="modal-grid-2">
-            <div class="form-group">
-                <label class="form-label">Color</label>
-                <input type="text" id="editColor" class="form-control" placeholder="Ej: Rojo">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Talla</label>
-                <input type="text" id="editTalla" class="form-control" placeholder="Ej: M">
-            </div>
-        </div>
-        <div class="modal-grid-2">
-            <div class="form-group">
-                <label class="form-label">Precio Unitario</label>
-                <input type="number" id="editPrecio" class="form-control" readonly>
-                <small class="form-hint">⚠️ El precio no se edita. Para cambiarlo, elimina y vuelve a agregar la prenda.</small>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Cantidad</label>
-                <input type="number" id="editCantidad" min="1" class="form-control">
-            </div>
-        </div>
-        <div class="modal-actions">
-            <button type="button" id="btnCancelarEdicion" class="btn-secondary">Cancelar</button>
-            <button type="button" id="btnGuardarEdicion" class="btn-primary">Guardar Cambios</button>
-        </div>
-    </div>
-</div>
-
-<!-- ✅ Cargar linea_confeccion.js en lugar de venta_mayorista.js -->
-<script src="/unideportes-system/public/js/linea_confeccion.js?v=<?= time() ?>"></script>
-
+<script src="/unideportes-system/public/js/venta_mayorista.js?v=<?= time() ?>"></script>
 <?php include(__DIR__ . '/footer.php'); ?>

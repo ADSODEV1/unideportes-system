@@ -9,6 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_login(['vendedor', 'colaborador', 'admin']);
 
 $pdo = app();
+$conn = connection();
 
 // Validar que llegue el ID del pedido
 $pedido_id = !empty($_GET['id']) ? intval($_GET['id']) : 0;
@@ -19,7 +20,7 @@ if ($pedido_id === 0) {
 
 // 1. Obtener datos del pedido y del cliente
 try {
-    $stmt = $pdo->prepare("SELECT p.*, c.nombre_completo AS cliente_nombre, c.telefono
+    $stmt = $conn->prepare("SELECT p.*, c.nombre_completo AS cliente_nombre, c.telefono
                             FROM pedidos p
                             LEFT JOIN clientes c ON p.cliente_id = c.id
                             WHERE p.id = ?");
@@ -30,14 +31,13 @@ try {
         die("El pedido solicitado no existe.");
     }
 
-    // 2. Detalle de prendas (con JOIN al catálogo)
-    $stmtD = $pdo->prepare("SELECT dp.cantidad, dp.precio_unitario, dp.color, dp.talla,
+    // 2. Detalle de prendas
+    $stmtD = $conn->prepare("SELECT dp.cantidad, dp.precio_unitario, dp.color, dp.talla,
                                      dp.comentario_vendedor,
-                                     COALESCE(pbc.tipo_prenda, prod.nombre, p2.detalle, 'Prenda personalizada') AS producto_nombre
+                                     COALESCE(prod.nombre, p2.detalle, 'Producto personalizado') AS producto_nombre
                               FROM detalle_pedido dp
                               LEFT JOIN productos prod ON prod.id = dp.producto_id
                               LEFT JOIN pedidos p2 ON p2.id = dp.pedido_id
-                              LEFT JOIN precios_base_confeccion pbc ON pbc.id = dp.tipo_prenda_id
                               WHERE dp.pedido_id = ?");
     $stmtD->execute([$pedido_id]);
     $detalles = $stmtD->fetchAll(PDO::FETCH_ASSOC);
@@ -46,13 +46,9 @@ try {
     if ($total_real <= 0) {
         $total_real = floatval($pedido['total_pedido'] ?? 0);
     }
-    
-    // ✅ Calcular abono desde SUM(pagos) - única fuente de verdad
-    $stmtPagos = $pdo->prepare("SELECT IFNULL(SUM(monto), 0) FROM pagos WHERE id_pg_pedido = ?");
-    $stmtPagos->execute([$pedido_id]);
-    $abono_real = floatval($stmtPagos->fetchColumn());
-    $saldo_real = max(0, $total_real - $abono_real);
-    
+    $abono_real   = floatval($pedido['abono'] ?? 0);
+    $saldo_real   = max(0, $total_real - $abono_real);
+
 } catch (Exception $e) {
     die("Error al consultar la base de datos: " . $e->getMessage());
 }
@@ -132,23 +128,27 @@ include(__DIR__ . '/header.php');
                         <td style="padding: 12px;">
                             <strong><?= htmlspecialchars($det['producto_nombre']) ?></strong>
                             <?php if (!empty($det['comentario_vendedor'])): ?>
-                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?></span>
+                                <span style="display: block; font-size: 0.82rem; color: var(--text-light);">📝 <?= htmlspecialchars($det['comentario_vendedor']) ?>
+                            </span>
                             <?php endif; ?>
                         </td>
                         <td style="padding: 12px; text-align: center;">
-                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?></span>
+                            <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;"><?= htmlspecialchars($det['talla'] ?: '—') ?>
+                        </span>
                         </td>
                         <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($det['color'] ?: '—') ?></td>
                         <td style="padding: 12px; text-align: right;">$<?= number_format($det['precio_unitario'], 0, ',', '.') ?></td>
                         <td style="padding: 12px; text-align: center; font-weight: 700;"><?= intval($det['cantidad']) ?></td>
-                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700;">$<?= number_format($det['precio_unitario'] * $det['cantidad'], 0, ',', '.') ?>
+                    </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr style="background: #f8fafc;">
                         <td colspan="5" style="padding: 12px; text-align: right; font-weight: 700;">Total:</td>
-                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?></td>
+                        <td style="padding: 12px; text-align: right; font-weight: 800; color: var(--navy); font-size: 1.1rem;">$<?= number_format($total_real, 0, ',', '.') ?>
+                    </td>
                     </tr>
                 </tfoot>
             </table>
