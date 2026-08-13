@@ -11,7 +11,7 @@ $current = basename($_SERVER['PHP_SELF']);
 $pdo = app();
 
 // ============================================
-// CONFIGURACIÓN DE MENÚS POR ROL (REESTRUCTURADA)
+// CONFIGURACIÓN DE MENÚS POR ROL
 // ============================================
 $menuConfig = [
     'vendedor' => [
@@ -70,7 +70,6 @@ $menuConfig = [
 
 $configActual = $menuConfig[$role] ?? $menuConfig['vendedor'];
 
-// FUNCIÓN AUXILIAR PARA RENDERIZAR ENLACES
 if (!function_exists('renderNavLink')) {
     function renderNavLink($file, $label) {
         global $current;
@@ -81,16 +80,17 @@ if (!function_exists('renderNavLink')) {
 }
 
 // ============================================
-// ALERTAS IMPORTANTES (máximo 5, según rol)
+// ALERTAS IMPORTANTES (CORREGIDAS - sin duplicados)
 // ============================================
 $alertas = [];
 
 try {
-    // 1. PEDIDOS VENCIDOS (todos los roles)
+    // 1. PEDIDOS VENCIDOS (solo los que NO están Terminado ni Entregado)
+    // Esto evita duplicación con la alerta de "listos"
     $stmt = $pdo->query("
         SELECT COUNT(*) as total
         FROM pedidos
-        WHERE estado != 'Entregado'
+        WHERE estado NOT IN ('Entregado', 'Terminado')
         AND fecha_entrega < CURDATE()
     ");
     $vencidos = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -98,33 +98,51 @@ try {
         $alertas[] = [
             'tipo' => 'danger',
             'icono' => '🚨',
-            'texto' => "{$vencidos['total']} pedido(s) vencido(s)",
-            'url' => '/unideportes-system/views/mis_pedidos.php'
+            'texto' => "{$vencidos['total']} pedido(s) vencido(s) en producción",
+            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=vencidos'
         ];
     }
 
-    // 2. PEDIDOS LISTOS PARA ENTREGAR (todos)
+    // 2. PEDIDOS LISTOS PARA ENTREGAR (Terminado pero no Entregado)
     $stmt = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE estado = 'Terminado'");
     $pedidosListos = $stmt->fetchColumn();
     if ($pedidosListos > 0) {
         $alertas[] = [
             'tipo' => 'success',
             'icono' => '📦',
-            'texto' => "{$pedidosListos} pedido(s) listo(s)",
-            'url' => '/unideportes-system/views/mis_pedidos.php'
+            'texto' => "{$pedidosListos} pedido(s) listo(s) para entregar",
+            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=terminados'
         ];
     }
 
-    
-    // 4. STOCK BAJO (solo admin)
+    // 3. PEDIDOS CON SALDO PENDIENTE (solo admin y vendedor)
+    if (in_array($role, ['admin', 'vendedor'])) {
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM pedidos 
+            WHERE saldo_pendiente > 0 
+            AND estado = 'Entregado'
+        ");
+        $conSaldo = $stmt->fetchColumn();
+        if ($conSaldo > 0) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'icono' => '💰',
+                'texto' => "{$conSaldo} pedido(s) entregado(s) con saldo",
+                'url' => '/unideportes-system/views/mis_pedidos.php?filtro=con_saldo'
+            ];
+        }
+    }
+
+    // 4. STOCK BAJO (solo admin, solo productos activos)
     if ($role === 'admin') {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND activo = 1");
         $stockBajo = $stmt->fetchColumn();
         if ($stockBajo > 0) {
             $alertas[] = [
                 'tipo' => 'warning',
                 'icono' => '⚠️',
-                'texto' => "{$stockBajo} producto(s) stock bajo",
+                'texto' => "{$stockBajo} producto(s) con stock bajo",
                 'url' => '/unideportes-system/views/inventario.php'
             ];
         }
@@ -154,41 +172,29 @@ try {
 }
 
 // ============================================
-// MÓDULOS PARA BUSCADOR INTELIGENTE (según rol)
+// MÓDULOS PARA BUSCADOR INTELIGENTE
 // ============================================
 $modulosBusqueda = [
-    // Módulos comunes
     ['nombre' => 'Mi Panel', 'url' => 'panel_vendedor.php', 'icono' => '📊', 'desc' => 'Dashboard principal', 'roles' => ['vendedor', 'colaborador']],
     ['nombre' => 'Panel Admin', 'url' => 'panel_admin.php', 'icono' => '📊', 'desc' => 'Dashboard de administración', 'roles' => ['admin']],
     ['nombre' => 'Nueva Venta', 'url' => 'nueva_venta.php', 'icono' => '🛒', 'desc' => 'Registrar venta directa', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Venta Mayorista', 'url' => 'venta_mayorista.php', 'icono' => '📦', 'desc' => 'Venta al por mayor', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Pedido de Confección', 'url' => 'nuevo_pedido.php', 'icono' => '🏭', 'desc' => 'Crear orden de fabricación', 'roles' => ['vendedor', 'colaborador', 'admin']],
-    
-    // Ventas
     ['nombre' => 'Mis Ventas', 'url' => 'mis_ventas.php', 'icono' => '📈', 'desc' => 'Historial de ventas', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Historial de Ventas', 'url' => 'mis_ventas.php', 'icono' => '📈', 'desc' => 'Todas las ventas del sistema', 'roles' => ['admin']],
     ['nombre' => 'Reportes de Ventas', 'url' => 'reportes_ventas.php', 'icono' => '📜', 'desc' => 'Reportes financieros', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Seguimiento de Entregas', 'url' => 'seguimiento_entregas.php', 'icono' => '🚚', 'desc' => 'Domicilios pendientes de entrega', 'roles' => ['vendedor', 'admin']],
-
-    // Pedidos y Producción
     ['nombre' => 'Mis Pedidos', 'url' => 'mis_pedidos.php', 'icono' => '📋', 'desc' => 'Despacho y entregas', 'roles' => ['vendedor', 'colaborador', 'admin']],
     ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['colaborador', 'admin']],
     ['nombre' => 'Gestión de Taller', 'url' => 'panel_produccion.php', 'icono' => '👷', 'desc' => 'Control de producción', 'roles' => ['colaborador', 'admin']],
     ['nombre' => 'Precios de Confección', 'url' => 'gestion_precios_confeccion.php', 'icono' => '💵', 'desc' => 'Configurar precios base', 'roles' => ['admin']],
-    
-    // Productos e Inventario
     ['nombre' => 'Inventario', 'url' => 'inventario.php', 'icono' => '🎽', 'desc' => 'Control de productos', 'roles' => ['vendedor', 'colaborador', 'admin']],
     ['nombre' => 'Registrar Productos', 'url' => 'registrar_productos.php', 'icono' => '➕', 'desc' => 'Agregar nueva mercancía', 'roles' => ['admin']],
-    
-    // Clientes
     ['nombre' => 'Clientes', 'url' => 'clientes.php', 'icono' => '👥', 'desc' => 'Base de clientes', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Nuevo Cliente', 'url' => 'nuevo_cliente.php', 'icono' => '👤', 'desc' => 'Registrar nuevo cliente', 'roles' => ['vendedor', 'admin']],
-    
-    // Administración
     ['nombre' => 'Gestionar Personal', 'url' => 'admin_usuarios.php', 'icono' => '🔐', 'desc' => 'Administración de usuarios', 'roles' => ['admin']],
 ];
 
-// Filtrar módulos según el rol del usuario
 $modulosFiltrados = array_filter($modulosBusqueda, function($mod) use ($role) {
     return in_array($role, $mod['roles']);
 });
@@ -302,7 +308,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* Resultados del buscador */
 .search-results {
     position: absolute;
     top: 100%;
@@ -376,19 +381,10 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     font-size: 0.9rem;
 }
 
-.search-loading {
-    padding: 15px;
-    text-align: center;
-    color: #64748b;
-    font-size: 0.9rem;
-}
-
-/* Colores por tipo de resultado */
 .result-modulo { border-left: 3px solid #2563eb; }
 .result-cliente { border-left: 3px solid #10b981; }
 .result-producto { border-left: 3px solid #f59e0b; }
 
-/* Badge de tipo */
 .result-type-badge {
     font-size: 0.7rem;
     padding: 2px 6px;
@@ -402,7 +398,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
 .badge-cliente { background: #d1fae5; color: #065f46; }
 .badge-producto { background: #fef3c7; color: #92400e; }
 
-/* Perfil de usuario */
 .sidebar-profile {
     display: flex;
     align-items: center;
@@ -447,7 +442,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     margin-top: 2px;
 }
 
-/* Grupos de navegación */
 .nav-group {
     margin-bottom: 20px;
 }
@@ -482,7 +476,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     overflow: hidden;
 }
 
-/* Enlaces de navegación */
 .nav-link {
     display: block;
     padding: 10px 20px;
@@ -508,7 +501,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     font-weight: 600;
 }
 
-/* Alertas simplificadas */
 .nav-alerta {
     display: flex;
     align-items: center;
@@ -560,7 +552,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     font-weight: 500;
 }
 
-/* Responsive para móvil */
 @media (max-width: 768px) {
     .sidebar-panel {
         width: 100%;
@@ -578,9 +569,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
 </style>
 
 <script>
-// ============================================
-// FUNCIONES DE TOGGLE (Secciones colapsables)
-// ============================================
 function toggleSection(name) {
     const section = document.getElementById('section-' + name);
     const icon = document.getElementById('icon-' + name);
@@ -594,35 +582,26 @@ function toggleSection(name) {
     }
 }
 
-// ============================================
-// BUSCADOR INTELIGENTE (Smart Search)
-// ============================================
 (function() {
-    // Módulos disponibles según el rol del usuario
     const modulos = <?= $modulosJSON ?>;
-    
     const smartSearch = document.getElementById('smartSearch');
     const searchResults = document.getElementById('searchResults');
     
     if (!smartSearch || !searchResults) return;
     
-    // Variable para debounce (evitar muchas peticiones)
     let debounceTimer = null;
     
     smartSearch.addEventListener('input', function() {
         const query = this.value.trim().toLowerCase();
         
-        // Limpiar timer anterior
         clearTimeout(debounceTimer);
         
-        // Si la consulta es muy corta, limpiar resultados
         if (query.length < 2) {
             searchResults.innerHTML = '';
             searchResults.classList.remove('active');
             return;
         }
         
-        // Aplicar debounce (esperar 300ms antes de buscar)
         debounceTimer = setTimeout(() => {
             performSearch(query);
         }, 300);
@@ -631,7 +610,6 @@ function toggleSection(name) {
     async function performSearch(query) {
         const results = [];
         
-        // 1. Buscar en módulos del sistema (instantáneo)
         modulos.forEach(mod => {
             const nombreMatch = mod.nombre.toLowerCase().includes(query);
             const descMatch = mod.desc.toLowerCase().includes(query);
@@ -647,7 +625,6 @@ function toggleSection(name) {
             }
         });
         
-        // 2. Buscar clientes (AJAX)
         try {
             const resClientes = await fetch(`../controllers/buscar_clientes_ajax.php?q=${encodeURIComponent(query)}`);
             if (resClientes.ok) {
@@ -669,7 +646,6 @@ function toggleSection(name) {
             console.warn('No se pudieron cargar clientes:', e.message);
         }
         
-        // 3. Buscar productos (AJAX)
         try {
             const resProductos = await fetch(`../controllers/buscar_productos_ajax.php?q=${encodeURIComponent(query)}`);
             if (resProductos.ok) {
@@ -691,10 +667,7 @@ function toggleSection(name) {
             console.warn('No se pudieron cargar productos:', e.message);
         }
         
-        // Ordenar por prioridad (módulos primero)
         results.sort((a, b) => a.prioridad - b.prioridad);
-        
-        // Renderizar resultados (máximo 10)
         renderResults(results.slice(0, 10));
     }
     
@@ -734,34 +707,29 @@ function toggleSection(name) {
         searchResults.classList.add('active');
     }
     
-    // Función para escapar HTML y prevenir XSS
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
     
-    // Cerrar resultados al hacer clic fuera
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.sidebar-search')) {
             searchResults.classList.remove('active');
         }
     });
     
-    // Cerrar con tecla Escape
     smartSearch.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             searchResults.classList.remove('active');
             smartSearch.blur();
         }
-        // Navegar con flechas (bonus)
         if (e.key === 'Enter') {
             const firstResult = searchResults.querySelector('.search-result-item');
             if (firstResult) firstResult.click();
         }
     });
     
-    // Atajo de teclado: Ctrl+K o Cmd+K para enfocar el buscador
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();

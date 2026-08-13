@@ -21,6 +21,14 @@ if (!$pedido) {
     die("El ticket solicitado no existe.");
 }
 
+$stmtLin = $pdo->prepare("SELECT d.cantidad, d.precio_unitario, d.subtotal, d.color, d.talla,
+                                 d.comentario_vendedor, t.tipo_prenda
+                          FROM detalle_pedido d
+                          LEFT JOIN precios_base_confeccion t ON t.id = d.tipo_prenda_id
+                          WHERE d.pedido_id = ? ORDER BY d.id ASC");
+$stmtLin->execute([$id]);
+$lineas = $stmtLin->fetchAll(PDO::FETCH_ASSOC);
+
 $saldo_pendiente = $pedido['total_pedido'] - $pedido['total_abonado'];
 
 $rol = $_SESSION['role'] ?? 'vendedor';
@@ -276,7 +284,7 @@ include(__DIR__ . "/header.php");
         <div class="ticket-actions">
             <button onclick="window.print()" class="btn-ticket">🖨️ Imprimir</button>
             <a href="<?= $panel_volver ?>" class="btn-ticket">← Volver</a>
-            <a href="/unideportes-system/views/nuevo_pedido.php" class="btn-ticket">+ Nuevo Pedido</a>
+            <a href="nuevo_pedido.php" class="btn-ticket">+ Nuevo Pedido</a>
         </div>
 
         <div class="ticket-container">
@@ -315,18 +323,39 @@ include(__DIR__ . "/header.php");
                     <span><?= htmlspecialchars($pedido['telefono'] ?: 'N/A') ?></span>
                 </div>
             </div>
-
             <div class="detalle-box">
-                <h4><?= htmlspecialchars($pedido['detalle']) ?></h4>
-                <p><strong>Cantidad Total:</strong> <?= (int)$pedido['cantidad'] ?> Unidades</p>
-            </div>
-
-            <?php if(!empty($pedido['descripcion'])): ?>
-                <div class="observaciones-box">
-                    <strong>Observaciones de Confección:</strong><br>
-                    <em><?= htmlspecialchars($pedido['descripcion']) ?></em>
-                </div>
-            <?php endif; ?>
+    <h4><?= htmlspecialchars($pedido['detalle']) ?></h4>
+    <p><strong>Cantidad Total:</strong> <?= (int)$pedido['cantidad'] ?> Unidades</p>
+    <?php if (!empty($lineas)): ?>
+    <table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; color:#000;">
+        <thead>
+            <tr>
+                <th style="border:1px solid #000; padding:6px; text-align:left;">Prenda</th>
+                <th style="border:1px solid #000; padding:6px;">Color</th>
+                <th style="border:1px solid #000; padding:6px;">Talla</th>
+                <th style="border:1px solid #000; padding:6px;">Cant.</th>
+                <th style="border:1px solid #000; padding:6px;">V/U</th>
+                <th style="border:1px solid #000; padding:6px;">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($lineas as $l): ?>
+            <tr>
+                <td style="border:1px solid #000; padding:6px;">
+                    <?= htmlspecialchars($l['tipo_prenda'] ?? 'Prenda s/r') ?>
+                    <?php if (!empty($l['comentario_vendedor'])): ?><br><em style="font-size:0.8rem;"><?= htmlspecialchars($l['comentario_vendedor']) ?></em><?php endif; ?>
+                </td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;"><?= htmlspecialchars($l['color'] ?: '—') ?></td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;"><?= htmlspecialchars($l['talla'] ?: '—') ?></td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;"><?= (int)$l['cantidad'] ?></td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">$<?= number_format($l['precio_unitario'], 0, ',', '.') ?></td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">$<?= number_format($l['subtotal'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+</div>
 
             <div class="totals-box">
                 <div class="total-line">
