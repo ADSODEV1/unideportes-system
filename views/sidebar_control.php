@@ -97,7 +97,7 @@ try {
             'tipo' => 'danger',
             'icono' => '🚨',
             'texto' => "{$vencidos['total']} pedido(s) vencido(s)",
-            'url' => '/unideportes-system/views/mis_pedidos.php'
+            'url' => '/unideportes-system/views/mis_pedidos.php?alerta=vencidos'
         ];
     }
 
@@ -109,7 +109,7 @@ try {
             'tipo' => 'success',
             'icono' => '📦',
             'texto' => "{$pedidosListos} pedido(s) listo(s)",
-            'url' => '/unideportes-system/views/mis_pedidos.php'
+            'url' => '/unideportes-system/views/mis_pedidos.php?alerta=listos'
         ];
     }
 
