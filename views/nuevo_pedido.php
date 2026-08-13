@@ -117,7 +117,7 @@ include(__DIR__ . "/header.php");
 
     <main class="main-content-panel" style="max-width: 720px; margin: 0 auto;">
         <div class="page-header">
-            <h1>📝 Nueva Orden de Fabricación Mayorista</h1>
+            <h1>📝 Nueva Orden de Fabricación</h1>
             <p>Genera la orden de taller y emite el ticket físico de abono para el cliente.</p>
         </div>
 

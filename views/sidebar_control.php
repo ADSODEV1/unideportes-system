@@ -1,4 +1,4 @@
-<?php
+mayorista<?php
 // views/sidebar_control.php
 // Sidebar inteligente con permisos por rol - Proyecto SENA
 if (session_status() === PHP_SESSION_NONE) {
@@ -35,7 +35,7 @@ $menuConfig = [
         'titulo_area' => 'Área de Producción',
         'principales' => [
             'panel_vendedor.php' => 'Panel General',
-            'nuevo_pedido.php' => 'Nuevo Pedido',
+            'nuevo_pedido.php' => 'Pedido de Confección',
             'pedidos_admin.php' => 'Línea de Confección',
             'panel_produccion.php' => 'Gestión de Taller'
         ],
@@ -50,7 +50,7 @@ $menuConfig = [
             'panel_admin.php' => 'Dashboard',
             'nueva_venta.php' => 'Realizar Venta',
             'venta_mayorista.php' => 'Venta Mayorista',
-            'nuevo_pedido.php' => 'Nuevo Pedido',
+            'nuevo_pedido.php' => 'Pedido de Confección',
             'seguimiento_entregas.php' => 'Seguimiento de Entregas'
         ],
         'secundarios' => [
