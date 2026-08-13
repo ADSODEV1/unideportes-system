@@ -1,4 +1,4 @@
-mayorista<?php
+<?php
 // views/sidebar_control.php
 // Sidebar inteligente con permisos por rol - Proyecto SENA
 if (session_status() === PHP_SESSION_NONE) {
