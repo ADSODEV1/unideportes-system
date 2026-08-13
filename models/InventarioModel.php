@@ -1,10 +1,8 @@
 <?php
 // models/InventarioModel.php
 
-/**
- * Retorna el primer nombre de columna existente para stock mínimo.
- */
-function obtenerColumnaStockMinimo(PDO $conn): ?string {
+function obtenerColumnaStockMinimo(PDO $conn): ?string
+{
     static $resolvedColumn = '__PENDING__';
 
     if ($resolvedColumn !== '__PENDING__') {
@@ -12,7 +10,6 @@ function obtenerColumnaStockMinimo(PDO $conn): ?string {
     }
 
     $candidatas = ['stock_minimo', 'stock_min', 'minimo_stock', 'stock_minimo_alerta'];
-
     $sql = "SELECT 1
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE()
@@ -33,74 +30,121 @@ function obtenerColumnaStockMinimo(PDO $conn): ?string {
     return null;
 }
 
-/**
- * Obtiene los productos del inventario de forma paginado y opcionalmente filtrados.
- *
- * @param PDO $conn Conexión a la base de datos mediante PDO.
- * @param string $search Término de búsqueda (nombre o referencia).
- * @param int $limit Cantidad máxima de registros por página.
- * @param int $offset Punto de inicio de lectura de registros.
- * @return array Arreglo asociativo con los productos encontrados.
- */
-function obtenerInventarioPaginado(PDO $conn, string $search, int $limit, int $offset): array {
-    // Desactivar emulación de consultas preparadas para corregir tipos de datos
-    $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-
+function obtenerExpresionesInventario(PDO $conn): array
+{
     $colStockMin = obtenerColumnaStockMinimo($conn);
     $colStockMinEscaped = $colStockMin !== null ? str_replace('`', '``', $colStockMin) : null;
-    $selectStockMin = $colStockMin !== null
-        ? "COALESCE(`{$colStockMinEscaped}`, 5) AS stock_minimo"
-        : "5 AS stock_minimo";
+    $stockMinExpr = $colStockMin !== null ? "COALESCE(p.`{$colStockMinEscaped}`, 5)" : "5";
+    $margenExpr = "GREATEST(1, CEIL(({$stockMinExpr}) * 0.3))";
+    $limiteBajoExpr = "({$stockMinExpr} + {$margenExpr})";
+    $ultimoPedidoExpr = "SELECT DISTINCT dv.producto_id
+                         FROM detalle_venta dv
+                         INNER JOIN ventas v ON v.id = dv.venta_id
+                         WHERE v.id = (
+                             SELECT v2.id
+                             FROM ventas v2
+                             ORDER BY v2.fecha_venta DESC, v2.id DESC
+                             LIMIT 1
+                         )";
 
-    // Agregamos 'categoria' a la consulta SQL
-        $sql = "SELECT id, nombre, referencia, categoria, color, material, talla, stock, {$selectStockMin}, precio 
-            FROM productos 
-            WHERE estado = 'activo'";
-    
+    return [
+        'stock_min' => $stockMinExpr,
+        'limite_bajo' => $limiteBajoExpr,
+        'ultimo_pedido_productos' => $ultimoPedidoExpr,
+    ];
+}
+
+function aplicarFiltrosInventario(string $baseSql, string $search, string $alerta, array $expr): array
+{
+    $sql = $baseSql . " WHERE p.estado = 'activo'";
+    $params = [];
+
     if ($search !== '') {
-        $sql .= " AND (nombre LIKE :search1 OR referencia LIKE :search2)";
+        $sql .= " AND (p.nombre LIKE :search1 OR p.referencia LIKE :search2)";
+        $params[':search1'] = "%{$search}%";
+        $params[':search2'] = "%{$search}%";
     }
-    
-    // Cláusulas de ordenamiento y control de flujo de datos
-    $sql .= " ORDER BY nombre ASC LIMIT :limit OFFSET :offset";
-    
+
+    if ($alerta === 'critico') {
+        $sql .= " AND p.stock < {$expr['stock_min']}";
+    } elseif ($alerta === 'bajo') {
+        $sql .= " AND p.stock >= {$expr['stock_min']} AND p.stock <= {$expr['limite_bajo']}";
+    } elseif ($alerta === 'optimo') {
+        $sql .= " AND p.stock > {$expr['limite_bajo']}";
+    } elseif ($alerta === 'nuevo_pedido') {
+        $sql .= " AND p.id IN ({$expr['ultimo_pedido_productos']})";
+    }
+
+    return [$sql, $params];
+}
+
+function obtenerInventarioPaginado(PDO $conn, string $search, string $alerta, int $limit, int $offset): array
+{
+    $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    $expr = obtenerExpresionesInventario($conn);
+
+    $baseSql = "SELECT p.id, p.nombre, p.referencia, p.categoria, p.color, p.material, p.talla, p.stock,
+                       {$expr['stock_min']} AS stock_minimo,
+                       {$expr['limite_bajo']} AS limite_stock_bajo,
+                       p.precio,
+                       CASE WHEN p.id IN ({$expr['ultimo_pedido_productos']}) THEN 1 ELSE 0 END AS es_nuevo_pedido
+                FROM productos p";
+
+    [$sql, $params] = aplicarFiltrosInventario($baseSql, $search, $alerta, $expr);
+    $sql .= " ORDER BY p.nombre ASC LIMIT :limit OFFSET :offset";
     $stmt = $conn->prepare($sql);
-    
-    // Vinculamos los términos de búsqueda si existen
-    if ($search !== '') {
-        $searchTerm = "%$search%";
-        $stmt->bindValue(':search1', $searchTerm, PDO::PARAM_STR);
-        $stmt->bindValue(':search2', $searchTerm, PDO::PARAM_STR);
+
+    foreach ($params as $param => $value) {
+        $stmt->bindValue($param, $value, PDO::PARAM_STR);
     }
-    
-    // Vinculación estricta de enteros para el sistema de paginación
-    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
-    
+
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
-    
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-/**
- * Cuenta el total de productos que coinciden con el criterio de búsqueda.
- */
-function contarInventarioFiltrado(PDO $conn, string $search): int {
-    $sql = "SELECT COUNT(*) FROM productos WHERE estado = 'activo'";
-    
-    if ($search !== '') {
-        $sql .= " AND (nombre LIKE :search1 OR referencia LIKE :search2)";
-    }
-    
+function contarInventarioFiltrado(PDO $conn, string $search, string $alerta): int
+{
+    $expr = obtenerExpresionesInventario($conn);
+    $baseSql = "SELECT COUNT(*) FROM productos p";
+    [$sql, $params] = aplicarFiltrosInventario($baseSql, $search, $alerta, $expr);
     $stmt = $conn->prepare($sql);
-    
+
+    foreach ($params as $param => $value) {
+        $stmt->bindValue($param, $value, PDO::PARAM_STR);
+    }
+
+    $stmt->execute();
+    return (int)$stmt->fetchColumn();
+}
+
+function obtenerResumenAlertasInventario(PDO $conn, string $search): array
+{
+    $expr = obtenerExpresionesInventario($conn);
+    $sql = "SELECT
+                SUM(CASE WHEN p.stock < {$expr['stock_min']} THEN 1 ELSE 0 END) AS critico,
+                SUM(CASE WHEN p.stock >= {$expr['stock_min']} AND p.stock <= {$expr['limite_bajo']} THEN 1 ELSE 0 END) AS bajo,
+                SUM(CASE WHEN p.stock > {$expr['limite_bajo']} THEN 1 ELSE 0 END) AS optimo,
+                SUM(CASE WHEN p.id IN ({$expr['ultimo_pedido_productos']}) THEN 1 ELSE 0 END) AS nuevo_pedido
+            FROM productos p
+            WHERE p.estado = 'activo'";
+
+    $stmt = $conn->prepare($sql . ($search !== '' ? " AND (p.nombre LIKE :search1 OR p.referencia LIKE :search2)" : ""));
     if ($search !== '') {
-        $searchTerm = "%$search%";
+        $searchTerm = "%{$search}%";
         $stmt->bindValue(':search1', $searchTerm, PDO::PARAM_STR);
         $stmt->bindValue(':search2', $searchTerm, PDO::PARAM_STR);
     }
-    
+
     $stmt->execute();
-    
-    return (int) $stmt->fetchColumn();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    return [
+        'critico' => (int)($row['critico'] ?? 0),
+        'bajo' => (int)($row['bajo'] ?? 0),
+        'optimo' => (int)($row['optimo'] ?? 0),
+        'nuevo_pedido' => (int)($row['nuevo_pedido'] ?? 0),
+    ];
 }
