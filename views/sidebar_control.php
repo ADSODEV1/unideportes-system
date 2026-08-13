@@ -32,13 +32,11 @@ $menuConfig = [
         ]
     ],
     'colaborador' => [
-        'titulo_area' => 'Área de Producción',
-        'principales' => [
-            'panel_vendedor.php' => 'Panel General',
-            'nuevo_pedido.php' => 'Pedido de Confección',
-            'pedidos_admin.php' => 'Línea de Confección',
-            'panel_produccion.php' => 'Gestión de Taller'
-        ],
+    'titulo_area' => 'Área de Producción',
+    'principales' => [
+        'panel_vendedor.php' => 'Panel General',
+        'nuevo_pedido.php' => 'Pedido de Confección'
+    ],
         'secundarios' => [
             'mis_pedidos.php' => 'Despacho / Entregas',
             'inventario.php' => 'Inventario'
@@ -172,8 +170,8 @@ $modulosBusqueda = [
 
     // Pedidos y Producción
     ['nombre' => 'Mis Pedidos', 'url' => 'mis_pedidos.php', 'icono' => '📋', 'desc' => 'Despacho y entregas', 'roles' => ['vendedor', 'colaborador', 'admin']],
-    ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['colaborador', 'admin']],
-    ['nombre' => 'Gestión de Taller', 'url' => 'panel_produccion.php', 'icono' => '👷', 'desc' => 'Control de producción', 'roles' => ['colaborador', 'admin']],
+    ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['admin']],
+    ['nombre' => 'Gestión de Taller', 'url' => 'panel_produccion.php', 'icono' => '👷', 'desc' => 'Control de producción', 'roles' => ['admin']],
     ['nombre' => 'Precios de Confección', 'url' => 'gestion_precios_confeccion.php', 'icono' => '💵', 'desc' => 'Configurar precios base', 'roles' => ['admin']],
     
     // Productos e Inventario
