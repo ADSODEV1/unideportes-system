@@ -1,5 +1,5 @@
-/* =========================================
-   1. VARIABLES & RESET - Paleta Minimalista
+  /* =========================================
+   VARIABLES & RESET - Paleta Minimalista
    ========================================= */
 :root {
     /* Colores principales */
@@ -1165,91 +1165,7 @@ footer.main-footer {
     border-radius: var(--radius);
     background-color: var(--card); 
 }
-<?php
-/**
- * Partial: Tarjetas de KPIs de Ventas
- */
-?>
-<div class="kpis-grid">
-    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--success kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Total Ingresos</h6>
-            <h3 class="kpi-card__value">
-                <?= formatMoney($data['kpis_ventas']['total_ingresos'] ?? 0) ?>
-            </h3>
-        </div>
-        <span class="kpi-card__icon">💰</span>
-    </a>
 
-    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--primary kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Transacciones</h6>
-            <h3 class="kpi-card__value">
-                <?= number_format($data['kpis_ventas']['total_transacciones'] ?? 0, 0, ',', '.') ?> Facturas
-            </h3>
-        </div>
-        <span class="kpi-card__icon">🧾</span>
-    </a>
-
-    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--warning kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Ticket Promedio</h6>
-            <h3 class="kpi-card__value">
-                <?= formatMoney($data['kpis_ventas']['promedio_ticket'] ?? 0) ?>
-            </h3>
-        </div>
-        <span class="kpi-card__icon">📊</span>
-    </a>
-</div>
-<?php
-/**
- * Partial: Tarjetas de KPIs de Cartera
- */
-$porcentaje = calcularPorcentajeRecuperacion($data['kpis_cartera']);
-$total_cobrado = ($data['kpis_cartera']['total_abonos_iniciales'] ?? 0) + 
-                 ($data['kpis_cartera']['total_abonos_periodo'] ?? 0);
-?>
-<div class="kpis-grid">
-    <a href="#sec-ventas-detalladas" class="kpi-card kpi-card--info kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Total Facturado</h6>
-            <h3 class="kpi-card__value">
-                <?= formatMoney($data['kpis_cartera']['total_facturado'] ?? 0) ?>
-            </h3>
-        </div>
-        <span class="kpi-card__icon">📄</span>
-    </a>
-
-    <a href="#sec-abonos-recientes" class="kpi-card kpi-card--success kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Total Cobrado</h6>
-            <h3 class="kpi-card__value">
-                <?= formatMoney($total_cobrado) ?>
-            </h3>
-        </div>
-        <span class="kpi-card__icon">✅</span>
-    </a>
-
-    <a href="#sec-pedidos-pendientes" class="kpi-card kpi-card--danger kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">Por Cobrar</h6>
-            <h3 class="kpi-card__value">
-                <?= formatMoney($data['kpis_cartera']['saldo_pendiente_total'] ?? 0) ?>
-            </h3>
-        </div>
-        <span class="kpi-card__icon">⏳</span>
-    </a>
-
-    <a href="#sec-pedidos-pendientes" class="kpi-card kpi-card--secondary kpi-clickable">
-        <div class="kpi-card__content">
-            <h6 class="kpi-card__label">% Recuperación</h6>
-            <h3 class="kpi-card__value">
-                <?= number_format($porcentaje, 1) ?>%
-            </h3>
-        </div>
-        <span class="kpi-card__icon">📈</span>
-    </a>
-</div>
 
 /* =========================================
    10. SEGUIMIENTO DE ENTREGAS EN REPORTES
@@ -1649,4 +1565,60 @@ $total_cobrado = ($data['kpis_cartera']['total_abonos_iniciales'] ?? 0) +
     .pedido-card__label {
         min-width: auto;
     }
+}
+/* =========================================
+   12. MODALES GENÉRICOS (carrito, clientes, edición)
+   ========================================= */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.modal-box {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: 25px;
+    max-width: 460px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal-title {
+    margin: 0 0 20px 0;
+    color: var(--text);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+.modal-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+.form-control[readonly] {
+    background: var(--input-bg);
+    color: var(--text-light);
+    cursor: not-allowed;
+}
+.form-hint {
+    font-size: 0.78rem;
+    color: #92400e;
+    margin-top: 4px;
+}
+@media (max-width: 600px) {
+    .modal-grid-2 { grid-template-columns: 1fr; }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions button { width: 100%; }
 }
