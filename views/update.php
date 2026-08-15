@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validar rol
-    $rolesValidos = ['vendedor', 'admin'];
+    $rolesValidos = ['vendedor', 'admin', 'colaborador'];
     if (!$error && !in_array($role, $rolesValidos, true)) {
         $error = "rol_invalido";
     }
@@ -158,6 +158,7 @@ include(__DIR__ . "/header.php");
                     <label for="role">Rol</label>
                     <select id="role" name="role" required>
                         <option value="vendedor" <?= ($row['role'] ?? '') === 'vendedor' ? 'selected' : '' ?>>Vendedor (Punto de Venta)</option>
+                        <option value="colaborador" <?= ($row['role'] ?? '') === 'colaborador' ? 'selected' : '' ?>>Colaborador (Fábrica)</option>
                         <option value="admin" <?= ($row['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Administrador</option>
                     </select>
                 </div>
