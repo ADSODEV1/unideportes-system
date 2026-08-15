@@ -13,7 +13,7 @@ header("Pragma: no-cache");
 header("Expires: 0");
 
 // Restricción estricta: Solo producción y administración
-require_login(['admin']);
+require_login(['admin', 'colaborador']);
 
 $pdo = app();
 $error = $_GET['error'] ?? null;

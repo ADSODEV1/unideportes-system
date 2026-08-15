@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../models/ClienteModel.php';
 
 require_login();
+require_login(['admin']);
 $conn = app();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {

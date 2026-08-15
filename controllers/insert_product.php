@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../models/ProductoModel.php';
 
-require_login(['admin']);
+require_login(['admin', 'colaborador']); // Solo admin y colaboradores pueden registrar productos
 $conn = app();
 
 // 1. FILTRO DE SEGURIDAD PARA EL MÉTODO DE ENVÍO

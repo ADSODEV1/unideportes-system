@@ -8,8 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Validamos que estrictamente solo el 'admin' pueda gestionar este panel
-require_login(['admin']);
+// permisos de acceso: solo admin y colaboradores (fábrica)
+require_login(['admin', 'colaborador']);
 
 // Usamos ÚNICAMENTE la conexión PDO oficial del sistema
 $pdo = app();
