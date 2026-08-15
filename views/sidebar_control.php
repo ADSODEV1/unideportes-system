@@ -31,13 +31,11 @@ $menuConfig = [
             'reportes_ventas.php' => 'Mis Reportes'
         ]
     ],
-    'colaborador' => [
+        'colaborador' => [
         'titulo_area' => 'Área de Producción',
         'principales' => [
-            'panel_vendedor.php' => 'Panel General',
+            'panel_colaborador.php' => 'Mi Panel de Producción',
             'nuevo_pedido.php' => 'Pedido de Confección',
-            'pedidos_admin.php' => 'Línea de Confección',
-            'panel_produccion.php' => 'Gestión de Taller'
         ],
         'secundarios' => [
             'mis_pedidos.php' => 'Despacho / Entregas',
@@ -78,44 +76,73 @@ if (!function_exists('renderNavLink')) {
         return "<a href=\"{$url}\" class=\"nav-link {$isActive}\">{$label}</a>";
     }
 }
-
 // ============================================
 // ALERTAS IMPORTANTES (CORREGIDAS - sin duplicados)
 // ============================================
 $alertas = [];
-
 try {
-    // 1. PEDIDOS VENCIDOS (solo los que NO están Terminado ni Entregado)
-    // Esto evita duplicación con la alerta de "listos"
-    $stmt = $pdo->query("
-        SELECT COUNT(*) as total
-        FROM pedidos
-        WHERE estado NOT IN ('Entregado', 'Terminado')
-        AND fecha_entrega < CURDATE()
-    ");
-    $vencidos = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($vencidos['total'] > 0) {
-        $alertas[] = [
-            'tipo' => 'danger',
-            'icono' => '🚨',
-            'texto' => "{$vencidos['total']} pedido(s) vencido(s) en producción",
-            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=vencidos'
-        ];
+    // 🆕 1. PEDIDOS NUEVOS (últimas 48 horas) - Visible para Colaborador y Admin
+    if (in_array($role, ['colaborador', 'admin'])) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE created_at >= NOW() - INTERVAL 48 HOUR AND estado <> 'Entregado'");
+        $pedidosNuevos = $stmt->fetchColumn();
+        if ($pedidosNuevos > 0) {
+            $alertas[] = [
+                'tipo' => 'info',
+                'icono' => '🆕',
+                'texto' => "{$pedidosNuevos} pedido(s) nuevo(s) en 48 h",
+                'url' => '/unideportes-system/views/pedidos_admin.php'
+            ];
+        }
     }
 
-    // 2. PEDIDOS LISTOS PARA ENTREGAR (Terminado pero no Entregado)
-    $stmt = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE estado = 'Terminado'");
-    $pedidosListos = $stmt->fetchColumn();
-    if ($pedidosListos > 0) {
-        $alertas[] = [
-            'tipo' => 'success',
-            'icono' => '📦',
-            'texto' => "{$pedidosListos} pedido(s) listo(s) para entregar",
-            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=terminados'
-        ];
+    // ⏰ 2. PEDIDOS URGENTES (entregan hoy o en 2 días) - Visible para Colaborador y Admin
+    if (in_array($role, ['colaborador', 'admin'])) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE fecha_entrega >= CURDATE() AND fecha_entrega <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) AND estado NOT IN ('Entregado', 'Terminado')");
+        $pedidosUrgentes = $stmt->fetchColumn();
+        if ($pedidosUrgentes > 0) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'icono' => '⏰',
+                'texto' => "{$pedidosUrgentes} pedido(s) urgente(s) (≤ 2 días)",
+                'url' => '/unideportes-system/views/pedidos_admin.php'
+            ];
+        }
     }
 
-    // 3. PEDIDOS CON SALDO PENDIENTE (solo admin y vendedor)
+    // 🚨 3. PEDIDOS VENCIDOS (solo los que NO están Terminado ni Entregado)
+    if (in_array($role, ['colaborador', 'admin'])) {
+        $stmt = $pdo->query("
+            SELECT COUNT(*) as total
+            FROM pedidos
+            WHERE estado NOT IN ('Entregado', 'Terminado')
+            AND fecha_entrega < CURDATE()
+        ");
+        $vencidos = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($vencidos['total'] > 0) {
+            $alertas[] = [
+                'tipo' => 'danger',
+                'icono' => '🚨',
+                'texto' => "{$vencidos['total']} pedido(s) vencido(s) en producción",
+                'url' => '/unideportes-system/views/mis_pedidos.php?filtro=vencidos'
+            ];
+        }
+    }
+
+    // 📦 4. PEDIDOS LISTOS PARA ENTREGAR (Terminado pero no Entregado)
+    if (in_array($role, ['colaborador', 'admin', 'vendedor'])) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE estado = 'Terminado'");
+        $pedidosListos = $stmt->fetchColumn();
+        if ($pedidosListos > 0) {
+            $alertas[] = [
+                'tipo' => 'success',
+                'icono' => '📦',
+                'texto' => "{$pedidosListos} pedido(s) listo(s) para entregar",
+                'url' => '/unideportes-system/views/mis_pedidos.php?filtro=terminados'
+            ];
+        }
+    }
+
+    // 💰 5. PEDIDOS CON SALDO PENDIENTE (solo admin y vendedor)
     if (in_array($role, ['admin', 'vendedor'])) {
         $stmt = $pdo->query("
             SELECT COUNT(*) 
@@ -134,9 +161,9 @@ try {
         }
     }
 
-    // 4. STOCK BAJO (solo admin, solo productos activos)
-    if ($role === 'admin') {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND activo = 1");
+    // ⚠️ 6. STOCK BAJO (Ahora visible para Admin Y Colaborador)
+    if (in_array($role, ['admin', 'colaborador'])) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE estado = 'activo' AND stock <= 5 AND stock > 0");
         $stockBajo = $stmt->fetchColumn();
         if ($stockBajo > 0) {
             $alertas[] = [
@@ -148,7 +175,7 @@ try {
         }
     }
 
-    // 5. VENTAS HOY (solo vendedor)
+    // 📈 7. VENTAS HOY (solo vendedor)
     if ($role === 'vendedor') {
         $vendedorId = $_SESSION['user_id'] ?? 0;
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM ventas WHERE vendedor_id = ? AND DATE(fecha_venta) = CURRENT_DATE");
@@ -166,11 +193,9 @@ try {
 
     // Limitar a máximo 5 alertas
     $alertas = array_slice($alertas, 0, 5);
-
 } catch (Exception $e) {
     // Si hay error, no mostramos alertas
 }
-
 // ============================================
 // MÓDULOS PARA BUSCADOR INTELIGENTE
 // ============================================
