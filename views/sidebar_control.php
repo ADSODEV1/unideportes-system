@@ -35,9 +35,7 @@ $menuConfig = [
         'titulo_area' => 'Área de Producción',
         'principales' => [
             'panel_vendedor.php' => 'Panel General',
-            'nuevo_pedido.php' => 'Pedido de Confección',
-            'pedidos_admin.php' => 'Línea de Confección',
-            'panel_produccion.php' => 'Gestión de Taller'
+            'nuevo_pedido.php' => 'Pedido de Confección'
         ],
         'secundarios' => [
             'mis_pedidos.php' => 'Despacho / Entregas',
@@ -185,8 +183,8 @@ $modulosBusqueda = [
     ['nombre' => 'Reportes de Ventas', 'url' => 'reportes_ventas.php', 'icono' => '📜', 'desc' => 'Reportes financieros', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Seguimiento de Entregas', 'url' => 'seguimiento_entregas.php', 'icono' => '🚚', 'desc' => 'Domicilios pendientes de entrega', 'roles' => ['vendedor', 'admin']],
     ['nombre' => 'Mis Pedidos', 'url' => 'mis_pedidos.php', 'icono' => '📋', 'desc' => 'Despacho y entregas', 'roles' => ['vendedor', 'colaborador', 'admin']],
-    ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['colaborador', 'admin']],
-    ['nombre' => 'Gestión de Taller', 'url' => 'panel_produccion.php', 'icono' => '👷', 'desc' => 'Control de producción', 'roles' => ['colaborador', 'admin']],
+    ['nombre' => 'Línea de Confección', 'url' => 'pedidos_admin.php', 'icono' => '🏭', 'desc' => 'Gestión de pedidos en fábrica', 'roles' => ['admin']],
+    ['nombre' => 'Gestión de Taller', 'url' => 'panel_produccion.php', 'icono' => '👷', 'desc' => 'Control de producción', 'roles' => ['admin']],
     ['nombre' => 'Precios de Confección', 'url' => 'gestion_precios_confeccion.php', 'icono' => '💵', 'desc' => 'Configurar precios base', 'roles' => ['admin']],
     ['nombre' => 'Inventario', 'url' => 'inventario.php', 'icono' => '🎽', 'desc' => 'Control de productos', 'roles' => ['vendedor', 'colaborador', 'admin']],
     ['nombre' => 'Registrar Productos', 'url' => 'registrar_productos.php', 'icono' => '➕', 'desc' => 'Agregar nueva mercancía', 'roles' => ['admin']],
