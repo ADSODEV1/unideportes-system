@@ -8,8 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Estricto: Solo el administrador puede mover los estados en el taller de confección
-require_login(['admin']);
+// Estricto: Solo el administrador y los colaboradores de la fábrica pueden cambiar el estado de los pedidos
+require_login(['admin', 'colaborador']);
 
 // Cargamos la conexión PDO nativa de tu sistema
 $conn = connection();

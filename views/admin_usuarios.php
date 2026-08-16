@@ -89,6 +89,7 @@ include 'header.php';
                     <select id="role" name="role" required>
                         <option value="">Seleccionar rol</option>
                         <option value="vendedor">Vendedor</option>
+                        <option value="colaborador">Colaborador (Fábrica)</option>
                         <option value="admin">Administrador</option>
                     </select>
                 </div>

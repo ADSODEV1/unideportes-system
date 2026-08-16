@@ -62,9 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username']    = $row['username'];
                 $_SESSION['role']        = $row['role'];
 
-                // Determinar destino con rutas web absolutas y limpias (Salen de la carpeta public hacia views)
+               // Determinar destino con rutas web absolutas y limpias (Salen de la carpeta public hacia views)
                 if ($row['role'] === 'admin') {
                     $destino = "/unideportes-system/views/panel_admin.php";
+                } elseif ($row['role'] === 'colaborador') {
+                    $destino = "/unideportes-system/views/panel_colaborador.php";
                 } else {
                     $destino = "/unideportes-system/views/panel_vendedor.php";
                 }

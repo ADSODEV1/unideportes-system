@@ -3,6 +3,10 @@
 
 require_once __DIR__ . '/../config/bootstrap.php';
 
+// La entrada de pedidos de confección es ÚNICA (views/nuevo_pedido.php).
+header("Location: ../views/nuevo_pedido.php");
+exit;
+
 function resolverProductoPedido(mysqli $db, int $producto_id, string $producto_nombre, string $color, string $talla, float $precio_unitario): int {
     if ($producto_id > 0) {
         $productoEncontrado = 0;

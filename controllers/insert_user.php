@@ -59,7 +59,7 @@ try {
         redirigirError('email_invalido');
     }
 
-    $rolesValidos = ['vendedor', 'admin'];
+    $rolesValidos = ['vendedor', 'colaborador', 'admin'];
     if (!in_array($role, $rolesValidos, true)) {
         redirigirError('rol_invalido');
     }
