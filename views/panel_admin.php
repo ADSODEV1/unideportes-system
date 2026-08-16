@@ -101,7 +101,7 @@ include(__DIR__ . "/header.php");
         <div class="menu-maestro">
             
             <div class="dashboard-card border-green">
-                <a href="/unideportes-system/views/linea_confeccion.php" class="card-link">
+                <a href="pedidos_admin.php" class="card-link">
                     <div class="card-icon">🏭</div>
                     <div class="card-body">
                         <h3>Línea de Confección</h3>

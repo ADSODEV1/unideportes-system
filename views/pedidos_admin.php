@@ -204,8 +204,8 @@ include(__DIR__ . "/header.php");
                                         <input type="hidden" name="actualizar_estado" value="1">
                                         
                                         <!-- ✅ VALORES CORREGIDOS para coincidir con tu ENUM -->
-                                        <select name="estado_fabrica" class="form-control" style="max-width: 220px; margin: 0 auto; cursor: pointer;" 
-                                        onchange="this.form.submit()">
+                                            <select name="estado_fabrica" class="form-control" style="max-width: 260px; margin: 0 auto; cursor: pointer;" 
+                                            onchange="this.form.submit()">
                                             <option value="En Corte" <?= $row['estado'] === 'En Corte' ? 'selected' : '' ?>>✂️ En Corte</option>
                                             <option value="En Costura" <?= $row['estado'] === 'En Costura' ? 'selected' : '' ?>>🪡 En Costura</option>
                                             <option value="Terminado" <?= $row['estado'] === 'Terminado' ? 'selected' : '' ?>>✅ Terminado (Listo para POS)</option>
