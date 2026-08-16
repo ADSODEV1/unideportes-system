@@ -222,4 +222,5 @@ include(__DIR__ . '/header.php');
     </main>
 </div>
 <script src="/unideportes-system/public/js/venta_mayorista.js?v=<?= time() ?>"></script>
+<script src="/unideportes-system/public/js/blindaje_pago.js?v=<?= time() ?>"></script>
 <?php include(__DIR__ . '/footer.php'); ?>

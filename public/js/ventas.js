@@ -152,11 +152,58 @@ document.addEventListener('DOMContentLoaded', function() {
         else clearWrapper(elements.wrapperTalla, 'Talla:', 'Selecciona primero un color', true);
     };
 
+    // 🔒 BLOQUEO DE CANTIDAD SEGÚN STOCK DISPONIBLE
+    const consultarStockYFijarMax = async () => {
+        const cantEl = elements.productoCantidad;
+        if (!cantEl) return;
+        const productName = elements.productoInput ? elements.productoInput.value.trim() : '';
+        const colorEl = document.getElementById('productoColor');
+        const tallaEl = document.getElementById('productoTalla');
+        const colorValue = colorEl ? colorEl.value.trim() : '';
+        const tallaValue = tallaEl ? tallaEl.value.trim() : '';
+        if (!productName || !colorValue || !tallaValue) { cantEl.max = ''; return; }
+        try {
+            const res = await fetch(`../controllers/get_variantes_producto.php?nombre=${encodeURIComponent(productName)}&color=${encodeURIComponent(colorValue)}&talla=${encodeURIComponent(tallaValue)}`);
+            const data = await res.json();
+            if (data && data.variant) {
+                const fila = document.querySelector(`input[data-id="${data.variant.id}"]`);
+                const enCarrito = fila ? (parseInt(fila.value, 10) || 0) : 0;
+                const disponibles = Math.max(0, (parseInt(data.variant.stock, 10) || 0) - enCarrito);
+                cantEl.max = disponibles;
+                if ((parseInt(cantEl.value, 10) || 1) > disponibles) cantEl.value = disponibles;
+            } else {
+                cantEl.max = 0;
+            }
+        } catch (e) { /* sin bloqueo si falla la consulta */ }
+    };
+
+    if (elements.wrapperColor) {
+        elements.wrapperColor.addEventListener('change', consultarStockYFijarMax);
+        elements.wrapperColor.addEventListener('input', consultarStockYFijarMax);
+    }
+    if (elements.wrapperTalla) {
+        elements.wrapperTalla.addEventListener('change', consultarStockYFijarMax);
+        elements.wrapperTalla.addEventListener('input', consultarStockYFijarMax);
+    }
+    if (elements.productoCantidad) {
+        elements.productoCantidad.addEventListener('input', function () {
+            const max = parseInt(this.max, 10);
+            const v = parseInt(this.value, 10) || 0;
+            if (!isNaN(max) && v > max) { this.value = max; }
+            if (v < 1) this.value = 1;
+        });
+    }
+
     if (elements.productoInput) {
         elements.productoInput.addEventListener('input', function() {
             const selectedOption = getSelectedProductOption();
-            if (selectedOption) fetchProductColors(selectedOption.value);
-            else { clearWrapper(elements.wrapperColor, 'Color:', 'Selecciona primero un producto', true); clearWrapper(elements.wrapperTalla, 'Talla:', 'Selecciona primero un color', true); }
+            if (selectedOption) {
+                fetchProductColors(selectedOption.value);
+                setTimeout(consultarStockYFijarMax, 500);
+            } else { 
+                clearWrapper(elements.wrapperColor, 'Color:', 'Selecciona primero un producto', true); 
+                clearWrapper(elements.wrapperTalla, 'Talla:', 'Selecciona primero un color', true); 
+            }
         });
     }
 
@@ -188,7 +235,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!confirm(`Stock insuficiente. Disponibles: ${variant.stock}. ¿Agregar solo lo disponible?`)) return;
             cantidadFinal = parseInt(variant.stock, 10);
         }
-        if (document.querySelector(`input[data-id="${variant.id}"]`)) return alert('El producto ya está en el carrito.');
+
+        // ✅ ACUMULAR EN VEZ DE BLOQUEAR
+        const filaExistente = document.querySelector(`input[data-id="${variant.id}"]`);
+        if (filaExistente) {
+            const actual = parseInt(filaExistente.value, 10) || 0;
+            const suma = actual + cantidadFinal;
+            if (suma > variant.stock) {
+                filaExistente.value = variant.stock;
+                alert('⚠️ Stock insuficiente: se ajustó al máximo disponible (' + variant.stock + ').');
+            } else {
+                filaExistente.value = suma;
+            }
+            elements.productoInput.value = '';
+            clearWrapper(elements.wrapperColor, 'Color:', 'Selecciona primero un producto', true);
+            clearWrapper(elements.wrapperTalla, 'Talla:', 'Selecciona primero un color', true);
+            if (elements.productoComentario) elements.productoComentario.value = '';
+            elements.productoCantidad.value = '1';
+            calcularTotales();
+            return;
+        }
 
         const colorText = colorValue === 'Sin color' ? '' : colorValue;
         const tallaText = tallaValue === 'Sin talla' ? '' : tallaValue;
@@ -206,7 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <td style="padding: 10px; text-align: center;"><button type="button" onclick="this.closest('tr').remove(); calcularTotales();" style="background:var(--danger); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">❌</button></td>`;
         elements.carritoBody.appendChild(tr);
         
-        elements.productoInput.value = ''; clearWrapper(elements.wrapperColor, 'Color:', 'Selecciona primero un producto', true);
+        elements.productoInput.value = ''; 
+        clearWrapper(elements.wrapperColor, 'Color:', 'Selecciona primero un producto', true);
         clearWrapper(elements.wrapperTalla, 'Talla:', 'Selecciona primero un color', true);
         if (elements.productoComentario) elements.productoComentario.value = '';
         elements.productoCantidad.value = '1';
@@ -297,87 +364,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (elements.inputPagaCon) elements.inputPagaCon.addEventListener('input', recalcularCambio);
 
-           // 8. ENVÍO DEL FORMULARIO
-if (elements.ventaForm && elements.ventaJSONInput && elements.inputTotal) {
-    elements.ventaForm.addEventListener('submit', function(e) {
-        const inputs = document.querySelectorAll('.cant-input');
-        // 1. Validar carrito vacío
-        if (inputs.length === 0) { 
-            e.preventDefault(); 
-            return alert('El carrito está vacío.'); 
-        }
-        // 2. Validar cliente
-        if (!elements.clienteIdHidden.value && (!elements.nuevoClienteSection || elements.nuevoClienteSection.style.display !== 'block')) {
-            e.preventDefault(); 
-            elements.clienteInput.focus(); 
-            return alert('Selecciona o registra un cliente.');
-        }
-        // 3. Validar dirección si es domicilio
-        if (elements.tipoEntregaSelect && elements.tipoEntregaSelect.value === 'Domicilio') {
-            if (!elements.direccionEntrega.value.trim()) { 
+    // 8. ENVÍO DEL FORMULARIO
+    if (elements.ventaForm && elements.ventaJSONInput && elements.inputTotal) {
+        elements.ventaForm.addEventListener('submit', function(e) {
+            const inputs = document.querySelectorAll('.cant-input');
+            if (inputs.length === 0) { 
                 e.preventDefault(); 
-                elements.direccionEntrega.focus(); 
-                return alert('Digita la dirección de entrega.'); 
+                return alert('El carrito está vacío.'); 
             }
-            if (!elements.barrioEntrega.value.trim()) { 
+            if (!elements.clienteIdHidden.value && (!elements.nuevoClienteSection || elements.nuevoClienteSection.style.display !== 'block')) {
                 e.preventDefault(); 
-                elements.barrioEntrega.focus(); 
-                return alert('Digita el barrio de entrega.'); 
+                elements.clienteInput.focus(); 
+                return alert('Selecciona o registra un cliente.');
             }
-        }
-        // 4. Validar pago en efectivo
-        if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Efectivo') {
-            const pagaConValue = parseFloat(elements.inputPagaCon.value) || 0;
-            const totalVentaValue = parseFloat(elements.inputTotal.value) || 0;
-            if (pagaConValue < totalVentaValue) { 
-                e.preventDefault(); 
-                elements.inputPagaCon.focus(); 
-                return alert('El monto pagado no puede ser menor al total.'); 
+            if (elements.tipoEntregaSelect && elements.tipoEntregaSelect.value === 'Domicilio') {
+                if (!elements.direccionEntrega.value.trim()) { 
+                    e.preventDefault(); 
+                    elements.direccionEntrega.focus(); 
+                    return alert('Digita la dirección de entrega.'); 
+                }
+                if (!elements.barrioEntrega.value.trim()) { 
+                    e.preventDefault(); 
+                    elements.barrioEntrega.focus(); 
+                    return alert('Digita el barrio de entrega.'); 
+                }
             }
-        }
-        // 5. Validar referencia de transferencia
-        if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Transferencia') {
-            if (elements.referenciaPagoInput && !elements.referenciaPagoInput.value.trim()) {
-                e.preventDefault(); 
-                elements.referenciaPagoInput.focus(); 
-                return alert('Debes ingresar el número de referencia de la transferencia.');
+            if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Efectivo') {
+                const pagaConValue = parseFloat(elements.inputPagaCon.value) || 0;
+                const totalVentaValue = parseFloat(elements.inputTotal.value) || 0;
+                if (pagaConValue < totalVentaValue) { 
+                    e.preventDefault(); 
+                    elements.inputPagaCon.focus(); 
+                    return alert('El monto pagado no puede ser menor al total.'); 
+                }
             }
-            // ✅ Asegurar que tipo_transferencia se guarde
-            const selectValue = elements.tipoTransferenciaSelect ? elements.tipoTransferenciaSelect.value : '';
-            const inputValue = elements.otraPlataformaInput ? elements.otraPlataformaInput.value.trim() : '';
-            const tipoTransferenciaFinal = document.getElementById('tipo_transferencia_final');
-            if (tipoTransferenciaFinal) {
-                tipoTransferenciaFinal.value = (selectValue === 'Otro') ? inputValue : selectValue;
+            if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Transferencia') {
+                if (elements.referenciaPagoInput && !elements.referenciaPagoInput.value.trim()) {
+                    e.preventDefault(); 
+                    elements.referenciaPagoInput.focus(); 
+                    return alert('Debes ingresar el número de referencia de la transferencia.');
+                }
+                const selectValue = elements.tipoTransferenciaSelect ? elements.tipoTransferenciaSelect.value : '';
+                const inputValue = elements.otraPlataformaInput ? elements.otraPlataformaInput.value.trim() : '';
+                const tipoTransferenciaFinal = document.getElementById('tipo_transferencia_final');
+                if (tipoTransferenciaFinal) {
+                    tipoTransferenciaFinal.value = (selectValue === 'Otro') ? inputValue : selectValue;
+                }
             }
-        }
-        // 6. Validar campos de tarjeta
-        if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Tarjeta') {
-            const ultimos4Input = document.getElementById('ultimos_4_digitos');
-            const bancoInput = document.getElementById('banco_emisor');
-            if (ultimos4Input && !ultimos4Input.value.trim()) {
-                e.preventDefault(); 
-                ultimos4Input.focus(); 
-                return alert('Debes ingresar los últimos 4 dígitos de la tarjeta.');
+            if (elements.metodoPagoSelect && elements.metodoPagoSelect.value === 'Tarjeta') {
+                const ultimos4Input = document.getElementById('ultimos_4_digitos');
+                const bancoInput = document.getElementById('banco_emisor');
+                if (ultimos4Input && !ultimos4Input.value.trim()) {
+                    e.preventDefault(); 
+                    ultimos4Input.focus(); 
+                    return alert('Debes ingresar los últimos 4 dígitos de la tarjeta.');
+                }
+                if (bancoInput && !bancoInput.value.trim()) {
+                    e.preventDefault(); 
+                    bancoInput.focus(); 
+                    return alert('Debes ingresar el banco emisor de la tarjeta.');
+                }
             }
-            if (bancoInput && !bancoInput.value.trim()) {
-                e.preventDefault(); 
-                bancoInput.focus(); 
-                return alert('Debes ingresar el banco emisor de la tarjeta.');
-            }
-        }
-        // 7. Serializar datos del carrito
-        const datos = [];
-        inputs.forEach(input => {
-            datos.push({ 
-                id: parseInt(input.dataset.id), 
-                cantidad: parseInt(input.value), 
-                precio: parseFloat(input.dataset.precio), 
-                color: input.dataset.color || '', 
-                talla: input.dataset.talla || '', 
-                comentario: input.dataset.comentario || '' 
+            const datos = [];
+            inputs.forEach(input => {
+                datos.push({ 
+                    id: parseInt(input.dataset.id), 
+                    cantidad: parseInt(input.value), 
+                    precio: parseFloat(input.dataset.precio), 
+                    color: input.dataset.color || '', 
+                    talla: input.dataset.talla || '', 
+                    comentario: input.dataset.comentario || '' 
+                });
             });
+            elements.ventaJSONInput.value = JSON.stringify(datos);
         });
-        elements.ventaJSONInput.value = JSON.stringify(datos);
-    });
-}
+    }
 });

@@ -269,7 +269,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     prodSeleccionado.id = data.variant.id;
                     prodSeleccionado.precio = parseFloat(data.variant.precio);
                     const stock = parseInt(data.variant.stock);
-                    if (stock > 0) actualizarEstadoBtnAgregar(true, stock);
+                     // 🔒 Limita la cantidad al stock disponible (stock - carrito)
+                const enCarrito = carrito.filter(i => i.id === data.variant.id).reduce((t, i) => t + i.cantidad, 0);
+                const disponibles = Math.max(0, stock - enCarrito);
+                if (productoCantidad) {
+                    productoCantidad.max = disponibles;
+                    if ((parseInt(productoCantidad.value, 10) || 1) > disponibles) productoCantidad.value = disponibles;
+                }
+                if (stock > 0) actualizarEstadoBtnAgregar(true, stock);
                     else {
                         actualizarEstadoBtnAgregar(false);
                         mostrarMensajeAlerta("⚠️ No hay stock de esta variante", "danger");
@@ -293,6 +300,15 @@ document.addEventListener("DOMContentLoaded", () => {
         actualizarEstadoBtnAgregar(false);
     }
 
+    // 🔒 BLOQUEO FÍSICO: la Cantidad no pasa del stock disponible
+    if (productoCantidad) {
+        productoCantidad.addEventListener("input", function () {
+            const max = parseInt(this.max, 10);
+            const v = parseInt(this.value, 10) || 0;
+            if (!isNaN(max) && v > max) { this.value = max; }
+            if (v < 1) this.value = 1;
+        });
+    }
     // 7. BOTÓN "+ AÑADIR"
     actualizarEstadoBtnAgregar(false);
     if (btnAgregar) {

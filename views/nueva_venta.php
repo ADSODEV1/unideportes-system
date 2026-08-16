@@ -18,8 +18,12 @@ include(__DIR__ . "/header.php");
     <?php include(__DIR__ . "/sidebar_control.php"); ?>
 
     <main class="main-content-panel">
+        <div class="page-header">
+    <div>
         <h1>Nueva Venta Directa</h1>
-        <hr class="divider">
+        <p>Venta al por menor con stock disponible. El cambio y los topes se validan automáticamente.</p>
+    </div>
+    </div>
 
         <?php if (!empty($_GET['error'])): ?>
             <div class="alert alert-error" style="margin-bottom: 18px; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; border-left: 
@@ -209,12 +213,11 @@ include(__DIR__ . "/header.php");
                     </div>
 
                     <!-- SECCIÓN EFECTIVO (PAGA CON Y CAMBIO) -->
+                    <div id="alertaPago" style="display:none; margin-bottom:10px; padding:8px 10px; border-radius:6px; font-size:0.85rem; font-weight:600;"></div>
                     <div id="seccionCambio" style="background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <label style="font-weight: 700; color: var(--text);">Paga con:</label>
-                            <input type="number" id="inputPagaCon" name="paga_con" min="0" step="0.01" style="width: 150px; padding: 8px; border: 1px solid 
-                            var(--border); border-radius: 6px; text-align: right;" 
-                            placeholder="$0.00">
+                        <input type="number" id="inputPagaCon" name="paga_con" min="0" max="50000000" step="0.01" style="width: 150px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; text-align: right;" placeholder="$0.00">
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 700; color: var(--text);">Cambio:</span>
@@ -276,4 +279,5 @@ include(__DIR__ . "/header.php");
 </div>
 
 <script src="../public/js/ventas.js?v=<?= filemtime(__DIR__ . '/../public/js/ventas.js') ?>"></script>
+<script src="../public/js/blindaje_pago.js?v=<?= filemtime(__DIR__ . '/../public/js/blindaje_pago.js') ?>"></script>
 <?php include(__DIR__ . "/footer.php"); ?>
