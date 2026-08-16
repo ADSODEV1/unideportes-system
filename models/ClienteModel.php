@@ -99,3 +99,23 @@ function eliminarCliente(PDO $pdo, int $id): bool {
     $stmt = $pdo->prepare("DELETE FROM clientes WHERE id = ?");
     return $stmt->execute([$id]);
 }
+
+/**
+ * Cambia el estado de un cliente entre 'activo' e 'inactivo'.
+ * Solo debe ser llamado desde controllers que ya hayan validado permisos de admin.
+ *
+ * @param PDO    $pdo    Conexión a la base de datos
+ * @param int    $id     ID del cliente
+ * @param string $estado Nuevo estado ('activo' o 'inactivo')
+ * @return bool  True si se actualizó correctamente, false en caso contrario
+ */
+function cambiarEstadoCliente(PDO $pdo, int $id, string $estado): bool {
+    // Validación de seguridad a nivel de modelo (Defensa en profundidad)
+    if (!in_array($estado, ['activo', 'inactivo'], true)) {
+        return false;
+    }
+    
+    $stmt = $pdo->prepare("UPDATE clientes SET estado = ? WHERE id = ?");
+    return $stmt->execute([$estado, $id]);
+}
+

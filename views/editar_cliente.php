@@ -2,7 +2,9 @@
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../models/ClienteModel.php';
 
+// Permitimos el acceso a los 3 roles, pero restringiremos la acción de cambiar estado
 require_login();
+
 $conn = app();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -11,20 +13,28 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $id = intval($_GET['id']);
 $cliente = obtenerClientePorId($conn, $id);
+
 if (!$cliente) {
     header('Location: clientes.php?error=cliente_no_encontrado');
     exit();
 }
 
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 🔐 Verificamos si el usuario actual es administrador
+    $es_admin = (($_SESSION['role'] ?? '') === 'admin');
+
     $data = [
         'nombre_completo'   => $_POST['nombre_completo'] ?? '',
         'nit_cedula'        => $_POST['nit_cedula'] ?? '',
         'telefono'          => $_POST['telefono'] ?? '',
         'email'             => $_POST['email'] ?? '',
         'tipo_cliente'      => $_POST['tipo_cliente'] ?? 'Individual',
-            'estado'            => $_POST['estado'] ?? 'activo',
+        
+        // 🔐 SEGURIDAD: Si NO es admin, se ignora el POST y se mantiene el estado actual de la BD
+        'estado'            => $es_admin ? ($_POST['estado'] ?? 'activo') : ($cliente['estado'] ?? 'activo'),
+        
         // NUEVO: Captura de campos de domicilio para actualizar el registro
         'direccion'         => !empty($_POST['direccion']) ? trim($_POST['direccion']) : null,
         'barrio'            => !empty($_POST['barrio']) ? trim($_POST['barrio']) : null,
@@ -48,15 +58,14 @@ include(__DIR__ . '/header.php');
     <?php include(__DIR__ . '/sidebar_control.php'); ?>
     <main class="main-content-panel">
         <h1>Editar Cliente</h1>
+        
         <?php if ($error): ?>
             <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <div style="margin-bottom: 18px; display: inline-flex; align-items: center; gap: 10px;">
             <span style="font-weight: 600; color: #334155;">Estado actual:</span>
-            <span style="padding: 6px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 700; color: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#14532d' :
-             '#7f1d1d' ?>; background: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#dcfce7' : '#fee2e2' ?>; border: 1px solid <?= ($cliente['estado'] ?? 'activo')
-              === 'activo' ? '#22c55e' : '#ef4444' ?>;">
+            <span style="padding: 6px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 700; color: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#14532d' : '#7f1d1d' ?>; background: <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#dcfce7' : '#fee2e2' ?>; border: 1px solid <?= ($cliente['estado'] ?? 'activo') === 'activo' ? '#22c55e' : '#ef4444' ?>;">
                 <?= ucfirst($cliente['estado'] ?? 'activo') ?>
             </span>
         </div>
@@ -82,11 +91,25 @@ include(__DIR__ . '/header.php');
             </select>
 
             <label>Estado</label>
-            <select name="estado">
-                <?php foreach (['activo' => 'Activo', 'inactivo' => 'Inactivo'] as $valor => $etiqueta): ?>
-                    <option value="<?= $valor ?>" <?= ($cliente['estado'] ?? 'activo') === $valor ? 'selected' : '' ?>><?= $etiqueta ?></option>
-                <?php endforeach; ?>
-            </select>
+            <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+                <!-- VISTA PARA ADMIN: Puede cambiar el estado -->
+                <select name="estado">
+                    <?php foreach (['activo' => 'Activo', 'inactivo' => 'Inactivo'] as $valor => $etiqueta): ?>
+                        <option value="<?= $valor ?>" <?= ($cliente['estado'] ?? 'activo') === $valor ? 'selected' : '' ?>>
+                            <?= $etiqueta ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php else: ?>
+                <!-- VISTA PARA VENDEDOR/COLABORADOR: Solo lectura -->
+                <select disabled style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; width: 100%;">
+                    <option value="<?= $cliente['estado'] ?? 'activo' ?>" selected>
+                        <?= ucfirst($cliente['estado'] ?? 'activo') ?> (Solo administradores pueden modificarlo)
+                    </option>
+                </select>
+                <!-- Campo oculto que envía el estado actual para mantener la estructura del formulario -->
+                <input type="hidden" name="estado" value="<?= $cliente['estado'] ?? 'activo' ?>">
+            <?php endif; ?>
 
             <div style="margin-top: 25px; margin-bottom: 15px; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
                 <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b;">Información Predeterminada de Envío / Domicilio</h3>
@@ -101,8 +124,7 @@ include(__DIR__ . '/header.php');
                 <input type="text" name="ciudad" value="<?= htmlspecialchars($cliente['ciudad'] ?: 'Sogamoso') ?>">
 
                 <label>Referencias / Observaciones de entrega</label>
-                <input type="text" name="referencia_entrega" value="<?= htmlspecialchars($cliente['referencia_entrega'] ?? '') ?>" placeholder="Ej: Frente al parque principal, 
-                casa de rejas negras">
+                <input type="text" name="referencia_entrega" value="<?= htmlspecialchars($cliente['referencia_entrega'] ?? '') ?>" placeholder="Ej: Frente al parque principal, casa de rejas negras">
             </div>
 
             <div class="form-actions">
@@ -114,3 +136,4 @@ include(__DIR__ . '/header.php');
 </div>
 
 <?php include(__DIR__ . '/footer.php'); ?>
+
