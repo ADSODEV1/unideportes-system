@@ -2,8 +2,9 @@
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../models/ClienteModel.php';
 
-require_login();
+// 🔐 Solo el admin puede cambiar el estado
 require_login(['admin']);
+
 $conn = app();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -18,7 +19,7 @@ $id = intval(request('id'));
 $nuevo_estado = request('estado');
 
 if (!cambiarEstadoCliente($conn, $id, $nuevo_estado)) {
-    redirect('clientes.php?error=no_actualizar_estado');
+        redirect('clientes.php?error=no_actualizar_estado');
 }
 
 redirect('clientes.php?msj=estado_actualizado');
