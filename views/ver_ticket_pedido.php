@@ -10,7 +10,7 @@ $pdo = app();
 $id = intval($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare("SELECT p.*, c.nombre_completo, c.nit_cedula, c.telefono,
-                       (SELECT SUM(monto) FROM pagos WHERE id_pg_pedido = p.id) as total_abonado
+                       (IFNULL(p.abono, 0) + IFNULL((SELECT SUM(monto) FROM pagos WHERE id_pg_pedido = p.id), 0)) as total_abonado
                        FROM pedidos p
                        INNER JOIN clientes c ON p.cliente_id = c.id
                        WHERE p.id = ?");
@@ -21,6 +21,7 @@ if (!$pedido) {
     die("El ticket solicitado no existe.");
 }
 
+<<<<<<< HEAD
 $stmtLin = $pdo->prepare("SELECT d.cantidad, d.precio_unitario, d.subtotal, d.color, d.talla,
                                  d.comentario_vendedor, t.tipo_prenda
                           FROM detalle_pedido d
@@ -30,6 +31,9 @@ $stmtLin->execute([$id]);
 $lineas = $stmtLin->fetchAll(PDO::FETCH_ASSOC);
 
 $saldo_pendiente = $pedido['total_pedido'] - $pedido['total_abonado'];
+=======
+$saldo_pendiente = max(0, floatval($pedido['total_pedido']) - floatval($pedido['total_abonado']));
+>>>>>>> 1b7727edc1006325c214538a3a56ea3d20a1fa92
 
 $rol = $_SESSION['role'] ?? 'vendedor';
 $panel_volver = ($rol === 'admin') ? 'panel_admin.php' : 'panel_vendedor.php';

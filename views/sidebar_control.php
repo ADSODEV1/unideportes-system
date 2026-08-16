@@ -32,11 +32,11 @@ $menuConfig = [
         ]
     ],
     'colaborador' => [
-        'titulo_area' => 'Área de Producción',
-        'principales' => [
-            'panel_vendedor.php' => 'Panel General',
-            'nuevo_pedido.php' => 'Pedido de Confección'
-        ],
+    'titulo_area' => 'Área de Producción',
+    'principales' => [
+        'panel_vendedor.php' => 'Panel General',
+        'nuevo_pedido.php' => 'Pedido de Confección'
+    ],
         'secundarios' => [
             'mis_pedidos.php' => 'Despacho / Entregas',
             'inventario.php' => 'Inventario'
@@ -88,7 +88,7 @@ try {
     $stmt = $pdo->query("
         SELECT COUNT(*) as total
         FROM pedidos
-        WHERE estado NOT IN ('Entregado', 'Terminado')
+       WHERE estado NOT IN ('Entregado', 'Terminado', 'Cancelado')
         AND fecha_entrega < CURDATE()
     ");
     $vencidos = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -96,9 +96,9 @@ try {
         $alertas[] = [
             'tipo' => 'danger',
             'icono' => '🚨',
-            'texto' => "{$vencidos['total']} pedido(s) vencido(s) en producción",
-            'url' => '/unideportes-system/views/pedidos_admin.php',
-        ];
+            'texto' => "{$vencidos['total']} pedido(s) vencido(s)",
+            'url' => '/unideportes-system/views/pedidos_admin.php'     
+           ];
     }
 
     // 2. PEDIDOS LISTOS PARA ENTREGAR (Terminado pero no Entregado)
@@ -108,8 +108,8 @@ try {
         $alertas[] = [
             'tipo' => 'success',
             'icono' => '📦',
-            'texto' => "{$pedidosListos} pedido(s) listo(s) para entregar",
-            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=terminados'
+            'texto' => "{$pedidosListos} pedido(s) listo(s)",
+            'url' => '/unideportes-system/views/mis_pedidos.php?alerta=listos'
         ];
     }
 
@@ -134,8 +134,7 @@ try {
 
     // 4. STOCK BAJO (solo admin, solo productos activos)
     if ($role === 'admin') {
-$stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND estado = 'activo'");
-        $stockBajo = $stmt->fetchColumn();
+$stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND estado = 'activo'");        $stockBajo = $stmt->fetchColumn();
         if ($stockBajo > 0) {
             $alertas[] = [
                 'tipo' => 'warning',

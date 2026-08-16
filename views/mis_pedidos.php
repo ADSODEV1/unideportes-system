@@ -13,6 +13,7 @@ require_login(['admin', 'colaborador', 'vendedor']);
 
 // Capturar filtro de búsqueda si existe
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+$alerta = isset($_GET['alerta']) ? trim($_GET['alerta']) : '';
 
 // Construir consulta dinámica alineada a unideportes-bd.sql 
 try {
@@ -46,26 +47,29 @@ try {
                        0
                    ) AS total_pedido_real,
                    p.estado,
-                   IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado,
-                   COALESCE(
-                       p.saldo_pendiente,
-                       GREATEST(
-                           COALESCE(
-                               (SELECT SUM(dp.cantidad * dp.precio_unitario)
-                                FROM detalle_pedido dp
-                                WHERE dp.pedido_id = p.id),
-                               p.total_pedido,
-                               0
-                           ) - IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0),
-                           0
-                       )
-                   ) AS saldo_pendiente_real
+                  (COALESCE(p.abono, 0) + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)) AS total_pagado,
+                  GREATEST(
+                      COALESCE(
+                          (SELECT SUM(dp.cantidad * dp.precio_unitario)
+                           FROM detalle_pedido dp
+                           WHERE dp.pedido_id = p.id),
+                          p.total_pedido,
+                          0
+                      ) - (COALESCE(p.abono, 0) + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)),
+                      0
+                  ) AS saldo_pendiente_real
             FROM pedidos p
             INNER JOIN clientes c ON p.cliente_id = c.id
             WHERE p.estado != 'Entregado'";
 
     if ($busqueda !== '') {
         $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda)";
+    }
+
+    if ($alerta === 'vencidos') {
+        $sql .= " AND p.fecha_entrega < CURDATE()";
+    } elseif ($alerta === 'listos') {
+        $sql .= " AND LOWER(TRIM(p.estado)) = 'terminado'";
     }
 
     $sql .= " ORDER BY p.id DESC";

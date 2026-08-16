@@ -50,10 +50,10 @@ try {
         throw new Exception("El pedido no existe.");
     }
 
-    $saldo_matematico = max(0, floatval($valores['total_pedido']) - (floatval($valores['abono_inicial']) + floatval($valores['total_pagado'])));
-    $saldo_calculado = isset($valores['saldo_pendiente_guardado'])
-        ? max(0, floatval($valores['saldo_pendiente_guardado']))
-        : $saldo_matematico;
+    $saldo_calculado = max(
+        0,
+        floatval($valores['total_pedido']) - (floatval($valores['abono_inicial']) + floatval($valores['total_pagado']))
+    );
 
     if ($accion === 'abonar') {
         // Registrar pago parcial o total sin entregar automáticamente.
