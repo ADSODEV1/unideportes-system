@@ -283,7 +283,6 @@ $modulosJSON = json_encode(array_values($modulosFiltrados));
     transition: all 0.3s;
 }
 
-/* BUSCADOR INTELIGENTE */
 .sidebar-search {
     position: relative;
     padding: 0 20px 15px;
@@ -619,4 +618,122 @@ function toggleSection(name) {
                     url: '/unideportes-system/views/' + mod.url,
                     icono: mod.icono,
                     desc: mod.desc,
-                    prioridad: nombreMatch ? 1
+                    prioridad: nombreMatch ? 1 : 2
+                });
+            }
+        });
+        
+        try {
+            const resClientes = await fetch(`../controllers/buscar_clientes_ajax.php?q=${encodeURIComponent(query)}`);
+            if (resClientes.ok) {
+                const clientes = await resClientes.json();
+                if (Array.isArray(clientes)) {
+                    clientes.forEach(cli => {
+                        results.push({
+                            tipo: 'cliente',
+                            nombre: cli.nombre_completo,
+                            url: `/unideportes-system/views/clientes.php?search=${encodeURIComponent(cli.nombre_completo)}`,
+                            icono: '👤',
+                            desc: `NIT: ${cli.nit_cedula}`,
+                            prioridad: 3
+                        });
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('No se pudieron cargar clientes:', e.message);
+        }
+        
+        try {
+            const resProductos = await fetch(`../controllers/buscar_productos_ajax.php?q=${encodeURIComponent(query)}`);
+            if (resProductos.ok) {
+                const productos = await resProductos.json();
+                if (Array.isArray(productos)) {
+                    productos.forEach(prod => {
+                        results.push({
+                            tipo: 'producto',
+                            nombre: prod.nombre,
+                            url: `/unideportes-system/views/inventario.php?q=${encodeURIComponent(prod.nombre)}`,
+                            icono: '📦',
+                            desc: `Ref: ${prod.referencia} • Stock: ${prod.stock}`,
+                            prioridad: 3
+                        });
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('No se pudieron cargar productos:', e.message);
+        }
+        
+        results.sort((a, b) => a.prioridad - b.prioridad);
+        renderResults(results.slice(0, 10));
+    }
+    
+    function renderResults(results) {
+        searchResults.innerHTML = '';
+        
+        if (results.length === 0) {
+            searchResults.innerHTML = '<div class="search-no-results">No se encontraron resultados</div>';
+            searchResults.classList.add('active');
+            return;
+        }
+        
+        results.forEach(result => {
+            const div = document.createElement('div');
+            div.className = `search-result-item result-${result.tipo}`;
+            
+            const badgeClass = `badge-${result.tipo}`;
+            const badgeText = result.tipo === 'modulo' ? 'Módulo' : 
+                             result.tipo === 'cliente' ? 'Cliente' : 'Producto';
+            
+            div.innerHTML = `
+                <span class="result-icon">${result.icono}</span>
+                <div class="result-info">
+                    <div class="result-name">${escapeHtml(result.nombre)}</div>
+                    <div class="result-desc">${escapeHtml(result.desc)}</div>
+                </div>
+                <span class="result-type-badge ${badgeClass}">${badgeText}</span>
+            `;
+            
+            div.onclick = () => {
+                window.location.href = result.url;
+            };
+            
+            searchResults.appendChild(div);
+        });
+        
+        searchResults.classList.add('active');
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.sidebar-search')) {
+            searchResults.classList.remove('active');
+        }
+    });
+    
+    smartSearch.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchResults.classList.remove('active');
+            smartSearch.blur();
+        }
+        if (e.key === 'Enter') {
+            const firstResult = searchResults.querySelector('.search-result-item');
+            if (firstResult) firstResult.click();
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            smartSearch.focus();
+            smartSearch.select();
+        }
+    });
+})();
+</script>
