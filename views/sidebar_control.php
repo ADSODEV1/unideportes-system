@@ -97,7 +97,7 @@ try {
             'tipo' => 'danger',
             'icono' => '🚨',
             'texto' => "{$vencidos['total']} pedido(s) vencido(s) en producción",
-            'url' => '/unideportes-system/views/mis_pedidos.php?filtro=vencidos'
+            'url' => '/unideportes-system/views/pedidos_admin.php',
         ];
     }
 
@@ -134,7 +134,7 @@ try {
 
     // 4. STOCK BAJO (solo admin, solo productos activos)
     if ($role === 'admin') {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND activo = 1");
+$stmt = $pdo->query("SELECT COUNT(*) FROM productos WHERE stock <= 5 AND stock > 0 AND estado = 'activo'");
         $stockBajo = $stmt->fetchColumn();
         if ($stockBajo > 0) {
             $alertas[] = [
