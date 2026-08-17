@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Busca un cliente o crea uno nuevo.");
         if ($fecha_entrega === '' || strtotime($fecha_entrega) === false)
             throw new Exception("Fecha de entrega obligatoria y válida.");
+        if (strtotime($fecha_entrega) > strtotime('+14 days'))
+        throw new Exception("La fecha de entrega máxima es de 2 semanas desde hoy.");
         if (!in_array($metodo, ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro'], true)) $metodo = 'Efectivo';
 
         // ⚙️ Reglas de negocio EN SERVIDOR: líneas, mínimo 35, foto de precios, total
@@ -154,8 +156,12 @@ include(__DIR__ . "/header.php");
 <?php include(__DIR__ . "/sidebar_control.php"); ?>
 <main class="main-content-panel">
 
-<h1>Nuevo Pedido de Confección</h1>
-<hr class="divider">
+<div class="page-header">
+    <div>
+        <h1> Nuevo Pedido de Confección</h1>
+        <p>Órdenes a medida: mínimo <?= CONFECCION_CANTIDAD_MINIMA ?> unidades, abono del <?= CONFECCION_ABONO_MINIMO_PORCENTAJE ?>% y entrega máximo en 2 semanas.</p>
+    </div>
+</div>
 
 <?php if ($error): ?>
 <div style="margin-bottom: 18px; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; border-left: 4px solid #ef4444;">
@@ -217,7 +223,7 @@ include(__DIR__ . "/header.php");
 
             <div style="margin-top: 15px;">
                 <label><strong>Fecha de entrega *</strong></label>
-                <input type="date" name="fecha_entrega" min="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($_POST['fecha_entrega'] ?? '') ?>" required
+                <input type="date" name="fecha_entrega" min="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d', strtotime('+14 days')) ?>" value="<?= htmlspecialchars($_POST['fecha_entrega'] ?? '') ?>" required
                        style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">
             </div>
         </div>
@@ -391,17 +397,19 @@ if (tipoEntrega) {
 /* ---------- Carrito de prendas ---------- */
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 function fmt(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+function money(n) { return '$' + Math.round(n).toLocaleString('es-CO'); }
 
 function agregarLinea(l) {
     l = l || {};
-    var id    = l.id || parseInt(selPrenda.value, 10) || 0;
+    var seleccionado = (l.id !== undefined) ? true : (selPrenda.selectedIndex > 0);
+    var id    = (l.id !== undefined) ? parseInt(l.id, 10) : parseInt(selPrenda.value, 10);
     var cant  = l.cant || parseInt(document.getElementById('inpCant').value, 10) || 0;
     var color = (l.color !== undefined ? l.color : document.getElementById('inpColor').value).trim();
     var talla = (l.talla !== undefined ? l.talla : document.getElementById('inpTalla').value).trim();
     var com   = (l.com   !== undefined ? l.com   : document.getElementById('inpCom').value).trim();
 
-    if (!id || cant <= 0) {
-        selPrenda.style.borderColor = id ? 'var(--border)' : 'var(--danger, #dc2626)';
+    if (!seleccionado || isNaN(id) || cant <= 0) {
+        selPrenda.style.borderColor = seleccionado ? 'var(--border)' : 'var(--danger, #dc2626)';
         return;
     }
     var opt = selPrenda.querySelector('option[value="' + id + '"]');
@@ -430,6 +438,7 @@ function agregarLinea(l) {
     tbody.appendChild(tr);
 
     selPrenda.value = '';
+    selPrenda.style.borderColor = 'var(--border)';
     document.getElementById('inpCant').value = 1;
     document.getElementById('inpColor').value = '';
     document.getElementById('inpTalla').value = '';
@@ -440,28 +449,59 @@ function agregarLinea(l) {
 var PCT_ABONO = <?= (int)CONFECCION_ABONO_MINIMO_PORCENTAJE ?>;
 var TOTAL_ACTUAL = 0;
 
-function money(n) { return '$' + Math.round(n).toLocaleString('es-CO'); }
-
+/* ---------- 🔒 ABONO BLINDADO (límite = total del momento) ---------- */
 function pintarAbono() {
     var inp = document.getElementById('inpAbono');
     var hint = document.getElementById('hint-abono');
     if (!inp) return;
-
     var min = TOTAL_ACTUAL * PCT_ABONO / 100;
     inp.min = min.toFixed(2);
     var val = parseFloat(inp.value) || 0;
-
     if (!hint) return;
+
     if (TOTAL_ACTUAL <= 0) {
+        if (val > 0) { inp.value = ''; val = 0; }
         hint.textContent = 'Agrega prendas para ver el abono mínimo.';
+        hint.style.color = 'var(--danger, #dc2626)';
+    } else if (val > TOTAL_ACTUAL) {
+        hint.textContent = '❌ El abono no puede superar el total (' + money(TOTAL_ACTUAL) + ').';
+        hint.style.color = 'var(--danger, #dc2626)';
+    } else if (val > 0 && val % 50 !== 0) {
+        hint.textContent = '❌ El efectivo debe ser un valor terminado en 00 o 50 (ej. $50.000, $100.050).';
         hint.style.color = 'var(--danger, #dc2626)';
     } else if (val < min) {
         hint.textContent = '⚠ Abono mínimo (' + PCT_ABONO + '%): ' + money(min);
         hint.style.color = 'var(--danger, #dc2626)';
     } else {
-        hint.textContent = '✔ Abono mínimo (' + PCT_ABONO + '%): ' + money(min);
+        hint.textContent = '✔ Abono válido (mínimo ' + PCT_ABONO + '%: ' + money(min) + ')';
         hint.style.color = '#059669';
     }
+}
+
+var ultimoAbonoValido = 0;
+function revisarAbono() {
+    var inp = document.getElementById('inpAbono');
+    if (!inp) return;
+    var v = parseFloat(inp.value) || 0;
+    var total = TOTAL_ACTUAL;
+
+    if (total <= 0) {
+        if (v > 0) { inp.value = ''; ultimoAbonoValido = 0; }
+        pintarAbono();
+        return;
+    }
+    // 🔒 Bloqueo físico: no deja entrar dígitos que superen el total o que ya hayan cubierto el total
+    if (v > total || (ultimoAbonoValido >= total && v > ultimoAbonoValido)) {
+        inp.value = ultimoAbonoValido > 0 ? String(ultimoAbonoValido) : '';
+        var hint = document.getElementById('hint-abono');
+        if (hint) {
+            hint.textContent = '⚠️ Dígito no registrado: el abono no puede superar el total del pedido (' + money(total) + ').';
+            hint.style.color = '#92400e';
+        }
+        return;
+    }
+    ultimoAbonoValido = v;
+    pintarAbono();
 }
 
 function recalc() {
@@ -482,7 +522,7 @@ function recalc() {
         badge.style.color = 'var(--danger, #dc2626)';
     }
     TOTAL_ACTUAL = total;
-    pintarAbono();
+    revisarAbono();
 }
 
 var btnAgregarLinea = document.getElementById('btnAgregarLinea');
@@ -495,8 +535,35 @@ tbody.addEventListener('click', function (e) {
 
 var inpAbono = document.getElementById('inpAbono');
 if (inpAbono) {
-    inpAbono.addEventListener('input', pintarAbono);
+    inpAbono.addEventListener('input', revisarAbono);
 }
+if (selPrenda) {
+    selPrenda.addEventListener('change', function () { this.style.borderColor = 'var(--border)'; });
+}
+
+/* ---------- 🔒 VALIDACIÓN AL ENVIAR ---------- */
+document.getElementById('form-pedido').addEventListener('submit', function (e) {
+    var inp = document.getElementById('inpAbono');
+    var v = parseFloat(inp && inp.value) || 0;
+    var min = TOTAL_ACTUAL * PCT_ABONO / 100;
+    var unidades = 0;
+    var rows = tbody.querySelectorAll('tr');
+    for (var i = 0; i < rows.length; i++) {
+        unidades += parseInt(rows[i].getAttribute('data-cant'), 10) || 0;
+    }
+
+    if (unidades < MIN) {
+        e.preventDefault();
+        alert('⚠️ El pedido requiere mínimo ' + MIN + ' unidades.');
+        return;
+    }
+    if (TOTAL_ACTUAL > 0) {
+        if (v <= 0) { e.preventDefault(); alert('⚠️ Ingresa el abono inicial.'); if (inp) inp.focus(); return; }
+        if (v % 50 !== 0) { e.preventDefault(); alert('❌ El efectivo debe ser un valor terminado en 00 o 50.'); return; }
+        if (v < min) { e.preventDefault(); alert('⚠️ Abono mínimo ' + PCT_ABONO + '%: ' + money(min)); return; }
+        if (v > TOTAL_ACTUAL) { e.preventDefault(); alert('❌ El abono no puede superar el total del pedido.'); return; }
+    }
+}, true);
 
 if (POSTED.length) { POSTED.forEach(agregarLinea); }
 recalc();

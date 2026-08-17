@@ -2,7 +2,6 @@
 (function () {
     'use strict';
     var CAMBIO_BASE = 100000;      // vueltas máximas en ventas pequeñas
-    var TOPE_ABSOLUTO = 20000000;  // tope absoluto por venta en efectivo
 
     var form = document.getElementById('ventaForm') || document.getElementById('formVentaMayorista');
     var inputPagaCon = document.getElementById('inputPagaCon');
@@ -20,6 +19,16 @@
     }
 
     function fmt(n) { return Math.round(n).toLocaleString('es-CO'); }
+        function sugerirBilletes(cambio) {
+        var B = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+        var out = [];
+        var rest = Math.round(cambio);
+        for (var i = 0; i < B.length && rest > 0; i++) {
+            var q = Math.floor(rest / B[i]);
+            if (q > 0) { out.push(q + '×$' + B[i].toLocaleString('es-CO')); rest -= q * B[i]; }
+        }
+        return out.join(' + ');
+    }
     function boton() { return form.querySelector('button[type="submit"]'); }
     function billetesOK(m) { return Number.isInteger(m) && m % 50 === 0; }
     function totalActual() { return parseFloat(inputTotal.value) || 0; }
@@ -27,7 +36,7 @@
     function maxPermitido() {
         var t = totalActual();
         if (t <= 0) return 0;
-        return Math.min(t + cambioMaximo(t), TOPE_ABSOLUTO);
+                return t + cambioMaximo(t);
     }
     function pintar(msg, tipo) {
         if (!msg) { caja.style.display = 'none'; return; }
@@ -57,7 +66,10 @@
         if (v <= 0) { pintar('⚠️ Ingresa el monto recibido del cliente.', 'warning'); colorCambioDespues(false); if (b) b.disabled = true; return false; }
         if (!billetesOK(v)) { pintar('❌ El monto no coincide con el efectivo de Colombia: debe ser un valor terminado en 00 o 50 (ej. $50.000, $100.050).', 'danger'); colorCambioDespues(false); if (b) b.disabled = true; return false; }
         if (v < total) { pintar('❌ Falta dinero: faltan $' + fmt(total - v) + '.', 'danger'); colorCambioDespues(false); if (b) b.disabled = true; return false; }
-        pintar('✅ Pago válido. Cambio: $' + fmt(v - total), 'success');
+                var msgExito = '✅ Pago válido. Cambio: $' + fmt(v - total);
+        var billetes = sugerirBilletes(v - total);
+        if (billetes) msgExito += ' → 💡 ' + billetes;
+        pintar(msgExito, 'success');
         colorCambioDespues(true); if (b) b.disabled = false;
         return true;
     }
@@ -74,7 +86,7 @@
         if (v > max || (ultimoValido >= total && v > ultimoValido)) {
             inputPagaCon.value = ultimoValido > 0 ? String(ultimoValido) : '';
             validar();
-            pintar('⚠️ Dígito bloqueado: máximo permitido $' + fmt(max) + ' (total $' + fmt(total) + ' + vueltas máx. $' + fmt(cambioMaximo(total)) + ').', 'warning');
+            pintar('⚠️ No registré ' + fmt(v) + ': lo máximo recibible es $' + fmt(max) + ' (total $' + fmt(total) + ' + vueltas hasta $' + fmt(cambioMaximo(total)) + '). Valor conservado: $' + fmt(parseFloat(inputPagaCon.value) || 0) + '.', 'warning'); setTimeout(function(){ validar(); }, 4000);
             return;
         }
         ultimoValido = v;

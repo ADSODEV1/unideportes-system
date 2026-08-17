@@ -72,8 +72,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $paga_con = !empty($_POST['paga_con']) ? floatval($_POST['paga_con']) : 0;
         $cambio = 0.00;
-        if ($metodo_pago === 'Efectivo' && $paga_con >= $total_final) {
-            $cambio = $paga_con - $total_final;
+
+        // 🧠 BLINDAJE DE CAJA EN SERVIDOR (mismas reglas que el frontend)
+        if ($metodo_pago === 'Efectivo' && $paga_con > 0) {
+        $cambio_max   = max(100000, round($total_final * 0.05));
+        $paga_con_max = $total_final + $cambio_max;
+
+        if ($paga_con < $total_final) {
+        throw new Exception("El efectivo recibido ($" . number_format($paga_con, 0, ',', '.') . ") es menor al total a pagar.");
+        }
+        if ($paga_con > $paga_con_max) {
+        throw new Exception("Monto excesivo para esta venta. Máximo recibible en efectivo: $" . number_format($paga_con_max, 0, ',', '.') . ". Para montos mayores use Tarjeta o Transferencia.");
+        }
+        if (fmod($paga_con, 50) != 0) {
+        throw new Exception("El efectivo debe ser un valor terminado en 00 o 50 (ej. $50.000, $100.050).");
+        }
+         $cambio = $paga_con - $total_final;
         }
 
         $vendedor_id = $_SESSION['user_id'] ?? ($_SESSION['usuario_id'] ?? 1);
