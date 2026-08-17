@@ -30,10 +30,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$crear_cliente && $cliente_id <= 0)
             throw new Exception("Busca un cliente o crea uno nuevo.");
-        if ($fecha_entrega === '' || strtotime($fecha_entrega) === false)
-            throw new Exception("Fecha de entrega obligatoria y válida.");
-        if (strtotime($fecha_entrega) > strtotime('+14 days'))
-        throw new Exception("La fecha de entrega máxima es de 2 semanas desde hoy.");
+        if ($fecha_entrega === '' || strtotime($fecha_entrega) === false) {
+        throw new Exception("Fecha de entrega obligatoria y válida.");
+        }
+
+        $fecha_min_ts = strtotime('+10 days');
+        $fecha_max_ts = strtotime('+25 days');
+        $fecha_sel = strtotime($fecha_entrega);
+
+        if ($fecha_sel < $fecha_min_ts) {
+            throw new Exception("El tiempo mínimo de producción es de 10 días. Por favor, seleccione una fecha posterior.");
+        }
+        if ($fecha_sel > $fecha_max_ts) {
+            throw new Exception("La fecha de entrega excede el máximo de 25 días permitidos. Para pedidos especiales, contacte a producción.");
+        }
         if (!in_array($metodo, ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro'], true)) $metodo = 'Efectivo';
 
         // ⚙️ Reglas de negocio EN SERVIDOR: líneas, mínimo 35, foto de precios, total
@@ -159,7 +169,8 @@ include(__DIR__ . "/header.php");
 <div class="page-header">
     <div>
         <h1> Nuevo Pedido de Confección</h1>
-        <p>Órdenes a medida: mínimo <?= CONFECCION_CANTIDAD_MINIMA ?> unidades, abono del <?= CONFECCION_ABONO_MINIMO_PORCENTAJE ?>% y entrega máximo en 2 semanas.</p>
+        <p>Órdenes a medida: mínimo <?= CONFECCION_CANTIDAD_MINIMA ?> unidades <strong>por prenda</strong>
+        , abono del <?= CONFECCION_ABONO_MINIMO_PORCENTAJE ?>% y entrega máximo en 15 días.</p>
     </div>
 </div>
 
@@ -220,12 +231,27 @@ include(__DIR__ . "/header.php");
                     </div>
                 </div>
             </div>
-
-            <div style="margin-top: 15px;">
-                <label><strong>Fecha de entrega *</strong></label>
-                <input type="date" name="fecha_entrega" min="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d', strtotime('+14 days')) ?>" value="<?= htmlspecialchars($_POST['fecha_entrega'] ?? '') ?>" required
-                       style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">
-            </div>
+        <div style="margin-top: 15px;">
+            <label><strong>Fecha de entrega *</strong></label>
+            <?php
+            // Definir rango válido para el calendario
+            $html_min = date('Y-m-d', strtotime('+10 days'));      // Mínimo 10 días
+            $html_max = date('Y-m-d', strtotime('+25 days'));      // Máximo 25 días
+            $html_defecto = date('Y-m-d', strtotime('+15 days'));  // Estándar: 15 días
+            
+            // Si el formulario fue enviado con error, mantiene la fecha elegida; si no, pone 15 días por defecto
+            $fecha_valor = $_POST['fecha_entrega'] ?? $html_defecto;
+            ?>
+            <input type="date" name="fecha_entrega" 
+                min="<?= $html_min ?>" 
+                max="<?= $html_max ?>" 
+                value="<?= htmlspecialchars($fecha_valor) ?>" 
+                required
+                style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);">
+            <small style="display:block; margin-top:4px; font-size:0.8rem; color: var(--text-light);">
+                📅 Tiempo de entrega: entre <?= date('d/m/Y', strtotime('+10 days')) ?> y <?= date('d/m/Y', strtotime('+25 days')) ?> (Estándar: 15 días)
+            </small>
+        </div>
         </div>
 
         <div style="flex: 1;">
@@ -262,7 +288,7 @@ include(__DIR__ . "/header.php");
         <div><label><strong>Color:</strong></label><input type="text" id="inpColor" maxlength="50" placeholder="Ej: Rojo" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
         <div><label><strong>Talla:</strong></label><input type="text" id="inpTalla" maxlength="10" placeholder="Ej: M" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
         <div><label><strong>Comentario:</strong></label><input type="text" id="inpCom" maxlength="500" placeholder="Ej: Logo bordado" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px;"></div>
-        <div><label><strong>Cantidad:</strong></label><input type="number" id="inpCant" value="1" min="1" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; text-align: center;"></div>
+        <div><label><strong>Cantidad:</strong></label><input type="number" id="inpCant" value="<?= CONFECCION_CANTIDAD_MINIMA ?>" min="<?= CONFECCION_CANTIDAD_MINIMA ?>" style="width:100%; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; text-align: center;"></div>
         <button type="button" id="btnAgregarLinea" style="padding: 8px 15px; background: var(--success); color: white; border: none; border-radius: 4px; font-weight: bold; cursor:pointer;">+ Añadir</button>
     </div>
 
@@ -408,8 +434,9 @@ function agregarLinea(l) {
     var talla = (l.talla !== undefined ? l.talla : document.getElementById('inpTalla').value).trim();
     var com   = (l.com   !== undefined ? l.com   : document.getElementById('inpCom').value).trim();
 
-    if (!seleccionado || isNaN(id) || cant <= 0) {
+    if (!seleccionado || isNaN(id) || cant < MIN) {
         selPrenda.style.borderColor = seleccionado ? 'var(--border)' : 'var(--danger, #dc2626)';
+        if (cant > 0 && cant < MIN) alert('⚠️ La cantidad mínima por prenda es ' + MIN + ' unidades.');
         return;
     }
     var opt = selPrenda.querySelector('option[value="' + id + '"]');
@@ -421,10 +448,12 @@ function agregarLinea(l) {
     var tr = document.createElement('tr');
     tr.setAttribute('data-cant', cant);
     tr.setAttribute('data-sub', sub);
+    
+    // 🔴 CAMBIO: La cantidad ahora es un input editable directamente en el carrito
     tr.innerHTML =
         '<td>' + esc(nombre) +
             '<input type="hidden" name="tipo_prenda_id[]" value="' + id + '">' +
-            '<input type="hidden" name="cantidad_linea[]" value="' + cant + '">' +
+            '<input type="hidden" name="cantidad_linea[]" value="' + cant + '" class="hidden-cant">' +
             '<input type="hidden" name="color_linea[]" value="' + esc(color) + '">' +
             '<input type="hidden" name="talla_linea[]" value="' + esc(talla) + '">' +
             '<input type="hidden" name="comentario_linea[]" value="' + esc(com) + '"></td>' +
@@ -432,14 +461,19 @@ function agregarLinea(l) {
         '<td>' + (esc(talla) || '—') + '</td>' +
         '<td>' + (esc(com) || '') + '</td>' +
         '<td style="text-align:right;">' + fmt(precio) + '</td>' +
-        '<td style="text-align:center;">' + cant + '</td>' +
-        '<td style="text-align:right; font-weight:700;">' + fmt(sub) + '</td>' +
+        '<td style="text-align:center;">' +
+            '<input type="number" class="inp-cant-fila" value="' + cant + '" min="' + MIN + '" ' +
+            'style="width: 65px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 4px;" ' +
+            'onchange="actualizarCantidadFila(this, ' + precio + ')">' +
+        '</td>' +
+        '<td style="text-align:right; font-weight:700;" class="td-subtotal">' + fmt(sub) + '</td>' +
         '<td style="text-align:center;"><button type="button" class="btn-quitar" style="background: var(--danger, #dc2626); color:#fff; border:none; border-radius:4px; padding:4px 9px; cursor:pointer;">✕</button></td>';
+    
     tbody.appendChild(tr);
 
     selPrenda.value = '';
     selPrenda.style.borderColor = 'var(--border)';
-    document.getElementById('inpCant').value = 1;
+    document.getElementById('inpCant').value = MIN;
     document.getElementById('inpColor').value = '';
     document.getElementById('inpTalla').value = '';
     document.getElementById('inpCom').value = '';
@@ -504,6 +538,35 @@ function revisarAbono() {
     pintarAbono();
 }
 
+// 🔴 NUEVA FUNCIÓN: Permite editar la cantidad directamente en el carrito
+function actualizarCantidadFila(input, precio) {
+    var nuevaCant = parseInt(input.value, 10);
+    
+    // Validar que no baje del mínimo permitido
+    if (isNaN(nuevaCant) || nuevaCant < MIN) {
+        alert('⚠️ La cantidad mínima por prenda es ' + MIN + ' unidades.');
+        input.value = MIN; // Revierte al mínimo automáticamente
+        nuevaCant = MIN;
+    }
+    
+    var tr = input.closest('tr');
+    
+    // 1. Actualizar el input oculto que se enviará al servidor (PHP)
+    var hiddenCant = tr.querySelector('.hidden-cant');
+    hiddenCant.value = nuevaCant;
+    
+    // 2. Actualizar los atributos de datos para los cálculos de JS
+    tr.setAttribute('data-cant', nuevaCant);
+    tr.setAttribute('data-sub', nuevaCant * precio);
+    
+    // 3. Actualizar visualmente el subtotal de esa fila
+    var tdSubtotal = tr.querySelector('.td-subtotal');
+    tdSubtotal.textContent = fmt(nuevaCant * precio);
+    
+    // 4. Recalcular totales generales del pedido
+    recalc();
+}
+
 function recalc() {
     var unidades = 0, total = 0;
     var rows = tbody.querySelectorAll('tr');
@@ -518,7 +581,7 @@ function recalc() {
         badge.textContent = '✔ Cumple mínimo de ' + MIN + ' unidades';
         badge.style.color = '#059669';
     } else {
-        badge.textContent = '⚠ Mínimo ' + MIN + ' unidades';
+        badge.textContent = '⚠ Mínimo ' + MIN + ' unidades por cada tipo de prenda';
         badge.style.color = 'var(--danger, #dc2626)';
     }
     TOTAL_ACTUAL = total;
@@ -546,17 +609,18 @@ document.getElementById('form-pedido').addEventListener('submit', function (e) {
     var inp = document.getElementById('inpAbono');
     var v = parseFloat(inp && inp.value) || 0;
     var min = TOTAL_ACTUAL * PCT_ABONO / 100;
-    var unidades = 0;
+    
+    // 🔴 NUEVA VALIDACIÓN: Revisar que CADA fila tenga el mínimo
     var rows = tbody.querySelectorAll('tr');
     for (var i = 0; i < rows.length; i++) {
-        unidades += parseInt(rows[i].getAttribute('data-cant'), 10) || 0;
+        var cantFila = parseInt(rows[i].getAttribute('data-cant'), 10) || 0;
+        if (cantFila < MIN) {
+            e.preventDefault();
+            alert('⚠️ Cada tipo de prenda debe tener un mínimo de ' + MIN + ' unidades. Revisa las cantidades en el carrito.');
+            return;
+        }
     }
 
-    if (unidades < MIN) {
-        e.preventDefault();
-        alert('⚠️ El pedido requiere mínimo ' + MIN + ' unidades.');
-        return;
-    }
     if (TOTAL_ACTUAL > 0) {
         if (v <= 0) { e.preventDefault(); alert('⚠️ Ingresa el abono inicial.'); if (inp) inp.focus(); return; }
         if (v % 50 !== 0) { e.preventDefault(); alert('❌ El efectivo debe ser un valor terminado en 00 o 50.'); return; }
