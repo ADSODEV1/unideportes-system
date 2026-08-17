@@ -19,7 +19,7 @@ include(__DIR__ . '/header.php');
     <main class="main-content-panel">
         <div class="page-header">
             <div>
-                <h1>🧵 Venta Mayorista</h1>
+                <h1>Venta Mayorista</h1>
                 <p>Ventas por volumen con descuento automático (10+ unid. = 5%, 20+ unid. = 10%).</p>
             </div>
         </div>
