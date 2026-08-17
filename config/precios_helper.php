@@ -31,20 +31,29 @@ function precio_base_por_id(PDO $pdo, int $id): array
 }
 
 /**
- * Valida y cotiza las líneas que llegan del formulario.
- * El navegador NUNCA envía precios ni totales: todo se calcula aquí.
- */
+* Valida y cotiza las líneas que llegan del formulario.
+* El navegador NUNCA envía precios ni totales: todo se calcula aquí.
+*/
 function construir_lineas_pedido(PDO $pdo, array $post): array
 {
     $lineas = [];
     foreach (($post['tipo_prenda_id'] ?? []) as $i => $id) {
         $id       = intval($id);
         $cantidad = intval($post['cantidad_linea'][$i] ?? 0);
+        
         if ($id <= 0 || $cantidad <= 0) continue; // fila vacía del formulario
+
+        // 🔴 NUEVA REGLA: Mínimo 35 unidades POR CADA TIPO DE PRENDA
+        if ($cantidad < CONFECCION_CANTIDAD_MINIMA) {
+            $stmt = $pdo->prepare("SELECT tipo_prenda FROM precios_base_confeccion WHERE id = ?");
+            $stmt->execute([$id]);
+            $nombrePrenda = $stmt->fetchColumn() ?: 'la prenda seleccionada';
+            throw new Exception("Cada tipo de prenda debe tener un mínimo de " . CONFECCION_CANTIDAD_MINIMA . " unidades. Revisa la cantidad de: " . $nombrePrenda);
+        }
 
         $prenda = precio_base_por_id($pdo, $id);
         $precio = floatval($prenda['precio_base']); // foto del precio de hoy
-
+        
         $lineas[] = [
             'tipo_prenda_id'  => $id,
             'tipo_prenda'     => $prenda['tipo_prenda'],
@@ -56,17 +65,12 @@ function construir_lineas_pedido(PDO $pdo, array $post): array
             'comentario'      => mb_substr(trim($post['comentario_linea'][$i] ?? ''), 0, 500),
         ];
     }
-
+    
     if (empty($lineas)) {
         throw new Exception("Agrega al menos una línea con tipo de prenda y cantidad.");
     }
-
-    $unidades = array_sum(array_column($lineas, 'cantidad'));
-    if ($unidades < CONFECCION_CANTIDAD_MINIMA) {
-        throw new Exception("El pedido mínimo es de " . CONFECCION_CANTIDAD_MINIMA
-            . " unidades (llevas $unidades).");
-    }
-
+    
+    // Ya no necesitamos validar la suma total, porque cada línea ya cumple el mínimo.
     return $lineas;
 }
 

@@ -10,11 +10,12 @@ $pdo = app();
 $id = intval($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare("SELECT p.*, c.nombre_completo, c.nit_cedula, c.telefono,
-                       (IFNULL(p.abono, 0) + IFNULL((SELECT SUM(monto) FROM pagos WHERE id_pg_pedido = p.id), 0)) as total_abonado
+                       COALESCE((SELECT SUM(monto) FROM pagos WHERE id_pg_pedido = p.id), 0) as total_abonado
                        FROM pedidos p
                        INNER JOIN clientes c ON p.cliente_id = c.id
                        WHERE p.id = ?");
 $stmt->execute([$id]);
+
 $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$pedido) {
