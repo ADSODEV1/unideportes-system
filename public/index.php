@@ -1,5 +1,5 @@
 <?php
-// public/index.php - Página de inicio de sesión
+// public/index.php - Página de inicio y login unificados
 session_start();
 require_once __DIR__ . '/../config/connection.php';
 ?>
@@ -9,13 +9,10 @@ require_once __DIR__ . '/../config/connection.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unideportes - Iniciar sesión</title>
-    <link rel="stylesheet" href="/unideportes-system/assets/CSS/style.css?v=1">
-    
     <style>
         /* ============================================
-           PÁGINA DE LOGIN - ESTILOS SIMPLIFICADOS
-           ============================================ */
-        
+           PÁGINA DE LOGIN - ESTILOS UNIFICADOS
+        ============================================ */
         body {
             background: #f8fafc;
             min-height: 100vh;
@@ -33,24 +30,22 @@ require_once __DIR__ . '/../config/connection.php';
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            max-width: 900px;
+            max-width: 950px;
             width: 100%;
             display: flex;
             flex-wrap: wrap;
-            gap: 30px;
+            gap: 40px;
             margin: auto;
             border: 1px solid #e2e8f0;
         }
 
-        /* Columna izquierda: Logo */
+        /* Columna izquierda: Logo y Bienvenida */
         .hero-card {
             flex: 1;
-            min-width: 250px;
-            text-align: center;
+            min-width: 300px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
         }
 
         .logo-img {
@@ -73,38 +68,55 @@ require_once __DIR__ . '/../config/connection.php';
         .subtitulo {
             color: #64748b;
             font-size: 0.9rem;
-            margin: 0;
+            margin: 0 0 20px 0;
+        }
+
+        /* Texto de bienvenida (traído de home.php) */
+        .hero-welcome-text {
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #E8310E;
+        }
+
+        .hero-welcome-text strong {
+            color: #1e293b;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
         }
 
         /* Columna derecha: Formulario */
         .login-wrapper {
             flex: 1;
-            min-width: 250px;
+            min-width: 300px;
         }
 
-        .login-box,
-        .welcome-box {
+        .login-box, .welcome-box {
             background: #f8fafc;
-            padding: 25px;
+            padding: 30px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
 
-        .login-box h3,
-        .welcome-box h3 {
-            margin: 0 0 15px 0;
+        .login-box h3, .welcome-box h3 {
+            margin: 0 0 20px 0;
             color: #1e293b;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            text-align: center;
         }
 
         /* Formulario */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             font-weight: 600;
             font-size: 0.9rem;
             color: #334155;
@@ -112,7 +124,7 @@ require_once __DIR__ . '/../config/connection.php';
 
         .form-input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             box-sizing: border-box;
@@ -127,12 +139,11 @@ require_once __DIR__ . '/../config/connection.php';
         }
 
         /* Botones */
-        .btn-login,
-        .btn-panel {
+        .btn-login, .btn-panel {
             background: #2563eb;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 14px 20px;
             border-radius: 6px;
             cursor: pointer;
             text-decoration: none;
@@ -145,8 +156,7 @@ require_once __DIR__ . '/../config/connection.php';
             transition: background 0.2s;
         }
 
-        .btn-login:hover,
-        .btn-panel:hover {
+        .btn-login:hover, .btn-panel:hover {
             background: #1d4ed8;
         }
 
@@ -154,7 +164,7 @@ require_once __DIR__ . '/../config/connection.php';
         .alert-error {
             background: #fee2e2;
             color: #991b1b;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             font-size: 0.9rem;
             text-align: center;
@@ -165,7 +175,7 @@ require_once __DIR__ . '/../config/connection.php';
         .alert-success {
             background: #d1fae5;
             color: #065f46;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             font-size: 0.9rem;
             text-align: center;
@@ -176,7 +186,7 @@ require_once __DIR__ . '/../config/connection.php';
         /* Enlaces */
         .link-recovery {
             display: block;
-            margin-top: 15px;
+            margin-top: 20px;
             text-align: center;
             color: #64748b;
             font-size: 0.9rem;
@@ -203,10 +213,11 @@ require_once __DIR__ . '/../config/connection.php';
             color: #dc2626;
         }
 
-        /* Welcome box */
+        /* Welcome box info */
         .welcome-info {
-            margin: 10px 0;
+            margin: 10px 0 20px 0;
             color: #475569;
+            text-align: center;
         }
 
         .welcome-info strong {
@@ -225,39 +236,26 @@ require_once __DIR__ . '/../config/connection.php';
             border-top: 1px solid #e2e8f0;
         }
 
-        .main-footer p {
-            margin: 0;
-        }
-
-        .main-footer .version {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            margin-top: 5px;
-        }
+        .main-footer p { margin: 0; }
+        .main-footer .version { font-size: 0.75rem; color: #94a3b8; margin-top: 5px; }
 
         /* Responsive */
-        @media (max-width: 700px) {
+        @media (max-width: 768px) {
             .login-container {
                 flex-direction: column;
-                padding: 20px;
-                gap: 15px;
-                margin: 20px 10px;
-                width: 95%;
+                padding: 25px;
+                gap: 25px;
+                margin: 20px 15px;
+                width: 90%;
             }
-
-            .hero-card,
-            .login-wrapper {
+            .hero-card, .login-wrapper {
                 width: 100%;
                 min-width: 100%;
             }
-
-            .login-box,
-            .welcome-box {
-                padding: 15px;
-            }
-
-            .hero-card h1 {
-                font-size: 1.5rem;
+            .hero-welcome-text {
+                text-align: center;
+                border-left: none;
+                border-top: 4px solid #E8310E;
             }
         }
     </style>
@@ -265,31 +263,35 @@ require_once __DIR__ . '/../config/connection.php';
 <body>
 
     <div class="login-container">
-        
-        <!-- COLUMNA IZQUIERDA: LOGO -->
+        <!-- COLUMNA IZQUIERDA: LOGO Y MENSAJE DE BIENVENIDA (Unificado de home.php) -->
         <div class="hero-card">
             <img src="/unideportes-system/public/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
             <h1>UNI<span>DEPORTES</span></h1>
-            <p class="subtitulo">Sistema de gestión interno</p>
+            <p class="subtitulo">Sistema de gestión interna</p>
+            
+            <div class="hero-welcome-text">
+                <strong>Bienvenidos a Unideportes</strong>
+                Este sistema ha sido diseñado exclusivamente para la gestión eficiente de nuestro stock. 
+                Inicie sesión para acceder a funciones avanzadas, reportes detallados y una interfaz intuitiva que facilitará 
+                la gestión de nuestros recursos.
+            </div>
         </div>
 
-        <!-- COLUMNA DERECHA: FORMULARIO O BIENVENIDA -->
+        <!-- COLUMNA DERECHA: FORMULARIO DE LOGIN O PANEL DE USUARIO -->
         <?php if (!isset($_SESSION['username'])): ?>
             <!-- USUARIO NO LOGUEADO: Mostrar formulario -->
             <div class="login-wrapper">
                 <div class="login-box">
-                    <h3>Ingresar con usuario y contraseña</h3>
+                    <h3>Ingresar al Sistema</h3>
                     <form action="/unideportes-system/controllers/auth.php" method="POST">
                         <div class="form-group">
                             <label for="username">Usuario:</label>
-                            <input type="text" name="username" id="username" required class="form-input">
+                            <input type="text" name="username" id="username" required class="form-input" placeholder="Ej: admin">
                         </div>
-
                         <div class="form-group">
                             <label for="password">Contraseña:</label>
-                            <input type="password" name="password" id="password" required class="form-input">
+                            <input type="password" name="password" id="password" required class="form-input" placeholder="••••••••">
                         </div>
-
                         <button type="submit" name="accion" value="login" class="btn-login">ENTRAR</button>
                     </form>
 
@@ -308,33 +310,30 @@ require_once __DIR__ . '/../config/connection.php';
                     </a>
                 </div>
             </div>
-
         <?php else: ?>
-            <!-- USUARIO LOGUEADO: Mostrar bienvenida -->
+            <!-- USUARIO LOGUEADO: Mostrar bienvenida y acceso al panel -->
             <div class="login-wrapper">
                 <div class="welcome-box">
                     <h3>¡Hola de nuevo!</h3>
                     <p class="welcome-info">
-                        Sesión activa: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
+                        Sesión activa como: <br>
+                        <strong style="font-size: 1.2rem;"><?= htmlspecialchars($_SESSION['username']) ?></strong>
                     </p>
-
                     <a href="<?= ($_SESSION['role'] == 'admin') ? '/unideportes-system/views/panel_admin.php' : '/unideportes-system/views/panel_vendedor.php'; ?>" class="btn-panel">
-                        IR AL PANEL
+                        IR AL PANEL DE CONTROL
                     </a>
-
                     <a href="/unideportes-system/controllers/auth.php?logout=1" class="link-logout">
                         Cerrar sesión
                     </a>
                 </div>
             </div>
         <?php endif; ?>
-        
     </div>
 
     <!-- FOOTER -->
     <footer class="main-footer">
         <p>&copy; <?php echo date("Y"); ?> <strong>Unideportes</strong>. Todos los derechos reservados.</p>
-        <p class="version">Sistema de Control de Inventario y Ventas v1.2</p>
+        <p class="version">Sistema de Control de Inventario y Ventas v1.2 | Proyecto ADSO - SENA</p>
     </footer>
 
 </body>
