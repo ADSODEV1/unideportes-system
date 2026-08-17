@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 17, 2026 at 07:09 PM
+-- Generation Time: Aug 17, 2026 at 10:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -184,7 +184,11 @@ INSERT INTO `detalle_pedido` (`id`, `pedido_id`, `tipo_prenda_id`, `cantidad`, `
 (4, 2, 3, 10, 12000.00, 'Rojo', 'Única', 'Pedido al por mayor para dotación'),
 (15, 26, 6, 10, 85000.00, NULL, NULL, 'm'),
 (16, 27, 4, 19, 180000.00, NULL, NULL, 'T 10 - 7 -, T 12 - 5, color azul con franja amarilla'),
-(19, 34, 7, 35, 75000.00, 'uihu87', 'm', 'drgerdg');
+(19, 34, 7, 35, 75000.00, 'uihu87', 'm', 'drgerdg'),
+(20, 35, 2, 40, 35000.00, 'AZUL', 'M', 'JKLDJFALKJ'),
+(21, 36, 6, 35, 85000.00, 'BLACF', 'F', 'FFFFF'),
+(22, 37, 3, 35, 42000.00, 'rojo', 'm', 'sdlkjfgvsoi j'),
+(23, 38, 6, 35, 85000.00, 'rojum', 'g', 'ghndj');
 
 -- --------------------------------------------------------
 
@@ -399,7 +403,15 @@ INSERT INTO `pagos` (`id_pago`, `id_pg_pedido`, `monto`, `metodo_pago`, `platafo
 (26, 27, 500000.00, 'Efectivo', NULL, NULL, '2026-07-09 17:35:59'),
 (28, 27, 1870000.00, 'Efectivo', NULL, NULL, '2026-07-22 11:46:36'),
 (29, 26, 50000.00, 'Efectivo', NULL, NULL, '2026-07-22 11:47:09'),
-(30, 34, 1400000.00, 'Efectivo', NULL, NULL, '2026-08-15 18:01:00');
+(30, 34, 1400000.00, 'Efectivo', NULL, NULL, '2026-08-15 18:01:00'),
+(31, 35, 700000.00, 'Efectivo', NULL, NULL, '2026-08-17 12:56:59'),
+(32, 36, 1500000.00, 'Efectivo', NULL, NULL, '2026-08-17 12:58:00'),
+(33, 37, 750000.00, 'Efectivo', NULL, NULL, '2026-08-17 13:05:57'),
+(34, 38, 1500000.00, 'Efectivo', NULL, NULL, '2026-08-17 13:59:51'),
+(35, 11, 1125000.00, 'Efectivo', NULL, NULL, '2026-08-17 15:00:58'),
+(36, 12, 420000.00, 'Efectivo', NULL, NULL, '2026-08-17 15:01:30'),
+(37, 13, 256000.00, 'Efectivo', NULL, NULL, '2026-08-17 15:02:59'),
+(38, 14, 292000.00, 'Efectivo', NULL, NULL, '2026-08-17 15:03:15');
 
 -- --------------------------------------------------------
 
@@ -459,13 +471,15 @@ CREATE TABLE `pedidos` (
   `descripcion` text DEFAULT NULL,
   `cantidad` int(11) NOT NULL DEFAULT 1,
   `total_pedido` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `estado` enum('En Corte','En Costura','Terminado','Entregado') NOT NULL DEFAULT 'En Corte',
+  `estado` enum('En Corte','En Costura','Terminado','Entregado','Cancelado por Cliente','Pausado','Vencido') DEFAULT 'En Corte',
   `fecha_actualizacion` datetime DEFAULT NULL,
   `tipo_entrega` varchar(50) DEFAULT 'Tienda',
   `direccion_entrega` varchar(255) DEFAULT NULL,
   `barrio_entrega` varchar(100) DEFAULT NULL,
   `ciudad_entrega` varchar(100) DEFAULT NULL,
   `observaciones_entrega` varchar(500) DEFAULT NULL,
+  `notas_admin` text DEFAULT NULL,
+  `modificado_por` int(11) DEFAULT NULL,
   `fecha_entrega` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `vendedor_id` int(11) DEFAULT NULL,
@@ -477,21 +491,25 @@ CREATE TABLE `pedidos` (
 -- Dumping data for table `pedidos`
 --
 
-INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_actualizacion`, `tipo_entrega`, `direccion_entrega`, `barrio_entrega`, `ciudad_entrega`, `observaciones_entrega`, `fecha_entrega`, `created_at`, `vendedor_id`, `abono`, `saldo_pendiente`) VALUES
-(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-15', '2026-05-25 17:43:41', NULL, 1100000.00, 0.00),
-(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-10', '2026-05-25 17:43:41', NULL, 4500000.00, 0.00),
-(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-28', '2026-05-25 17:43:41', NULL, 720000.00, 0.00),
-(4, 5, 'Pedido de confección mayorista', NULL, 1, 0.00, 'Entregado', NULL, 'Domicilio', 'Calle 3 este 9 20', 'rosario', 'Sogamoso', 'casa', '2026-06-25', '2026-06-10 20:08:36', NULL, 0.00, 0.00),
-(5, 12, '25 uniformes tipo Inter niño', 'Tela algodon 100', 25, 1125000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-06-25', '2026-06-13 16:08:44', NULL, 1125000.00, 0.00),
-(9, 12, '52 Uniformes de colegio la paz preescolar', 'Camisas cuello V', 52, 2080000.00, 'En Costura', '2026-08-13 18:56:19', 'Tienda', NULL, NULL, NULL, NULL, '2026-06-29', '2026-06-17 17:07:44', NULL, 1580000.00, 500000.00),
-(10, 4, '25 uniformes tipo Inter niño', 'Escudos bordadodos', 100, 4000000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-07', '2026-06-25 21:46:04', NULL, 4000000.00, 0.00),
-(11, 14, '25 uniformes de baloncesto para niño', 'tela polisster', 25, 4125000.00, 'Terminado', '2026-08-13 18:56:07', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:37:57', 3, 1500000.00, 2625000.00),
-(12, 15, 'Uniformes colegio san pedro', 'costura reforzadas', 25, 1050000.00, 'Terminado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:51:25', 3, 315000.00, 735000.00),
-(13, 5, 'Uniformes colegio san benito', '', 18, 756000.00, 'Terminado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 23:02:29', 3, 250000.00, 506000.00),
-(14, 19, 'Camiseta Niños', 'Tela Nylon, Talla 12, Color Azul, BalonMano, Escudo a la izquierda Leon amarillo,', 22, 792000.00, 'Terminado', '2026-08-13 18:55:58', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-12', '2026-06-27 03:56:11', 3, 250000.00, 542000.00),
-(26, 1, 'Camiseta Niños', 'Camiseta Niños', 10, 850000.00, 'Terminado', '2026-08-13 18:56:04', 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:29:15', 3, 300000.00, 500000.00),
-(27, 19, 'Camiseta Niños', 'Pedido torneo microfutbol niños 12 años, tallas 10 - und 7, tallas 12 - und 5', 19, 3420000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:44:10', 3, 1550000.00, 0.00),
-(34, 17, 'Confección: 35× Sudadera', NULL, 35, 2625000.00, 'En Corte', NULL, 'Tienda', NULL, NULL, 'Sogamoso', NULL, '2026-08-28', '2026-08-15 23:01:00', 3, 1400000.00, 1225000.00);
+INSERT INTO `pedidos` (`id`, `cliente_id`, `detalle`, `descripcion`, `cantidad`, `total_pedido`, `estado`, `fecha_actualizacion`, `tipo_entrega`, `direccion_entrega`, `barrio_entrega`, `ciudad_entrega`, `observaciones_entrega`, `notas_admin`, `modificado_por`, `fecha_entrega`, `created_at`, `vendedor_id`, `abono`, `saldo_pendiente`) VALUES
+(1, 2, '22 Uniformes de Fútbol - Inter de Sogamoso', 'Camiseta dry-fit con escudo bordado, pantaloneta y medias. Tallas: 10 M, 12 L.', 22, 1100000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-15', '2026-05-25 17:43:41', NULL, 1100000.00, 0.00),
+(2, 6, '50 Chaquetas Universitarias - Prom Lorena', 'Chaqueta impermeable con forro térmico y logo personalizado en la espalda.', 50, 4500000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-10', '2026-05-25 17:43:41', NULL, 4500000.00, 0.00),
+(3, 3, '12 Conjuntos de Baloncesto sobre medida', 'Camisilla y pantaloneta holgada con números estampados.', 12, 720000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-28', '2026-05-25 17:43:41', NULL, 720000.00, 0.00),
+(4, 5, 'Pedido de confección mayorista', NULL, 1, 0.00, 'Entregado', NULL, 'Domicilio', 'Calle 3 este 9 20', 'rosario', 'Sogamoso', 'casa', NULL, NULL, '2026-06-25', '2026-06-10 20:08:36', NULL, 0.00, 0.00),
+(5, 12, '25 uniformes tipo Inter niño', 'Tela algodon 100', 25, 1125000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-25', '2026-06-13 16:08:44', NULL, 1125000.00, 0.00),
+(9, 12, '52 Uniformes de colegio la paz preescolar', 'Camisas cuello V', 52, 2080000.00, 'Entregado', '2026-08-17 15:00:27', 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-29', '2026-06-17 17:07:44', NULL, 1580000.00, 0.00),
+(10, 4, '25 uniformes tipo Inter niño', 'Escudos bordadodos', 100, 4000000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-07', '2026-06-25 21:46:04', NULL, 4000000.00, 0.00),
+(11, 14, '25 uniformes de baloncesto para niño', 'tela polisster', 25, 4125000.00, 'Entregado', '2026-08-13 18:56:07', 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:37:57', 3, 1500000.00, 0.00),
+(12, 15, 'Uniformes colegio san pedro', 'costura reforzadas', 25, 1050000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 22:51:25', 3, 315000.00, 0.00),
+(13, 5, 'Uniformes colegio san benito', '', 18, 756000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-11', '2026-06-25 23:02:29', 3, 250000.00, 0.00),
+(14, 19, 'Camiseta Niños', 'Tela Nylon, Talla 12, Color Azul, BalonMano, Escudo a la izquierda Leon amarillo,', 22, 792000.00, 'Entregado', '2026-08-13 18:55:58', 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-12', '2026-06-27 03:56:11', 3, 250000.00, 0.00),
+(26, 1, 'Camiseta Niños', 'Camiseta Niños', 10, 850000.00, 'Pausado', '2026-08-17 15:15:46', 'Tienda', NULL, NULL, NULL, NULL, '[17/08/2026 22:15 - admin] Es cliente dejo de pagar', 1, '2026-07-13', '2026-06-27 22:29:15', 3, 300000.00, 500000.00),
+(27, 19, 'Camiseta Niños', 'Pedido torneo microfutbol niños 12 años, tallas 10 - und 7, tallas 12 - und 5', 19, 3420000.00, 'Entregado', NULL, 'Tienda', NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-13', '2026-06-27 22:44:10', 3, 1550000.00, 0.00),
+(34, 17, 'Confección: 35× Sudadera', NULL, 35, 2625000.00, 'Terminado', '2026-08-17 15:06:49', 'Tienda', NULL, NULL, 'Sogamoso', NULL, NULL, NULL, '2026-08-28', '2026-08-15 23:01:00', 3, 1400000.00, 1225000.00),
+(35, 6, 'Confección: 40× Camiseta manga corta', NULL, 40, 1400000.00, 'En Corte', NULL, 'Domicilio', 'Calle 14 N 10-54', 'Centro', 'Sogamoso', 'Local 109', NULL, NULL, '2026-09-01', '2026-08-17 17:56:59', 3, 700000.00, 700000.00),
+(36, 15, 'Confección: 35× Chaqueta deportiva', NULL, 35, 2975000.00, 'En Corte', NULL, 'Tienda', NULL, NULL, 'Sogamoso', NULL, NULL, NULL, '2026-09-01', '2026-08-17 17:58:00', 3, 1500000.00, 1475000.00),
+(37, 23, 'Confección: 35× Camiseta manga larga', NULL, 35, 1470000.00, 'Entregado', '2026-08-17 15:20:11', 'Tienda', NULL, NULL, 'Sogamoso', NULL, NULL, 1, '2026-09-01', '2026-08-17 18:05:57', 3, 750000.00, 0.00),
+(38, 14, 'Confección: 35× Chaqueta deportiva', NULL, 35, 2975000.00, 'En Corte', NULL, 'Tienda', NULL, NULL, 'Sogamoso', NULL, NULL, NULL, '2026-09-03', '2026-08-17 18:59:51', 3, 1500000.00, 1475000.00);
 
 -- --------------------------------------------------------
 
@@ -1099,7 +1117,7 @@ ALTER TABLE `clientes`
 -- AUTO_INCREMENT for table `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
@@ -1111,7 +1129,7 @@ ALTER TABLE `detalle_venta`
 -- AUTO_INCREMENT for table `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `pagos_venta`
@@ -1129,7 +1147,7 @@ ALTER TABLE `password_resets`
 -- AUTO_INCREMENT for table `pedidos`
 --
 ALTER TABLE `pedidos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `precios_base_confeccion`
