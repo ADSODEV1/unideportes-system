@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // permisos de acceso: solo admin y colaboradores (fábrica)
 require_login(['admin', 'colaborador']);
+$ve_dinero = (($_SESSION['role'] ?? '') === 'admin');
 
 // Usamos ÚNICAMENTE la conexión PDO oficial del sistema
 $pdo = app();
@@ -114,7 +115,7 @@ include(__DIR__ . "/header.php");
                         <th>Cliente</th>
                         <th>Fecha Entrega</th>
                         <th>Estado</th>
-                        <th>Finanzas (Abono / Saldo)</th>
+                        <?php if ($ve_dinero): ?><th>Finanzas (Abono / Saldo)</th><?php endif; ?>
                         <th>Detalle de Confección</th>
                         <th style="text-align: center;">Acciones</th>
                     </tr>
@@ -122,7 +123,7 @@ include(__DIR__ . "/header.php");
                 <tbody>
                     <?php if (count($pedidos_activos) == 0): ?>
                         <tr>
-                            <td colspan="7" class="empty-state">
+                            <td colspan="<?= $ve_dinero ? 7 : 6 ?>" class="empty-state">
                                 No hay órdenes activas en fabricación en este momento.
                             </td>
                         </tr>
@@ -149,14 +150,16 @@ include(__DIR__ . "/header.php");
                                         <?= htmlspecialchars($pedido['estado']); ?>
                                     </span>
                                 </td>
+                                <?php if ($ve_dinero): ?>
                                 <td>
-                                    <small style="display: block; color: var(--success); font-weight: 600;">
-                                        Abonó: $<?= number_format($abono, 0, ',', '.'); ?>
-                                    </small>
-                                    <small style="display: block; color: var(--danger); font-weight: 700;">
-                                        Saldo: $<?= number_format($saldo, 0, ',', '.'); ?>
-                                    </small>
+                                <small style="display: block; color: var(--success); font-weight: 600;">
+                                   Abonó: $<?= number_format($abono, 0, ',', '.'); ?>
+                                </small>
+                                 <small style="display: block; color: var(--danger); font-weight: 700;">
+                                 Saldo: $<?= number_format($saldo, 0, ',', '.'); ?>
+                                 </small>
                                 </td>
+                                <?php endif; ?>
                                 <td style="font-size: 0.85rem; color: var(--text); line-height: 1.5;">
                                     <?= htmlspecialchars($pedido['resumen_detalle'] ?: 'Sin detalles específicos cargados'); ?>
                                 </td>

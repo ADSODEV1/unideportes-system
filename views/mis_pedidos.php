@@ -14,6 +14,13 @@ require_login(['admin', 'colaborador', 'vendedor']);
 // Capturar filtro de búsqueda si existe
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 $alerta = isset($_GET['alerta']) ? trim($_GET['alerta']) : '';
+$filtro = isset($_GET['filtro']) ? trim($_GET['filtro']) : '';
+$where_base = "p.estado != 'Entregado'";
+if ($filtro === 'con_saldo') {
+        $where_base = "p.estado = 'Entregado' AND (COALESCE((SELECT SUM(dp.cantidad * dp.precio_unitario) FROM detalle_pedido dp WHERE dp.pedido_id = p.id), p.total_pedido, 0) - IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)) > 0";
+} elseif ($filtro === 'terminados') {
+    $where_base = "LOWER(TRIM(p.estado)) = 'terminado'";
+}
 
 // Construir consulta dinámica alineada a unideportes-bd.sql 
 try {
@@ -47,7 +54,7 @@ try {
                        0
                    ) AS total_pedido_real,
                    p.estado,
-                  (COALESCE(p.abono, 0) + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)) AS total_pagado,
+                  IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado,
                   GREATEST(
                       COALESCE(
                           (SELECT SUM(dp.cantidad * dp.precio_unitario)
@@ -55,12 +62,12 @@ try {
                            WHERE dp.pedido_id = p.id),
                           p.total_pedido,
                           0
-                      ) - (COALESCE(p.abono, 0) + IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0)),
+                      ) - IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0),
                       0
                   ) AS saldo_pendiente_real
             FROM pedidos p
             INNER JOIN clientes c ON p.cliente_id = c.id
-            WHERE p.estado != 'Entregado'";
+            WHERE $where_base";
 
     if ($busqueda !== '') {
         $sql .= " AND (c.nombre_completo LIKE :busqueda OR c.nit_cedula LIKE :busqueda)";
@@ -256,11 +263,15 @@ include(__DIR__ . "/header.php");
                                             </button>
                                         </form>
 
+                                        <?php if ($estado_texto !== 'entregado'): ?>
                                         <button type="button" class="btn-secondary" disabled
-                                                style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
-                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
-                                            📦 Entregar (bloqueado)
+                                        style="font-size:0.84rem; padding:7px 10px; cursor:not-allowed; opacity:0.6;"
+                                        title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                        📦 Entregar (bloqueado)
                                         </button>
+                                        <?php else: ?>
+                                        <small style="color: var(--text-light); font-size:0.8rem;">📦 Ya entregado — cobrar saldo</small>
+                                        <?php endif; ?>
 
                                     <?php elseif ($puede_entregar): ?>
                                         <form method="POST" action="/unideportes-system/controllers/procesar_entrega_controller.php"
@@ -399,11 +410,15 @@ include(__DIR__ . "/header.php");
                                             💰 Registrar Pago
                                         </button>
 
+                                        <?php if ($estado_texto !== 'entregado'): ?>
                                         <button type="button" class="btn-secondary" disabled
-                                                style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
-                                                title="<?= htmlspecialchars($motivo_bloqueo) ?>">
-                                            📦 Entregar (bloqueado)
+                                        style="width: 100%; opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;"
+                                        title="<?= htmlspecialchars($motivo_bloqueo) ?>">
+                                        📦 Entregar (bloqueado)
                                         </button>
+                                        <?php else: ?>
+                                        <small style="color: var(--text-light); font-size:0.8rem;">📦 Ya entregado — cobrar saldo</small>
+                                        <?php endif; ?>
                                     </form>
                                 </div>
 

@@ -9,6 +9,7 @@ $rol_usuario = $_SESSION['role'] ?? '';
 $usuario_nombre = $_SESSION['username'] ?? 'Usuario';
 $pagina_actual = basename($_SERVER['PHP_SELF']);
 $base = "/unideportes-system";
+$panel_inicio = ($rol_usuario == 'admin') ? 'panel_admin.php' : (($rol_usuario == 'colaborador') ? 'panel_colaborador.php' : 'panel_vendedor.php');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -31,7 +32,7 @@ $base = "/unideportes-system";
         </button>
 
         <!-- LOGO -->
-        <a class="logo" href="<?= ($rol_usuario == 'admin') ? 'panel_admin.php' : 'panel_vendedor.php' ?>">
+        <a class="logo" href="<?= $panel_inicio ?>">
             <img src="/unideportes-system/assets/imagenes/logo-unideportes.png" alt="Logo Unideportes" class="logo-img">
             UNI<span>DEPORTES</span>
         </a>

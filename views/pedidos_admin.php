@@ -34,7 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_estado']))
         header("Location: pedidos_admin.php?error=solo_admin&t=" . time());
         exit();
     }
-    
+    // 💰 VALIDACIÓN DE CARTERA: prohibido entregar con saldo pendiente
+if ($nuevo_estado === 'Entregado') {
+    $stmtS = $pdo->prepare("SELECT p.total_pedido,
+        IFNULL((SELECT SUM(pa.monto) FROM pagos pa WHERE pa.id_pg_pedido = p.id), 0) AS total_pagado
+        FROM pedidos p WHERE p.id = ?");
+    $stmtS->execute([$pedido_id]);
+    $fila = $stmtS->fetch(PDO::FETCH_ASSOC);
+    if ($fila && (floatval($fila['total_pedido']) - floatval($fila['total_pagado'])) > 0) {
+        header("Location: pedidos_admin.php?error=saldo_pendiente&t=" . time());
+        exit();
+    }
+}
     if (in_array($nuevo_estado, $estados_validos)) {
         try {
             // Si el estado requiere nota obligatoria, validarla
@@ -234,6 +245,8 @@ include(__DIR__ . "/header.php");
     <div class="alert alert-error">⚠️ Debes escribir una nota explicando el motivo del cambio.</div>
 <?php elseif ($error === 'solo_admin'): ?>
     <div class="alert alert-error">🔒 Solo el administrador puede cancelar o marcar como entregado.</div>
+    <?php elseif ($error === 'saldo_pendiente'): ?>
+<div class="alert alert-error">💰 No se puede marcar como Entregado: el pedido aún tiene saldo pendiente. Cobra el saldo desde Despacho / Entregas.</div>
 <?php elseif ($error): ?>
     <div class="alert alert-error">❌ Ocurrió un error. Inténtalo de nuevo.</div>
 <?php endif; ?>

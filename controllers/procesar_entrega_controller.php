@@ -50,9 +50,11 @@ try {
         throw new Exception("El pedido no existe.");
     }
 
+    // 🔒 total_pagado YA incluye el abono inicial (ambos están en la tabla pagos).
+    // No sumar dos veces: usar solo total_pagado como fuente única de verdad.
     $saldo_calculado = max(
-        0,
-        floatval($valores['total_pedido']) - (floatval($valores['abono_inicial']) + floatval($valores['total_pagado']))
+    0,
+    floatval($valores['total_pedido']) - floatval($valores['total_pagado'])
     );
 
     if ($accion === 'abonar') {
